@@ -1,0 +1,2982 @@
+{
+ "task": "ContactsAddContact",
+ "goal": "Create a new contact for Muhammad Mohammed. Their number is +10891448553.",
+ "step": 6,
+ "t3a_action": "Reason: We have already entered the first name \"Muhammad\" and last name \"Mohammed\". The next step is to enter the phone number \"+10891448553\" into the Phone field (index 10).\nAction: {\"action_type\": \"input_text\", \"index\": 10, \"text\": \"+10891448553\"}",
+ "t3a_text": "UI element 0: UIElement(text=None, content_description='Cancel', class_name='android.widget.ImageButton', bbox=None, bbox_pixels=BoundingBox(x_min=0, x_max=147, y_min=138, y_max=285), hint_text=None, is_checked=False, is_checkable=False, is_clickable=True, is_editable=False, is_enabled=True, is_focused=False, is_focusable=True, is_long_clickable=False, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.contacts', resource_name=None, tooltip=None, resource_id=None, metadata=None)\nUI element 1: UIElement(text='Create contact', content_description=None, class_name='android.widget.TextView', bbox=None, bbox_pixels=BoundingBox(x_min=157, x_max=551, y_min=175, y_max=248), hint_text=None, is_checked=False, is_checkable=False, is_clickable=False, is_editable=False, is_enabled=True, is_focused=False, is_focusable=False, is_long_clickable=False, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.contacts', resource_name=None, tooltip=None, resource_id=None, metadata=None)\nUI element 2: UIElement(text='Save', content_description=None, class_name='android.widget.Button', bbox=None, bbox_pixels=BoundingBox(x_min=723, x_max=954, y_min=148, y_max=274), hint_text=None, is_checked=False, is_checkable=False, is_clickable=True, is_editable=False, is_enabled=True, is_focused=False, is_focusable=True, is_long_clickable=False, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.contacts', resource_name='com.google.android.contacts:id/toolbar_button', tooltip=None, resource_id=None, metadata=None)\nUI element 3: UIElement(text=None, content_description='More options', class_name='android.widget.ImageView', bbox=None, bbox_pixels=BoundingBox(x_min=954, x_max=1080, y_min=148, y_max=274), hint_text=None, is_checked=False, is_checkable=False, is_clickable=True, is_editable=False, is_enabled=True, is_focused=False, is_focusable=True, is_long_clickable=True, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.contacts', resource_name=None, tooltip=None, resource_id=None, metadata=None)\nUI element 4: UIElement(text=None, content_description=None, class_name='android.widget.ScrollView', bbox=None, bbox_pixels=BoundingBox(x_min=0, x_max=1080, y_min=296, y_max=1517), hint_text=None, is_checked=False, is_checkable=False, is_clickable=False, is_editable=False, is_enabled=True, is_focused=False, is_focusable=True, is_long_clickable=False, is_scrollable=True, is_selected=False, is_visible=True, package_name='com.google.android.contacts', resource_name='com.google.android.contacts:id/contact_editor_scroller', tooltip=None, resource_id=None, metadata=None)\nUI element 5: UIElement(text=None, content_description='Add contact photo', class_name='android.widget.FrameLayout', bbox=None, bbox_pixels=BoundingBox(x_min=382, x_max=697, y_min=349, y_max=664), hint_text=None, is_checked=False, is_checkable=False, is_clickable=True, is_editable=False, is_enabled=True, is_focused=False, is_focusable=True, is_long_clickable=False, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.contacts', resource_name='com.google.android.contacts:id/photo_update_clickable', tooltip=None, resource_id=None, metadata=None)\nUI element 6: UIElement(text='Add picture', content_description=None, class_name='android.widget.Button', bbox=None, bbox_pixels=BoundingBox(x_min=406, x_max=673, y_min=664, y_max=790), hint_text=None, is_checked=False, is_checkable=False, is_clickable=True, is_editable=False, is_enabled=True, is_focused=False, is_focusable=True, is_long_clickable=False, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.contacts', resource_name='com.google.android.contacts:id/button_change_photo', tooltip=None, resource_id=None, metadata=None)\nUI element 7: UIElement(text='Muhammad', content_description=None, class_name='android.widget.EditText', bbox=None, bbox_pixels=BoundingBox(x_min=137, x_max=933, y_min=858, y_max=1007), hint_text='First name', is_checked=False, is_checkable=False, is_clickable=True, is_editable=True, is_enabled=True, is_focused=False, is_focusable=True, is_long_clickable=True, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.contacts', resource_name=None, tooltip=None, resource_id=None, metadata=None)\nUI element 8: UIElement(text='Mohammed', content_description=None, class_name='android.widget.EditText', bbox=None, bbox_pixels=BoundingBox(x_min=137, x_max=933, y_min=1043, y_max=1192), hint_text='Last name', is_checked=False, is_checkable=False, is_clickable=True, is_editable=True, is_enabled=True, is_focused=False, is_focusable=True, is_long_clickable=True, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.contacts', resource_name=None, tooltip=None, resource_id=None, metadata=None)\nUI element 9: UIElement(text='Company', content_description=None, class_name='android.widget.EditText', bbox=None, bbox_pixels=BoundingBox(x_min=137, x_max=933, y_min=1249, y_max=1398), hint_text='Company', is_checked=False, is_checkable=False, is_clickable=True, is_editable=True, is_enabled=True, is_focused=False, is_focusable=True, is_long_clickable=True, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.contacts', resource_name=None, tooltip=None, resource_id=None, metadata=None)\nUI element 10: UIElement(text='Phone', content_description=None, class_name='android.widget.EditText', bbox=None, bbox_pixels=BoundingBox(x_min=137, x_max=933, y_min=1455, y_max=1517), hint_text='Phone', is_checked=False, is_checkable=False, is_clickable=True, is_editable=True, is_enabled=True, is_focused=False, is_focusable=True, is_long_clickable=True, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.contacts', resource_name=None, tooltip=None, resource_id=None, metadata=None)\nUI element 11: UIElement(text=None, content_description='Show more name fields', class_name='android.widget.ImageView', bbox=None, bbox_pixels=BoundingBox(x_min=933, x_max=1080, y_min=843, y_max=990), hint_text=None, is_checked=False, is_checkable=False, is_clickable=False, is_editable=False, is_enabled=True, is_focused=False, is_focusable=False, is_long_clickable=False, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.contacts', resource_name='com.google.android.contacts:id/expansion_view', tooltip=None, resource_id=None, metadata=None)\nUI element 12: UIElement(text=None, content_description='Back', class_name='android.widget.ImageView', bbox=None, bbox_pixels=BoundingBox(x_min=71, x_max=254, y_min=2274, y_max=2400), hint_text=None, is_checked=False, is_checkable=False, is_clickable=True, is_editable=False, is_enabled=True, is_focused=False, is_focusable=True, is_long_clickable=True, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.inputmethod.latin', resource_name='android:id/input_method_nav_back', tooltip=None, resource_id=None, metadata=None)\nUI element 13: UIElement(text=None, content_description='Switch input method', class_name='android.widget.ImageView', bbox=None, bbox_pixels=BoundingBox(x_min=826, x_max=1009, y_min=2274, y_max=2400), hint_text=None, is_checked=False, is_checkable=False, is_clickable=True, is_editable=False, is_enabled=True, is_focused=False, is_focusable=True, is_long_clickable=True, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.inputmethod.latin', resource_name='android:id/input_method_nav_ime_switcher', tooltip=None, resource_id=None, metadata=None)\nUI element 14: UIElement(text=None, content_description='More features', class_name='android.widget.FrameLayout', bbox=None, bbox_pixels=BoundingBox(x_min=5, x_max=115, y_min=1517, y_max=1633), hint_text=None, is_checked=False, is_checkable=False, is_clickable=True, is_editable=False, is_enabled=True, is_focused=False, is_focusable=True, is_long_clickable=False, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.inputmethod.latin', resource_name='com.google.android.inputmethod.latin:id/key_pos_header_access_points_menu', tooltip=None, resource_id=None, metadata=None)\nUI element 15: UIElement(text=None, content_description=None, class_name='android.widget.HorizontalScrollView', bbox=None, bbox_pixels=BoundingBox(x_min=134, x_max=946, y_min=1517, y_max=1633), hint_text=None, is_checked=False, is_checkable=False, is_clickable=False, is_editable=False, is_enabled=True, is_focused=False, is_focusable=True, is_long_clickable=False, is_scrollable=True, is_selected=False, is_visible=True, package_name='com.google.android.inputmethod.latin', resource_name='com.google.android.inputmethod.latin:id/0_resource_name_obfuscated', tooltip=None, resource_id=None, metadata=None)\nUI element 16: UIElement(text=None, content_description='Voice input', class_name='android.widget.FrameLayout', bbox=None, bbox_pixels=BoundingBox(x_min=965, x_max=1075, y_min=1517, y_max=1633), hint_text=None, is_checked=False, is_checkable=False, is_clickable=True, is_editable=False, is_enabled=True, is_focused=False, is_focusable=True, is_long_clickable=True, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.inputmethod.latin', resource_name='com.google.android.inputmethod.latin:id/key_pos_header_power_key', tooltip=None, resource_id=None, metadata=None)\nUI element 17: UIElement(text=None, content_description='Q', class_name='android.widget.FrameLayout', bbox=None, bbox_pixels=BoundingBox(x_min=5, x_max=112, y_min=1654, y_max=1808), hint_text=None, is_checked=False, is_checkable=False, is_clickable=True, is_editable=False, is_enabled=True, is_focused=False, is_focusable=True, is_long_clickable=True, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.inputmethod.latin', resource_name='com.google.android.inputmethod.latin:id/key_pos_0_0', tooltip=None, resource_id=None, metadata=None)\nUI element 18: UIElement(text=None, content_description='W', class_name='android.widget.FrameLayout', bbox=None, bbox_pixels=BoundingBox(x_min=112, x_max=219, y_min=1654, y_max=1808), hint_text=None, is_checked=False, is_checkable=False, is_clickable=True, is_editable=False, is_enabled=True, is_focused=False, is_focusable=True, is_long_clickable=True, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.inputmethod.latin', resource_name='com.google.android.inputmethod.latin:id/key_pos_0_1', tooltip=None, resource_id=None, metadata=None)\nUI element 19: UIElement(text=None, content_description='E', class_name='android.widget.FrameLayout', bbox=None, bbox_pixels=BoundingBox(x_min=219, x_max=326, y_min=1654, y_max=1808), hint_text=None, is_checked=False, is_checkable=False, is_clickable=True, is_editable=False, is_enabled=True, is_focused=False, is_focusable=True, is_long_clickable=True, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.inputmethod.latin', resource_name='com.google.android.inputmethod.latin:id/key_pos_0_2', tooltip=None, resource_id=None, metadata=None)\nUI element 20: UIElement(text=None, content_description='R', class_name='android.widget.FrameLayout', bbox=None, bbox_pixels=BoundingBox(x_min=326, x_max=433, y_min=1654, y_max=1808), hint_text=None, is_checked=False, is_checkable=False, is_clickable=True, is_editable=False, is_enabled=True, is_focused=False, is_focusable=True, is_long_clickable=True, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.inputmethod.latin', resource_name='com.google.android.inputmethod.latin:id/key_pos_0_3', tooltip=None, resource_id=None, metadata=None)\nUI element 21: UIElement(text=None, content_description='T', class_name='android.widget.FrameLayout', bbox=None, bbox_pixels=BoundingBox(x_min=433, x_max=540, y_min=1654, y_max=1808), hint_text=None, is_checked=False, is_checkable=False, is_clickable=True, is_editable=False, is_enabled=True, is_focused=False, is_focusable=True, is_long_clickable=True, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.inputmethod.latin', resource_name='com.google.android.inputmethod.latin:id/key_pos_0_4', tooltip=None, resource_id=None, metadata=None)\nUI element 22: UIElement(text=None, content_description='Y', class_name='android.widget.FrameLayout', bbox=None, bbox_pixels=BoundingBox(x_min=540, x_max=647, y_min=1654, y_max=1808), hint_text=None, is_checked=False, is_checkable=False, is_clickable=True, is_editable=False, is_enabled=True, is_focused=False, is_focusable=True, is_long_clickable=True, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.inputmethod.latin', resource_name='com.google.android.inputmethod.latin:id/key_pos_0_5', tooltip=None, resource_id=None, metadata=None)\nUI element 23: UIElement(text=None, content_description='U', class_name='android.widget.FrameLayout', bbox=None, bbox_pixels=BoundingBox(x_min=647, x_max=754, y_min=1654, y_max=1808), hint_text=None, is_checked=False, is_checkable=False, is_clickable=True, is_editable=False, is_enabled=True, is_focused=False, is_focusable=True, is_long_clickable=True, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.inputmethod.latin', resource_name='com.google.android.inputmethod.latin:id/key_pos_0_6', tooltip=None, resource_id=None, metadata=None)\nUI element 24: UIElement(text=None, content_description='I', class_name='android.widget.FrameLayout', bbox=None, bbox_pixels=BoundingBox(x_min=754, x_max=861, y_min=1654, y_max=1808), hint_text=None, is_checked=False, is_checkable=False, is_clickable=True, is_editable=False, is_enabled=True, is_focused=False, is_focusable=True, is_long_clickable=True, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.inputmethod.latin', resource_name='com.google.android.inputmethod.latin:id/key_pos_0_7', tooltip=None, resource_id=None, metadata=None)\nUI element 25: UIElement(text=None, content_description='O', class_name='android.widget.FrameLayout', bbox=None, bbox_pixels=BoundingBox(x_min=861, x_max=968, y_min=1654, y_max=1808), hint_text=None, is_checked=False, is_checkable=False, is_clickable=True, is_editable=False, is_enabled=True, is_focused=False, is_focusable=True, is_long_clickable=True, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.inputmethod.latin', resource_name='com.google.android.inputmethod.latin:id/key_pos_0_8', tooltip=None, resource_id=None, metadata=None)\nUI element 26: UIElement(text=None, content_description='P', class_name='android.widget.FrameLayout', bbox=None, bbox_pixels=BoundingBox(x_min=968, x_max=1075, y_min=1654, y_max=1808), hint_text=None, is_checked=False, is_checkable=False, is_clickable=True, is_editable=False, is_enabled=True, is_focused=False, is_focusable=True, is_long_clickable=True, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.inputmethod.latin', resource_name='com.google.android.inputmethod.latin:id/key_pos_0_9', tooltip=None, resource_id=None, metadata=None)\nUI element 27: UIElement(text=None, content_description='A', class_name='android.widget.FrameLayout', bbox=None, bbox_pixels=BoundingBox(x_min=5, x_max=165, y_min=1808, y_max=1963), hint_text=None, is_checked=False, is_checkable=False, is_clickable=True, is_editable=False, is_enabled=True, is_focused=False, is_focusable=True, is_long_clickable=True, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.inputmethod.latin', resource_name='com.google.android.inputmethod.latin:id/key_pos_1_0', tooltip=None, resource_id=None, metadata=None)\nUI element 28: UIElement(text=None, content_description='S', class_name='android.widget.FrameLayout', bbox=None, bbox_pixels=BoundingBox(x_min=165, x_max=272, y_min=1808, y_max=1963), hint_text=None, is_checked=False, is_checkable=False, is_clickable=True, is_editable=False, is_enabled=True, is_focused=False, is_focusable=True, is_long_clickable=True, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.inputmethod.latin', resource_name='com.google.android.inputmethod.latin:id/key_pos_1_1', tooltip=None, resource_id=None, metadata=None)\nUI element 29: UIElement(text=None, content_description='D', class_name='android.widget.FrameLayout', bbox=None, bbox_pixels=BoundingBox(x_min=272, x_max=379, y_min=1808, y_max=1963), hint_text=None, is_checked=False, is_checkable=False, is_clickable=True, is_editable=False, is_enabled=True, is_focused=False, is_focusable=True, is_long_clickable=False, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.inputmethod.latin', resource_name='com.google.android.inputmethod.latin:id/key_pos_1_2', tooltip=None, resource_id=None, metadata=None)\nUI element 30: UIElement(text=None, content_description='F', class_name='android.widget.FrameLayout', bbox=None, bbox_pixels=BoundingBox(x_min=379, x_max=486, y_min=1808, y_max=1963), hint_text=None, is_checked=False, is_checkable=False, is_clickable=True, is_editable=False, is_enabled=True, is_focused=False, is_focusable=True, is_long_clickable=False, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.inputmethod.latin', resource_name='com.google.android.inputmethod.latin:id/key_pos_1_3', tooltip=None, resource_id=None, metadata=None)\nUI element 31: UIElement(text=None, content_description='G', class_name='android.widget.FrameLayout', bbox=None, bbox_pixels=BoundingBox(x_min=486, x_max=593, y_min=1808, y_max=1963), hint_text=None, is_checked=False, is_checkable=False, is_clickable=True, is_editable=False, is_enabled=True, is_focused=False, is_focusable=True, is_long_clickable=False, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.inputmethod.latin', resource_name='com.google.android.inputmethod.latin:id/key_pos_1_4', tooltip=None, resource_id=None, metadata=None)\nUI element 32: UIElement(text=None, content_description='H', class_name='android.widget.FrameLayout', bbox=None, bbox_pixels=BoundingBox(x_min=593, x_max=700, y_min=1808, y_max=1963), hint_text=None, is_checked=False, is_checkable=False, is_clickable=True, is_editable=False, is_enabled=True, is_focused=False, is_focusable=True, is_long_clickable=False, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.inputmethod.latin', resource_name='com.google.android.inputmethod.latin:id/key_pos_1_5', tooltip=None, resource_id=None, metadata=None)\nUI element 33: UIElement(text=None, content_description='J', class_name='android.widget.FrameLayout', bbox=None, bbox_pixels=BoundingBox(x_min=700, x_max=807, y_min=1808, y_max=1963), hint_text=None, is_checked=False, is_checkable=False, is_clickable=True, is_editable=False, is_enabled=True, is_focused=False, is_focusable=True, is_long_clickable=False, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.inputmethod.latin', resource_name='com.google.android.inputmethod.latin:id/key_pos_1_6', tooltip=None, resource_id=None, metadata=None)\nUI element 34: UIElement(text=None, content_description='K', class_name='android.widget.FrameLayout', bbox=None, bbox_pixels=BoundingBox(x_min=807, x_max=914, y_min=1808, y_max=1963), hint_text=None, is_checked=False, is_checkable=False, is_clickable=True, is_editable=False, is_enabled=True, is_focused=False, is_focusable=True, is_long_clickable=False, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.inputmethod.latin', resource_name='com.google.android.inputmethod.latin:id/key_pos_1_7', tooltip=None, resource_id=None, metadata=None)\nUI element 35: UIElement(text=None, content_description='L', class_name='android.widget.FrameLayout', bbox=None, bbox_pixels=BoundingBox(x_min=914, x_max=1075, y_min=1808, y_max=1963), hint_text=None, is_checked=False, is_checkable=False, is_clickable=True, is_editable=False, is_enabled=True, is_focused=False, is_focusable=True, is_long_clickable=False, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.inputmethod.latin', resource_name='com.google.android.inputmethod.latin:id/key_pos_1_8', tooltip=None, resource_id=None, metadata=None)\nUI element 36: UIElement(text=None, content_description='Shift', class_name='android.widget.FrameLayout', bbox=None, bbox_pixels=BoundingBox(x_min=5, x_max=165, y_min=1963, y_max=2118), hint_text=None, is_checked=False, is_checkable=False, is_clickable=True, is_editable=False, is_enabled=True, is_focused=False, is_focusable=True, is_long_clickable=True, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.inputmethod.latin', resource_name='com.google.android.inputmethod.latin:id/key_pos_shift', tooltip=None, resource_id=None, metadata=None)\nUI element 37: UIElement(text=None, content_description='Z', class_name='android.widget.FrameLayout', bbox=None, bbox_pixels=BoundingBox(x_min=165, x_max=272, y_min=1963, y_max=2118), hint_text=None, is_checked=False, is_checkable=False, is_clickable=True, is_editable=False, is_enabled=True, is_focused=False, is_focusable=True, is_long_clickable=False, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.inputmethod.latin', resource_name='com.google.android.inputmethod.latin:id/key_pos_2_1', tooltip=None, resource_id=None, metadata=None)\nUI element 38: UIElement(text=None, content_description='X', class_name='android.widget.FrameLayout', bbox=None, bbox_pixels=BoundingBox(x_min=272, x_max=379, y_min=1963, y_max=2118), hint_text=None, is_checked=False, is_checkable=False, is_clickable=True, is_editable=False, is_enabled=True, is_focused=False, is_focusable=True, is_long_clickable=False, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.inputmethod.latin', resource_name='com.google.android.inputmethod.latin:id/key_pos_2_2', tooltip=None, resource_id=None, metadata=None)\nUI element 39: UIElement(text=None, content_description='C', class_name='android.widget.FrameLayout', bbox=None, bbox_pixels=BoundingBox(x_min=379, x_max=486, y_min=1963, y_max=2118), hint_text=None, is_checked=False, is_checkable=False, is_clickable=True, is_editable=False, is_enabled=True, is_focused=False, is_focusable=True, is_long_clickable=True, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.inputmethod.latin', resource_name='com.google.android.inputmethod.latin:id/key_pos_2_3', tooltip=None, resource_id=None, metadata=None)\nUI element 40: UIElement(text=None, content_description='V', class_name='android.widget.FrameLayout', bbox=None, bbox_pixels=BoundingBox(x_min=486, x_max=593, y_min=1963, y_max=2118), hint_text=None, is_checked=False, is_checkable=False, is_clickable=True, is_editable=False, is_enabled=True, is_focused=False, is_focusable=True, is_long_clickable=False, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.inputmethod.latin', resource_name='com.google.android.inputmethod.latin:id/key_pos_2_4', tooltip=None, resource_id=None, metadata=None)\nUI element 41: UIElement(text=None, content_description='B', class_name='android.widget.FrameLayout', bbox=None, bbox_pixels=BoundingBox(x_min=593, x_max=700, y_min=1963, y_max=2118), hint_text=None, is_checked=False, is_checkable=False, is_clickable=True, is_editable=False, is_enabled=True, is_focused=False, is_focusable=True, is_long_clickable=False, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.inputmethod.latin', resource_name='com.google.android.inputmethod.latin:id/key_pos_2_5', tooltip=None, resource_id=None, metadata=None)\nUI element 42: UIElement(text=None, content_description='N', class_name='android.widget.FrameLayout', bbox=None, bbox_pixels=BoundingBox(x_min=700, x_max=807, y_min=1963, y_max=2118), hint_text=None, is_checked=False, is_checkable=False, is_clickable=True, is_editable=False, is_enabled=True, is_focused=False, is_focusable=True, is_long_clickable=True, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.inputmethod.latin', resource_name='com.google.android.inputmethod.latin:id/key_pos_2_6', tooltip=None, resource_id=None, metadata=None)\nUI element 43: UIElement(text=None, content_description='M', class_name='android.widget.FrameLayout', bbox=None, bbox_pixels=BoundingBox(x_min=807, x_max=914, y_min=1963, y_max=2118), hint_text=None, is_checked=False, is_checkable=False, is_clickable=True, is_editable=False, is_enabled=True, is_focused=False, is_focusable=True, is_long_clickable=False, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.inputmethod.latin', resource_name='com.google.android.inputmethod.latin:id/key_pos_2_7', tooltip=None, resource_id=None, metadata=None)\nUI element 44: UIElement(text=None, content_description='Delete', class_name='android.widget.FrameLayout', bbox=None, bbox_pixels=BoundingBox(x_min=914, x_max=1075, y_min=1963, y_max=2118), hint_text=None, is_checked=False, is_checkable=False, is_clickable=True, is_editable=False, is_enabled=True, is_focused=False, is_focusable=True, is_long_clickable=True, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.inputmethod.latin', resource_name='com.google.android.inputmethod.latin:id/key_pos_del', tooltip=None, resource_id=None, metadata=None)\nUI element 45: UIElement(text=None, content_description='Symbol keyboard', class_name='android.widget.FrameLayout', bbox=None, bbox_pixels=BoundingBox(x_min=5, x_max=165, y_min=2118, y_max=2274), hint_text=None, is_checked=False, is_checkable=False, is_clickable=True, is_editable=False, is_enabled=True, is_focused=False, is_focusable=True, is_long_clickable=False, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.inputmethod.latin', resource_name='com.google.android.inputmethod.latin:id/key_pos_switch_to_symbol', tooltip=None, resource_id=None, metadata=None)\nUI element 46: UIElement(text=None, content_description=',', class_name='android.widget.FrameLayout', bbox=None, bbox_pixels=BoundingBox(x_min=165, x_max=272, y_min=2118, y_max=2274), hint_text=None, is_checked=False, is_checkable=False, is_clickable=True, is_editable=False, is_enabled=True, is_focused=False, is_focusable=True, is_long_clickable=True, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.inputmethod.latin', resource_name='com.google.android.inputmethod.latin:id/key_pos_bottom_symbol_1', tooltip=None, resource_id=None, metadata=None)\nUI element 47: UIElement(text=None, content_description='Emoji button', class_name='android.widget.FrameLayout', bbox=None, bbox_pixels=BoundingBox(x_min=272, x_max=379, y_min=2118, y_max=2274), hint_text=None, is_checked=False, is_checkable=False, is_clickable=True, is_editable=False, is_enabled=True, is_focused=False, is_focusable=True, is_long_clickable=False, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.inputmethod.latin', resource_name='com.google.android.inputmethod.latin:id/key_pos_switch_to_next_language', tooltip=None, resource_id=None, metadata=None)\nUI element 48: UIElement(text=None, content_description='Space', class_name='android.widget.FrameLayout', bbox=None, bbox_pixels=BoundingBox(x_min=379, x_max=807, y_min=2118, y_max=2274), hint_text=None, is_checked=False, is_checkable=False, is_clickable=True, is_editable=False, is_enabled=True, is_focused=False, is_focusable=True, is_long_clickable=True, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.inputmethod.latin', resource_name='com.google.android.inputmethod.latin:id/key_pos_space', tooltip=None, resource_id=None, metadata=None)\nUI element 49: UIElement(text=None, content_description='.', class_name='android.widget.FrameLayout', bbox=None, bbox_pixels=BoundingBox(x_min=807, x_max=914, y_min=2118, y_max=2274), hint_text=None, is_checked=False, is_checkable=False, is_clickable=True, is_editable=False, is_enabled=True, is_focused=False, is_focusable=True, is_long_clickable=True, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.inputmethod.latin', resource_name='com.google.android.inputmethod.latin:id/key_pos_bottom_symbol_2', tooltip=None, resource_id=None, metadata=None)\nUI element 50: UIElement(text=None, content_description='Next', class_name='android.widget.FrameLayout', bbox=None, bbox_pixels=BoundingBox(x_min=914, x_max=1075, y_min=2118, y_max=2274), hint_text=None, is_checked=False, is_checkable=False, is_clickable=True, is_editable=False, is_enabled=True, is_focused=False, is_focusable=True, is_long_clickable=True, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.inputmethod.latin', resource_name='com.google.android.inputmethod.latin:id/key_pos_ime_action', tooltip=None, resource_id=None, metadata=None)\nUI element 51: UIElement(text='Code Search  all    Settled Show 25 more Draggable item 02fe5195-f6c1-478f-a1cf-da7a14d2ae01:3fea36a0-f952-4cd4-b8ef-29ff58e255dc was dropped over droppable area 02fe5195-f6c1-478f-a1cf-da7a14d2ae01:ce8cbebe-e8a7-44ad-8492-b42781c7bb04       ballistic /  Review OS Patches Against Spec review the ballistic OS patches code against spec and also review the code correctness. And try to find the holes. feel free to question anything you want but check the projetc docs first.  22:51     22:51 I found several security and correctness gaps. I would fix revocation and grant-management isolation before testing these patches on a daily-use phone.  I read the project docs and reviewed all five patches in ballistic-os at 82dc52d, including the surrounding Android implementation. These are source-level findings; I haven\u2019t reproduced them on a running patched OS.  [P1] An assistant allowed to automate Settings can operate the new permission switches. The switches call the privileged setters directly, with no physical-input or authentication gate. Settings is eligible as an automation target; its SPA activity hides overlays but does not reject Computer Control input. The signature permission protects against an assistant calling Binder directly, but Settings can make that call on its behalf through injected taps.  This also lets an assistant re-enable a previously approved target: turning the target switch off does not clear the existing per-agent consent. That breaks the documented \u201conly the owner edits\u201d boundary. Protect these management pages from automation, or require trusted user confirmation before granting access. Target switch handler  0001-computer-control-user-allowlist-ui.patch \u00b7 L239  [P1] Revoking an agent does not invalidate pending session requests. The new setter removes approval and closes sessions already in mSessions. However, validation happens before asynchronous creation and before the consent dialog. ConsentResultReceiver subsequently calls createSession(), whose preconditions do not recheck the agent allowlist.  Sequence: request a session while approved \u2192 revoke the agent while consent is pending \u2192 approve the old dialog \u2192 a session can still be created. There is also a race between initial validation and session registration. Subsequent launchApplication() checks target eligibility, not the revoked owner approval.  Revocation must invalidate pending requests and synchronize with final authorization and session registration. Simply adding an unsynchronized second check leaves a race. Revocation implementation  0002-computer-control-user-allowlist-api.patch \u00b7 L258  \u00b7 Session creation  ComputerControlSessionProcessor.java \u00b7 L480  [P1] Uninstall cleanup misses secondary users; deleted users are not cleaned up either. The patch hooks grant removal into an existing receiver registered with mContext.registerReceiver(...). That system-user context does not subscribe to package-removal broadcasts for every user.  Consequently, uninstalling a target in a secondary user can leave its grant persisted. Reinstalling the same signed package restores the grant, contrary to the documented uninstall behavior. Signing-certificate binding does not prevent this.  Separately, the store has no user-removal hook and keys entries by reusable numeric user ID. A later user receiving that ID can inherit matching package grants. Use an all-users package monitor and explicitly purge deleted-user entries; consider user serial numbers for identity. Added uninstall hook  0001-computer-control-user-allowlist.patch \u00b7 L219  \u00b7 Receiver registration  ComputerControlAllowlistController.java \u00b7 L208  [P2] Revoking access for one user closes another user\u2019s sessions. Both new revocation loops match package names without matching the session\u2019s user. Although the Binder boundary checks permission to manage the requested user, the subsequent side effect is device-wide.  Revoking package X for user A can terminate user B\u2019s session owned by\u2014or targeting\u2014X. Include the session owner\u2019s user ID in both predicates. Agent predicate  0002-computer-control-user-allowlist-api.patch \u00b7 L268  \u00b7 Target predicate  0002-computer-control-user-allowlist-api.patch \u00b7 L297  [P2] The enabled feature still advertises version 4, with weaker session requirements. The patch intentionally leaves computer_control_support_v5 disabled. COMPUTER_CONTROL_VERSION therefore reports 4. At this version, the parameter builder skips mandatory notification parameters and the six-target limit; the server also skips the version-5 foreground-window requirement. Notification posting does nothing when parameters are absent.  This contradicts assumptions in the docs about session limits and visibility. Decide which protections are mandatory and enforce them server-side. Enabling the v5 flag alone does not prevent a caller requesting an older version. Version declaration  VirtualDeviceManager.java \u00b7 L140  \u00b7 Conditional requirements  ComputerControlSessionParams.java \u00b7 L290  There are also two specification decisions to resolve:  Does \u201coff\u201d mean denied, or merely absent from the user allowlist? The latest context explicitly chooses DeviceConfig OR user approval, so the implementation follows that decision. But the Settings footer promises that off prevents all automation. A DeviceConfig-approved package can bypass that switch. The UI promise and SPEC.md\u2019s \u201cstrip remote config\u201d wording need reconciliation with the accepted design. Must the assistant be ordinarily installable? The README says yes, while the patches retain internal|privileged access and Settings lists only permission holders. This patch set still requires a preinstalled, permission-allowlisted assistant. AppFunctions is explicitly unfinished, so I treated its absence as planned scope rather than an implementation regression. All five patch files match the applied local source trees, and whitespace checks pass. Compilation, Android tests, and device security tests remain unverified. Existing tests cover store operations and basic Settings forwarding, but not pending-request revocation, cross-user lifecycle, automated grant changes, or version-dependent protections. I made no code changes.    22:55    Ask anything, @tag files/folders, $use skills, or / for commands  GPT-6-Astra  Medium  Full access full-access   wakeel-Latitude-5420  Open in Cursor   Add project script  master master  Commit   Changes +0 -0 Toggle Sidebar', content_description=None, class_name='android.widget.TextView', bbox=None, bbox_pixels=BoundingBox(x_min=240, x_max=523, y_min=1549, y_max=1602), hint_text=None, is_checked=False, is_checkable=False, is_clickable=False, is_editable=False, is_enabled=True, is_focused=False, is_focusable=False, is_long_clickable=False, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.inputmethod.latin', resource_name='com.google.android.inputmethod.latin:id/0_resource_name_obfuscated', tooltip=None, resource_id=None, metadata=None)\nUI element 52: UIElement(text='25', content_description=None, class_name='android.widget.TextView', bbox=None, bbox_pixels=BoundingBox(x_min=661, x_max=703, y_min=1549, y_max=1602), hint_text=None, is_checked=False, is_checkable=False, is_clickable=False, is_editable=False, is_enabled=True, is_focused=False, is_focusable=False, is_long_clickable=False, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.inputmethod.latin', resource_name='com.google.android.inputmethod.latin:id/0_resource_name_obfuscated', tooltip=None, resource_id=None, metadata=None)\nUI element 53: UIElement(text='22:51', content_description=None, class_name='android.widget.TextView', bbox=None, bbox_pixels=BoundingBox(x_min=841, x_max=929, y_min=1549, y_max=1602), hint_text=None, is_checked=False, is_checkable=False, is_clickable=False, is_editable=False, is_enabled=True, is_focused=False, is_focusable=False, is_long_clickable=False, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.inputmethod.latin', resource_name='com.google.android.inputmethod.latin:id/0_resource_name_obfuscated', tooltip=None, resource_id=None, metadata=None)\nUI element 54: UIElement(text='15:34', content_description='16:34', class_name='android.widget.TextView', bbox=None, bbox_pixels=BoundingBox(x_min=50, x_max=148, y_min=1, y_max=128), hint_text=None, is_checked=False, is_checkable=False, is_clickable=False, is_editable=False, is_enabled=True, is_focused=False, is_focusable=False, is_long_clickable=False, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.android.systemui', resource_name='com.android.systemui:id/clock', tooltip=None, resource_id=None, metadata=None)\nUI element 55: UIElement(text=None, content_description='Clock notification: ', class_name='android.widget.ImageView', bbox=None, bbox_pixels=BoundingBox(x_min=148, x_max=206, y_min=1, y_max=128), hint_text=None, is_checked=False, is_checkable=False, is_clickable=False, is_editable=False, is_enabled=True, is_focused=False, is_focusable=False, is_long_clickable=False, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.android.systemui', resource_name=None, tooltip=None, resource_id=None, metadata=None)\nUI element 56: UIElement(text=None, content_description='Android System notification: ', class_name='android.widget.ImageView', bbox=None, bbox_pixels=BoundingBox(x_min=206, x_max=264, y_min=1, y_max=128), hint_text=None, is_checked=False, is_checkable=False, is_clickable=False, is_editable=False, is_enabled=True, is_focused=False, is_focusable=False, is_long_clickable=False, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.android.systemui', resource_name=None, tooltip=None, resource_id=None, metadata=None)\nUI element 57: UIElement(text=None, content_description='Wifi signal full.,No internet', class_name='android.widget.FrameLayout', bbox=None, bbox_pixels=BoundingBox(x_min=885, x_max=931, y_min=35, y_max=93), hint_text=None, is_checked=False, is_checkable=False, is_clickable=False, is_editable=False, is_enabled=True, is_focused=False, is_focusable=False, is_long_clickable=False, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.android.systemui', resource_name='com.android.systemui:id/wifi_combo', tooltip=None, resource_id=None, metadata=None)\nUI element 58: UIElement(text=None, content_description='Phone three bars.', class_name='android.widget.FrameLayout', bbox=None, bbox_pixels=BoundingBox(x_min=931, x_max=970, y_min=35, y_max=93), hint_text=None, is_checked=False, is_checkable=False, is_clickable=False, is_editable=False, is_enabled=True, is_focused=False, is_focusable=False, is_long_clickable=False, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.android.systemui', resource_name='com.android.systemui:id/mobile_combo', tooltip=None, resource_id=None, metadata=None)\nUI element 59: UIElement(text=None, content_description='Battery 100 percent.', class_name='android.widget.LinearLayout', bbox=None, bbox_pixels=BoundingBox(x_min=986, x_max=1006, y_min=1, y_max=128), hint_text=None, is_checked=False, is_checkable=False, is_clickable=False, is_editable=False, is_enabled=True, is_focused=False, is_focusable=False, is_long_clickable=False, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.android.systemui', resource_name='com.android.systemui:id/battery', tooltip=None, resource_id=None, metadata=None)\n",
+ "screen": {
+  "package": "com.google.android.contacts",
+  "activity": "com.google.android.apps.contacts.editor.ContactEditorActivity",
+  "width": 1080,
+  "height": 2400,
+  "nodes": [
+   {
+    "id": 1,
+    "parent": null,
+    "role": "container",
+    "class_name": "android.widget.FrameLayout",
+    "label": null,
+    "text": null,
+    "resource_id": null,
+    "package": "com.google.android.contacts",
+    "bounds": {
+     "x1": 0,
+     "y1": 0,
+     "x2": 1080,
+     "y2": 2400
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 2,
+    "parent": 1,
+    "role": "container",
+    "class_name": "android.view.ViewGroup",
+    "label": null,
+    "text": null,
+    "resource_id": "com.google.android.contacts:id/contact_editor_fragment",
+    "package": "com.google.android.contacts",
+    "bounds": {
+     "x1": 0,
+     "y1": 0,
+     "x2": 1080,
+     "y2": 2400
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 3,
+    "parent": 2,
+    "role": "button",
+    "class_name": "android.widget.ImageButton",
+    "label": "Cancel",
+    "text": null,
+    "resource_id": null,
+    "package": "com.google.android.contacts",
+    "bounds": {
+     "x1": 0,
+     "y1": 138,
+     "x2": 147,
+     "y2": 285
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 4,
+    "parent": 2,
+    "role": "text",
+    "class_name": "android.widget.TextView",
+    "label": null,
+    "text": "Create contact",
+    "resource_id": null,
+    "package": "com.google.android.contacts",
+    "bounds": {
+     "x1": 157,
+     "y1": 175,
+     "x2": 551,
+     "y2": 248
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 5,
+    "parent": 2,
+    "role": "button",
+    "class_name": "android.widget.Button",
+    "label": null,
+    "text": "Save",
+    "resource_id": "com.google.android.contacts:id/toolbar_button",
+    "package": "com.google.android.contacts",
+    "bounds": {
+     "x1": 723,
+     "y1": 148,
+     "x2": 954,
+     "y2": 274
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 6,
+    "parent": 2,
+    "role": "image",
+    "class_name": "android.widget.ImageView",
+    "label": "More options",
+    "text": null,
+    "resource_id": null,
+    "package": "com.google.android.contacts",
+    "bounds": {
+     "x1": 954,
+     "y1": 148,
+     "x2": 1080,
+     "y2": 274
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": true,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 7,
+    "parent": 2,
+    "role": "list",
+    "class_name": "android.widget.ScrollView",
+    "label": null,
+    "text": null,
+    "resource_id": "com.google.android.contacts:id/contact_editor_scroller",
+    "package": "com.google.android.contacts",
+    "bounds": {
+     "x1": 0,
+     "y1": 296,
+     "x2": 1080,
+     "y2": 1517
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": true,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 8,
+    "parent": 7,
+    "role": "container",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": null,
+    "package": "com.google.android.contacts",
+    "bounds": {
+     "x1": 0,
+     "y1": 296,
+     "x2": 0,
+     "y2": 296
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 9,
+    "parent": 7,
+    "role": "item",
+    "class_name": "android.widget.FrameLayout",
+    "label": "Add contact photo",
+    "text": null,
+    "resource_id": "com.google.android.contacts:id/photo_update_clickable",
+    "package": "com.google.android.contacts",
+    "bounds": {
+     "x1": 382,
+     "y1": 349,
+     "x2": 697,
+     "y2": 664
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 10,
+    "parent": 7,
+    "role": "button",
+    "class_name": "android.widget.Button",
+    "label": null,
+    "text": "Add picture",
+    "resource_id": "com.google.android.contacts:id/button_change_photo",
+    "package": "com.google.android.contacts",
+    "bounds": {
+     "x1": 406,
+     "y1": 664,
+     "x2": 673,
+     "y2": 790
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 11,
+    "parent": 7,
+    "role": "edit",
+    "class_name": "android.widget.EditText",
+    "label": "First name",
+    "text": "Muhammad",
+    "resource_id": null,
+    "package": "com.google.android.contacts",
+    "bounds": {
+     "x1": 137,
+     "y1": 858,
+     "x2": 933,
+     "y2": 1007
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": true,
+     "editable": true,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 12,
+    "parent": 7,
+    "role": "edit",
+    "class_name": "android.widget.EditText",
+    "label": "Last name",
+    "text": "Mohammed",
+    "resource_id": null,
+    "package": "com.google.android.contacts",
+    "bounds": {
+     "x1": 137,
+     "y1": 1043,
+     "x2": 933,
+     "y2": 1192
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": true,
+     "editable": true,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 13,
+    "parent": 7,
+    "role": "item",
+    "class_name": "android.widget.FrameLayout",
+    "label": null,
+    "text": null,
+    "resource_id": "com.google.android.contacts:id/expansion_view_container",
+    "package": "com.google.android.contacts",
+    "bounds": {
+     "x1": 933,
+     "y1": 843,
+     "x2": 1080,
+     "y2": 990
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 14,
+    "parent": 13,
+    "role": "image",
+    "class_name": "android.widget.ImageView",
+    "label": "Show more name fields",
+    "text": null,
+    "resource_id": "com.google.android.contacts:id/expansion_view",
+    "package": "com.google.android.contacts",
+    "bounds": {
+     "x1": 933,
+     "y1": 843,
+     "x2": 1080,
+     "y2": 990
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 15,
+    "parent": 7,
+    "role": "edit",
+    "class_name": "android.widget.EditText",
+    "label": "Company",
+    "text": "Company",
+    "resource_id": null,
+    "package": "com.google.android.contacts",
+    "bounds": {
+     "x1": 137,
+     "y1": 1249,
+     "x2": 933,
+     "y2": 1398
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": true,
+     "editable": true,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 16,
+    "parent": 7,
+    "role": "edit",
+    "class_name": "android.widget.EditText",
+    "label": "Phone",
+    "text": "Phone",
+    "resource_id": null,
+    "package": "com.google.android.contacts",
+    "bounds": {
+     "x1": 137,
+     "y1": 1455,
+     "x2": 933,
+     "y2": 1517
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": true,
+     "editable": true,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 17,
+    "parent": 7,
+    "role": "other",
+    "class_name": "android.widget.Spinner",
+    "label": "Mobile Phone",
+    "text": "Mobile",
+    "resource_id": null,
+    "package": "com.google.android.contacts",
+    "bounds": {
+     "x1": 137,
+     "y1": 1640,
+     "x2": 586,
+     "y2": 1517
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": true,
+     "editable": true,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 18,
+    "parent": 7,
+    "role": "button",
+    "class_name": "android.widget.ImageButton",
+    "label": "Show dropdown menu",
+    "text": null,
+    "resource_id": "com.google.android.contacts:id/text_input_end_icon",
+    "package": "com.google.android.contacts",
+    "bounds": {
+     "x1": 460,
+     "y1": 1651,
+     "x2": 586,
+     "y2": 1517
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": true,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 19,
+    "parent": 7,
+    "role": "edit",
+    "class_name": "android.widget.EditText",
+    "label": "Email",
+    "text": "Email",
+    "resource_id": null,
+    "package": "com.google.android.contacts",
+    "bounds": {
+     "x1": 137,
+     "y1": 1851,
+     "x2": 933,
+     "y2": 1517
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": true,
+     "editable": true,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 20,
+    "parent": 7,
+    "role": "other",
+    "class_name": "android.widget.Spinner",
+    "label": "Home Email",
+    "text": "Home",
+    "resource_id": null,
+    "package": "com.google.android.contacts",
+    "bounds": {
+     "x1": 137,
+     "y1": 2036,
+     "x2": 557,
+     "y2": 1517
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": true,
+     "editable": true,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 21,
+    "parent": 7,
+    "role": "button",
+    "class_name": "android.widget.ImageButton",
+    "label": "Show dropdown menu",
+    "text": null,
+    "resource_id": "com.google.android.contacts:id/text_input_end_icon",
+    "package": "com.google.android.contacts",
+    "bounds": {
+     "x1": 431,
+     "y1": 2047,
+     "x2": 557,
+     "y2": 1517
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": true,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 22,
+    "parent": 7,
+    "role": "edit",
+    "class_name": "android.widget.EditText",
+    "label": "Significant date",
+    "text": "Significant date",
+    "resource_id": null,
+    "package": "com.google.android.contacts",
+    "bounds": {
+     "x1": 137,
+     "y1": 2247,
+     "x2": 933,
+     "y2": 1517
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": true,
+     "editable": true,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 23,
+    "parent": 7,
+    "role": "button",
+    "class_name": "android.widget.ImageButton",
+    "label": "Show date picker",
+    "text": null,
+    "resource_id": "com.google.android.contacts:id/text_input_end_icon",
+    "package": "com.google.android.contacts",
+    "bounds": {
+     "x1": 807,
+     "y1": 2258,
+     "x2": 933,
+     "y2": 1517
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 24,
+    "parent": 7,
+    "role": "other",
+    "class_name": "android.widget.Spinner",
+    "label": "Birthday Special date",
+    "text": "Birthday",
+    "resource_id": null,
+    "package": "com.google.android.contacts",
+    "bounds": {
+     "x1": 137,
+     "y1": 2432,
+     "x2": 557,
+     "y2": 1517
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": true,
+     "editable": true,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 25,
+    "parent": 7,
+    "role": "button",
+    "class_name": "android.widget.ImageButton",
+    "label": "Show dropdown menu",
+    "text": null,
+    "resource_id": "com.google.android.contacts:id/text_input_end_icon",
+    "package": "com.google.android.contacts",
+    "bounds": {
+     "x1": 431,
+     "y1": 2443,
+     "x2": 557,
+     "y2": 1517
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": true,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 26,
+    "parent": 7,
+    "role": "text",
+    "class_name": "android.widget.TextView",
+    "label": null,
+    "text": "More fields",
+    "resource_id": "com.google.android.contacts:id/more_fields",
+    "package": "com.google.android.contacts",
+    "bounds": {
+     "x1": 0,
+     "y1": 2628,
+     "x2": 1080,
+     "y2": 1517
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 27,
+    "parent": null,
+    "role": "container",
+    "class_name": "android.widget.FrameLayout",
+    "label": null,
+    "text": null,
+    "resource_id": null,
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 0,
+     "y1": 128,
+     "x2": 1080,
+     "y2": 2400
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 28,
+    "parent": 27,
+    "role": "container",
+    "class_name": "android.widget.FrameLayout",
+    "label": null,
+    "text": null,
+    "resource_id": null,
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 0,
+     "y1": 128,
+     "x2": 1080,
+     "y2": 2274
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 29,
+    "parent": 28,
+    "role": "button",
+    "class_name": "android.widget.FrameLayout",
+    "label": "More features",
+    "text": null,
+    "resource_id": "com.google.android.inputmethod.latin:id/key_pos_header_access_points_menu",
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 5,
+     "y1": 1517,
+     "x2": 115,
+     "y2": 1633
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 30,
+    "parent": 28,
+    "role": "list",
+    "class_name": "android.widget.HorizontalScrollView",
+    "label": null,
+    "text": null,
+    "resource_id": "com.google.android.inputmethod.latin:id/0_resource_name_obfuscated",
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 134,
+     "y1": 1517,
+     "x2": 946,
+     "y2": 1633
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": true,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 31,
+    "parent": 30,
+    "role": "item",
+    "class_name": "android.view.ViewGroup",
+    "label": null,
+    "text": null,
+    "resource_id": null,
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 155,
+     "y1": 1517,
+     "x2": 555,
+     "y2": 1633
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 32,
+    "parent": 31,
+    "role": "text",
+    "class_name": "android.widget.TextView",
+    "label": null,
+    "text": "Code Search  all    Settled Show 25 more Draggable item 02fe5195-f6c1-478f-a1cf-da7a14d2ae01:3fea36a0-f952-4cd4-b8ef-29ff58e255dc was dropped over droppable area 02fe5195-f6c1-478f-a1cf-da7a14d2ae01:ce8cbebe-e8a7-44ad-8492-b42781c7bb04       ballistic /  Review OS Patches Against Spec review the ballistic OS patches code against spec and also review the code correctness. And try to find the holes. feel free to question anything you want but check the projetc docs first.  22:51     22:51 I found several security and correctness gaps. I would fix revocation and grant-management isolation before testing these patches on a daily-use phone.  I read the project docs and reviewed all five patches in ballistic-os at 82dc52d, including the surrounding Android implementation. These are source-level findings; I haven\u2019t reproduced them on a running patched OS.  [P1] An assistant allowed to automate Settings can operate the new permission switches. The switches call the privileged setters directly, with no physical-input or authentication gate. Settings is eligible as an automation target; its SPA activity hides overlays but does not reject Computer Control input. The signature permission protects against an assistant calling Binder directly, but Settings can make that call on its behalf through injected taps.  This also lets an assistant re-enable a previously approved target: turning the target switch off does not clear the existing per-agent consent. That breaks the documented \u201conly the owner edits\u201d boundary. Protect these management pages from automation, or require trusted user confirmation before granting access. Target switch handler  0001-computer-control-user-allowlist-ui.patch \u00b7 L239  [P1] Revoking an agent does not invalidate pending session requests. The new setter removes approval and closes sessions already in mSessions. However, validation happens before asynchronous creation and before the consent dialog. ConsentResultReceiver subsequently calls createSession(), whose preconditions do not recheck the agent allowlist.  Sequence: request a session while approved \u2192 revoke the agent while consent is pending \u2192 approve the old dialog \u2192 a session can still be created. There is also a race between initial validation and session registration. Subsequent launchApplication() checks target eligibility, not the revoked owner approval.  Revocation must invalidate pending requests and synchronize with final authorization and session registration. Simply adding an unsynchronized second check leaves a race. Revocation implementation  0002-computer-control-user-allowlist-api.patch \u00b7 L258  \u00b7 Session creation  ComputerControlSessionProcessor.java \u00b7 L480  [P1] Uninstall cleanup misses secondary users; deleted users are not cleaned up either. The patch hooks grant removal into an existing receiver registered with mContext.registerReceiver(...). That system-user context does not subscribe to package-removal broadcasts for every user.  Consequently, uninstalling a target in a secondary user can leave its grant persisted. Reinstalling the same signed package restores the grant, contrary to the documented uninstall behavior. Signing-certificate binding does not prevent this.  Separately, the store has no user-removal hook and keys entries by reusable numeric user ID. A later user receiving that ID can inherit matching package grants. Use an all-users package monitor and explicitly purge deleted-user entries; consider user serial numbers for identity. Added uninstall hook  0001-computer-control-user-allowlist.patch \u00b7 L219  \u00b7 Receiver registration  ComputerControlAllowlistController.java \u00b7 L208  [P2] Revoking access for one user closes another user\u2019s sessions. Both new revocation loops match package names without matching the session\u2019s user. Although the Binder boundary checks permission to manage the requested user, the subsequent side effect is device-wide.  Revoking package X for user A can terminate user B\u2019s session owned by\u2014or targeting\u2014X. Include the session owner\u2019s user ID in both predicates. Agent predicate  0002-computer-control-user-allowlist-api.patch \u00b7 L268  \u00b7 Target predicate  0002-computer-control-user-allowlist-api.patch \u00b7 L297  [P2] The enabled feature still advertises version 4, with weaker session requirements. The patch intentionally leaves computer_control_support_v5 disabled. COMPUTER_CONTROL_VERSION therefore reports 4. At this version, the parameter builder skips mandatory notification parameters and the six-target limit; the server also skips the version-5 foreground-window requirement. Notification posting does nothing when parameters are absent.  This contradicts assumptions in the docs about session limits and visibility. Decide which protections are mandatory and enforce them server-side. Enabling the v5 flag alone does not prevent a caller requesting an older version. Version declaration  VirtualDeviceManager.java \u00b7 L140  \u00b7 Conditional requirements  ComputerControlSessionParams.java \u00b7 L290  There are also two specification decisions to resolve:  Does \u201coff\u201d mean denied, or merely absent from the user allowlist? The latest context explicitly chooses DeviceConfig OR user approval, so the implementation follows that decision. But the Settings footer promises that off prevents all automation. A DeviceConfig-approved package can bypass that switch. The UI promise and SPEC.md\u2019s \u201cstrip remote config\u201d wording need reconciliation with the accepted design. Must the assistant be ordinarily installable? The README says yes, while the patches retain internal|privileged access and Settings lists only permission holders. This patch set still requires a preinstalled, permission-allowlisted assistant. AppFunctions is explicitly unfinished, so I treated its absence as planned scope rather than an implementation regression. All five patch files match the applied local source trees, and whitespace checks pass. Compilation, Android tests, and device security tests remain unverified. Existing tests cover store operations and basic Settings forwarding, but not pending-request revocation, cross-user lifecycle, automated grant changes, or version-dependent protections. I made no code changes.    22:55    Ask anything, @tag files/folders, $use skills, or / for commands  GPT-6-Astra  Medium  Full access full-access   wakeel-Latitude-5420  Open in Cursor   Add project script  master master  Commit   Changes +0 -0 Toggle Sidebar",
+    "resource_id": "com.google.android.inputmethod.latin:id/0_resource_name_obfuscated",
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 240,
+     "y1": 1549,
+     "x2": 523,
+     "y2": 1602
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 33,
+    "parent": 30,
+    "role": "item",
+    "class_name": "android.view.ViewGroup",
+    "label": null,
+    "text": null,
+    "resource_id": null,
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 576,
+     "y1": 1517,
+     "x2": 735,
+     "y2": 1633
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 34,
+    "parent": 33,
+    "role": "text",
+    "class_name": "android.widget.TextView",
+    "label": null,
+    "text": "25",
+    "resource_id": "com.google.android.inputmethod.latin:id/0_resource_name_obfuscated",
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 661,
+     "y1": 1549,
+     "x2": 703,
+     "y2": 1602
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 35,
+    "parent": 30,
+    "role": "item",
+    "class_name": "android.view.ViewGroup",
+    "label": null,
+    "text": null,
+    "resource_id": null,
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 756,
+     "y1": 1517,
+     "x2": 946,
+     "y2": 1633
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 36,
+    "parent": 35,
+    "role": "text",
+    "class_name": "android.widget.TextView",
+    "label": null,
+    "text": "22:51",
+    "resource_id": "com.google.android.inputmethod.latin:id/0_resource_name_obfuscated",
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 841,
+     "y1": 1549,
+     "x2": 929,
+     "y2": 1602
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 37,
+    "parent": 30,
+    "role": "item",
+    "class_name": "android.view.ViewGroup",
+    "label": null,
+    "text": null,
+    "resource_id": null,
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 982,
+     "y1": 1517,
+     "x2": 946,
+     "y2": 1633
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 38,
+    "parent": 37,
+    "role": "text",
+    "class_name": "android.widget.TextView",
+    "label": null,
+    "text": "0001-computer-control-user-allowlist-ui.patch",
+    "resource_id": "com.google.android.inputmethod.latin:id/0_resource_name_obfuscated",
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 1067,
+     "y1": 1549,
+     "x2": 946,
+     "y2": 1602
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 39,
+    "parent": 30,
+    "role": "item",
+    "class_name": "android.view.ViewGroup",
+    "label": null,
+    "text": null,
+    "resource_id": null,
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 1403,
+     "y1": 1517,
+     "x2": 946,
+     "y2": 1633
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 40,
+    "parent": 39,
+    "role": "text",
+    "class_name": "android.widget.TextView",
+    "label": null,
+    "text": "0002-computer-control-user-allowlist-api.patch",
+    "resource_id": "com.google.android.inputmethod.latin:id/0_resource_name_obfuscated",
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 1488,
+     "y1": 1549,
+     "x2": 946,
+     "y2": 1602
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 41,
+    "parent": 30,
+    "role": "item",
+    "class_name": "android.view.ViewGroup",
+    "label": null,
+    "text": null,
+    "resource_id": null,
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 1824,
+     "y1": 1517,
+     "x2": 946,
+     "y2": 1633
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 42,
+    "parent": 41,
+    "role": "text",
+    "class_name": "android.widget.TextView",
+    "label": null,
+    "text": "ComputerControlSessionProcessor.java",
+    "resource_id": "com.google.android.inputmethod.latin:id/0_resource_name_obfuscated",
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 1909,
+     "y1": 1549,
+     "x2": 946,
+     "y2": 1602
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 43,
+    "parent": 30,
+    "role": "item",
+    "class_name": "android.view.ViewGroup",
+    "label": null,
+    "text": null,
+    "resource_id": null,
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 2245,
+     "y1": 1517,
+     "x2": 946,
+     "y2": 1633
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 44,
+    "parent": 43,
+    "role": "text",
+    "class_name": "android.widget.TextView",
+    "label": null,
+    "text": "0001-computer-control-user-allowlist.patch",
+    "resource_id": "com.google.android.inputmethod.latin:id/0_resource_name_obfuscated",
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 2330,
+     "y1": 1549,
+     "x2": 946,
+     "y2": 1602
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 45,
+    "parent": 30,
+    "role": "item",
+    "class_name": "android.view.ViewGroup",
+    "label": null,
+    "text": null,
+    "resource_id": null,
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 2666,
+     "y1": 1517,
+     "x2": 946,
+     "y2": 1633
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 46,
+    "parent": 45,
+    "role": "text",
+    "class_name": "android.widget.TextView",
+    "label": null,
+    "text": "ComputerControlAllowlistController.java",
+    "resource_id": "com.google.android.inputmethod.latin:id/0_resource_name_obfuscated",
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 2751,
+     "y1": 1549,
+     "x2": 946,
+     "y2": 1602
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 47,
+    "parent": 30,
+    "role": "item",
+    "class_name": "android.view.ViewGroup",
+    "label": null,
+    "text": null,
+    "resource_id": null,
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 3087,
+     "y1": 1517,
+     "x2": 946,
+     "y2": 1633
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 48,
+    "parent": 47,
+    "role": "text",
+    "class_name": "android.widget.TextView",
+    "label": null,
+    "text": "VirtualDeviceManager.java",
+    "resource_id": "com.google.android.inputmethod.latin:id/0_resource_name_obfuscated",
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 3172,
+     "y1": 1549,
+     "x2": 946,
+     "y2": 1602
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 49,
+    "parent": 30,
+    "role": "item",
+    "class_name": "android.view.ViewGroup",
+    "label": null,
+    "text": null,
+    "resource_id": null,
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 3508,
+     "y1": 1517,
+     "x2": 946,
+     "y2": 1633
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 50,
+    "parent": 49,
+    "role": "text",
+    "class_name": "android.widget.TextView",
+    "label": null,
+    "text": "ComputerControlSessionParams.java",
+    "resource_id": "com.google.android.inputmethod.latin:id/0_resource_name_obfuscated",
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 3593,
+     "y1": 1549,
+     "x2": 946,
+     "y2": 1602
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 51,
+    "parent": 30,
+    "role": "item",
+    "class_name": "android.view.ViewGroup",
+    "label": null,
+    "text": null,
+    "resource_id": null,
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 3929,
+     "y1": 1517,
+     "x2": 946,
+     "y2": 1633
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 52,
+    "parent": 51,
+    "role": "text",
+    "class_name": "android.widget.TextView",
+    "label": null,
+    "text": "SPEC.md\u2019s",
+    "resource_id": "com.google.android.inputmethod.latin:id/0_resource_name_obfuscated",
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 4014,
+     "y1": 1549,
+     "x2": 946,
+     "y2": 1602
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 53,
+    "parent": 30,
+    "role": "item",
+    "class_name": "android.view.ViewGroup",
+    "label": null,
+    "text": null,
+    "resource_id": null,
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 4256,
+     "y1": 1517,
+     "x2": 946,
+     "y2": 1633
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 54,
+    "parent": 53,
+    "role": "text",
+    "class_name": "android.widget.TextView",
+    "label": null,
+    "text": "22:55",
+    "resource_id": "com.google.android.inputmethod.latin:id/0_resource_name_obfuscated",
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 4341,
+     "y1": 1549,
+     "x2": 946,
+     "y2": 1602
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 55,
+    "parent": 28,
+    "role": "button",
+    "class_name": "android.widget.FrameLayout",
+    "label": "Voice input",
+    "text": null,
+    "resource_id": "com.google.android.inputmethod.latin:id/key_pos_header_power_key",
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 965,
+     "y1": 1517,
+     "x2": 1075,
+     "y2": 1633
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": true,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 56,
+    "parent": 28,
+    "role": "button",
+    "class_name": "android.widget.FrameLayout",
+    "label": "Q",
+    "text": null,
+    "resource_id": "com.google.android.inputmethod.latin:id/key_pos_0_0",
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 5,
+     "y1": 1654,
+     "x2": 112,
+     "y2": 1808
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": true,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 57,
+    "parent": 28,
+    "role": "button",
+    "class_name": "android.widget.FrameLayout",
+    "label": "W",
+    "text": null,
+    "resource_id": "com.google.android.inputmethod.latin:id/key_pos_0_1",
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 112,
+     "y1": 1654,
+     "x2": 219,
+     "y2": 1808
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": true,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 58,
+    "parent": 28,
+    "role": "button",
+    "class_name": "android.widget.FrameLayout",
+    "label": "E",
+    "text": null,
+    "resource_id": "com.google.android.inputmethod.latin:id/key_pos_0_2",
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 219,
+     "y1": 1654,
+     "x2": 326,
+     "y2": 1808
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": true,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 59,
+    "parent": 28,
+    "role": "button",
+    "class_name": "android.widget.FrameLayout",
+    "label": "R",
+    "text": null,
+    "resource_id": "com.google.android.inputmethod.latin:id/key_pos_0_3",
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 326,
+     "y1": 1654,
+     "x2": 433,
+     "y2": 1808
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": true,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 60,
+    "parent": 28,
+    "role": "button",
+    "class_name": "android.widget.FrameLayout",
+    "label": "T",
+    "text": null,
+    "resource_id": "com.google.android.inputmethod.latin:id/key_pos_0_4",
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 433,
+     "y1": 1654,
+     "x2": 540,
+     "y2": 1808
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": true,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 61,
+    "parent": 28,
+    "role": "button",
+    "class_name": "android.widget.FrameLayout",
+    "label": "Y",
+    "text": null,
+    "resource_id": "com.google.android.inputmethod.latin:id/key_pos_0_5",
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 540,
+     "y1": 1654,
+     "x2": 647,
+     "y2": 1808
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": true,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 62,
+    "parent": 28,
+    "role": "button",
+    "class_name": "android.widget.FrameLayout",
+    "label": "U",
+    "text": null,
+    "resource_id": "com.google.android.inputmethod.latin:id/key_pos_0_6",
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 647,
+     "y1": 1654,
+     "x2": 754,
+     "y2": 1808
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": true,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 63,
+    "parent": 28,
+    "role": "button",
+    "class_name": "android.widget.FrameLayout",
+    "label": "I",
+    "text": null,
+    "resource_id": "com.google.android.inputmethod.latin:id/key_pos_0_7",
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 754,
+     "y1": 1654,
+     "x2": 861,
+     "y2": 1808
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": true,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 64,
+    "parent": 28,
+    "role": "button",
+    "class_name": "android.widget.FrameLayout",
+    "label": "O",
+    "text": null,
+    "resource_id": "com.google.android.inputmethod.latin:id/key_pos_0_8",
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 861,
+     "y1": 1654,
+     "x2": 968,
+     "y2": 1808
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": true,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 65,
+    "parent": 28,
+    "role": "button",
+    "class_name": "android.widget.FrameLayout",
+    "label": "P",
+    "text": null,
+    "resource_id": "com.google.android.inputmethod.latin:id/key_pos_0_9",
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 968,
+     "y1": 1654,
+     "x2": 1075,
+     "y2": 1808
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": true,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 66,
+    "parent": 28,
+    "role": "button",
+    "class_name": "android.widget.FrameLayout",
+    "label": "A",
+    "text": null,
+    "resource_id": "com.google.android.inputmethod.latin:id/key_pos_1_0",
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 5,
+     "y1": 1808,
+     "x2": 165,
+     "y2": 1963
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": true,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 67,
+    "parent": 28,
+    "role": "button",
+    "class_name": "android.widget.FrameLayout",
+    "label": "S",
+    "text": null,
+    "resource_id": "com.google.android.inputmethod.latin:id/key_pos_1_1",
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 165,
+     "y1": 1808,
+     "x2": 272,
+     "y2": 1963
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": true,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 68,
+    "parent": 28,
+    "role": "button",
+    "class_name": "android.widget.FrameLayout",
+    "label": "D",
+    "text": null,
+    "resource_id": "com.google.android.inputmethod.latin:id/key_pos_1_2",
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 272,
+     "y1": 1808,
+     "x2": 379,
+     "y2": 1963
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 69,
+    "parent": 28,
+    "role": "button",
+    "class_name": "android.widget.FrameLayout",
+    "label": "F",
+    "text": null,
+    "resource_id": "com.google.android.inputmethod.latin:id/key_pos_1_3",
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 379,
+     "y1": 1808,
+     "x2": 486,
+     "y2": 1963
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 70,
+    "parent": 28,
+    "role": "button",
+    "class_name": "android.widget.FrameLayout",
+    "label": "G",
+    "text": null,
+    "resource_id": "com.google.android.inputmethod.latin:id/key_pos_1_4",
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 486,
+     "y1": 1808,
+     "x2": 593,
+     "y2": 1963
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 71,
+    "parent": 28,
+    "role": "button",
+    "class_name": "android.widget.FrameLayout",
+    "label": "H",
+    "text": null,
+    "resource_id": "com.google.android.inputmethod.latin:id/key_pos_1_5",
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 593,
+     "y1": 1808,
+     "x2": 700,
+     "y2": 1963
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 72,
+    "parent": 28,
+    "role": "button",
+    "class_name": "android.widget.FrameLayout",
+    "label": "J",
+    "text": null,
+    "resource_id": "com.google.android.inputmethod.latin:id/key_pos_1_6",
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 700,
+     "y1": 1808,
+     "x2": 807,
+     "y2": 1963
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 73,
+    "parent": 28,
+    "role": "button",
+    "class_name": "android.widget.FrameLayout",
+    "label": "K",
+    "text": null,
+    "resource_id": "com.google.android.inputmethod.latin:id/key_pos_1_7",
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 807,
+     "y1": 1808,
+     "x2": 914,
+     "y2": 1963
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 74,
+    "parent": 28,
+    "role": "button",
+    "class_name": "android.widget.FrameLayout",
+    "label": "L",
+    "text": null,
+    "resource_id": "com.google.android.inputmethod.latin:id/key_pos_1_8",
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 914,
+     "y1": 1808,
+     "x2": 1075,
+     "y2": 1963
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 75,
+    "parent": 28,
+    "role": "button",
+    "class_name": "android.widget.FrameLayout",
+    "label": "Shift",
+    "text": null,
+    "resource_id": "com.google.android.inputmethod.latin:id/key_pos_shift",
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 5,
+     "y1": 1963,
+     "x2": 165,
+     "y2": 2118
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": true,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 76,
+    "parent": 28,
+    "role": "button",
+    "class_name": "android.widget.FrameLayout",
+    "label": "Z",
+    "text": null,
+    "resource_id": "com.google.android.inputmethod.latin:id/key_pos_2_1",
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 165,
+     "y1": 1963,
+     "x2": 272,
+     "y2": 2118
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 77,
+    "parent": 28,
+    "role": "button",
+    "class_name": "android.widget.FrameLayout",
+    "label": "X",
+    "text": null,
+    "resource_id": "com.google.android.inputmethod.latin:id/key_pos_2_2",
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 272,
+     "y1": 1963,
+     "x2": 379,
+     "y2": 2118
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 78,
+    "parent": 28,
+    "role": "button",
+    "class_name": "android.widget.FrameLayout",
+    "label": "C",
+    "text": null,
+    "resource_id": "com.google.android.inputmethod.latin:id/key_pos_2_3",
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 379,
+     "y1": 1963,
+     "x2": 486,
+     "y2": 2118
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": true,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 79,
+    "parent": 28,
+    "role": "button",
+    "class_name": "android.widget.FrameLayout",
+    "label": "V",
+    "text": null,
+    "resource_id": "com.google.android.inputmethod.latin:id/key_pos_2_4",
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 486,
+     "y1": 1963,
+     "x2": 593,
+     "y2": 2118
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 80,
+    "parent": 28,
+    "role": "button",
+    "class_name": "android.widget.FrameLayout",
+    "label": "B",
+    "text": null,
+    "resource_id": "com.google.android.inputmethod.latin:id/key_pos_2_5",
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 593,
+     "y1": 1963,
+     "x2": 700,
+     "y2": 2118
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 81,
+    "parent": 28,
+    "role": "button",
+    "class_name": "android.widget.FrameLayout",
+    "label": "N",
+    "text": null,
+    "resource_id": "com.google.android.inputmethod.latin:id/key_pos_2_6",
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 700,
+     "y1": 1963,
+     "x2": 807,
+     "y2": 2118
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": true,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 82,
+    "parent": 28,
+    "role": "button",
+    "class_name": "android.widget.FrameLayout",
+    "label": "M",
+    "text": null,
+    "resource_id": "com.google.android.inputmethod.latin:id/key_pos_2_7",
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 807,
+     "y1": 1963,
+     "x2": 914,
+     "y2": 2118
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 83,
+    "parent": 28,
+    "role": "button",
+    "class_name": "android.widget.FrameLayout",
+    "label": "Delete",
+    "text": null,
+    "resource_id": "com.google.android.inputmethod.latin:id/key_pos_del",
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 914,
+     "y1": 1963,
+     "x2": 1075,
+     "y2": 2118
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": true,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 84,
+    "parent": 28,
+    "role": "button",
+    "class_name": "android.widget.FrameLayout",
+    "label": "Symbol keyboard",
+    "text": null,
+    "resource_id": "com.google.android.inputmethod.latin:id/key_pos_switch_to_symbol",
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 5,
+     "y1": 2118,
+     "x2": 165,
+     "y2": 2274
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 85,
+    "parent": 28,
+    "role": "button",
+    "class_name": "android.widget.FrameLayout",
+    "label": ",",
+    "text": null,
+    "resource_id": "com.google.android.inputmethod.latin:id/key_pos_bottom_symbol_1",
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 165,
+     "y1": 2118,
+     "x2": 272,
+     "y2": 2274
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": true,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 86,
+    "parent": 28,
+    "role": "button",
+    "class_name": "android.widget.FrameLayout",
+    "label": "Emoji button",
+    "text": null,
+    "resource_id": "com.google.android.inputmethod.latin:id/key_pos_switch_to_next_language",
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 272,
+     "y1": 2118,
+     "x2": 379,
+     "y2": 2274
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 87,
+    "parent": 28,
+    "role": "button",
+    "class_name": "android.widget.FrameLayout",
+    "label": "Space",
+    "text": null,
+    "resource_id": "com.google.android.inputmethod.latin:id/key_pos_space",
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 379,
+     "y1": 2118,
+     "x2": 807,
+     "y2": 2274
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": true,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 88,
+    "parent": 28,
+    "role": "button",
+    "class_name": "android.widget.FrameLayout",
+    "label": ".",
+    "text": null,
+    "resource_id": "com.google.android.inputmethod.latin:id/key_pos_bottom_symbol_2",
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 807,
+     "y1": 2118,
+     "x2": 914,
+     "y2": 2274
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": true,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 89,
+    "parent": 28,
+    "role": "button",
+    "class_name": "android.widget.FrameLayout",
+    "label": "Next",
+    "text": null,
+    "resource_id": "com.google.android.inputmethod.latin:id/key_pos_ime_action",
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 914,
+     "y1": 2118,
+     "x2": 1075,
+     "y2": 2274
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": true,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 90,
+    "parent": 28,
+    "role": "button",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.google.android.inputmethod.latin:id/0_resource_name_obfuscated",
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 0,
+     "y1": 2274,
+     "x2": 1080,
+     "y2": 2274
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 91,
+    "parent": 27,
+    "role": "image",
+    "class_name": "android.widget.ImageView",
+    "label": "Back",
+    "text": null,
+    "resource_id": "android:id/input_method_nav_back",
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 71,
+     "y1": 2274,
+     "x2": 254,
+     "y2": 2400
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": true,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 92,
+    "parent": 27,
+    "role": "image",
+    "class_name": "android.widget.ImageView",
+    "label": "Switch input method",
+    "text": null,
+    "resource_id": "android:id/input_method_nav_ime_switcher",
+    "package": "com.google.android.inputmethod.latin",
+    "bounds": {
+     "x1": 826,
+     "y1": 2274,
+     "x2": 1009,
+     "y2": 2400
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": true,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 93,
+    "parent": null,
+    "role": "container",
+    "class_name": "android.widget.FrameLayout",
+    "label": null,
+    "text": null,
+    "resource_id": null,
+    "package": "com.android.systemui",
+    "bounds": {
+     "x1": 0,
+     "y1": 0,
+     "x2": 1080,
+     "y2": 128
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 94,
+    "parent": 93,
+    "role": "container",
+    "class_name": "android.widget.FrameLayout",
+    "label": null,
+    "text": null,
+    "resource_id": "com.android.systemui:id/status_bar",
+    "package": "com.android.systemui",
+    "bounds": {
+     "x1": 0,
+     "y1": 0,
+     "x2": 1080,
+     "y2": 128
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 95,
+    "parent": 94,
+    "role": "text",
+    "class_name": "android.widget.TextView",
+    "label": "16:34",
+    "text": "15:34",
+    "resource_id": "com.android.systemui:id/clock",
+    "package": "com.android.systemui",
+    "bounds": {
+     "x1": 50,
+     "y1": 1,
+     "x2": 148,
+     "y2": 128
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 96,
+    "parent": 94,
+    "role": "image",
+    "class_name": "android.widget.ImageView",
+    "label": "Clock notification: ",
+    "text": null,
+    "resource_id": null,
+    "package": "com.android.systemui",
+    "bounds": {
+     "x1": 148,
+     "y1": 1,
+     "x2": 206,
+     "y2": 128
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 97,
+    "parent": 94,
+    "role": "image",
+    "class_name": "android.widget.ImageView",
+    "label": "Android System notification: ",
+    "text": null,
+    "resource_id": null,
+    "package": "com.android.systemui",
+    "bounds": {
+     "x1": 206,
+     "y1": 1,
+     "x2": 264,
+     "y2": 128
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 98,
+    "parent": 94,
+    "role": "container",
+    "class_name": "android.widget.FrameLayout",
+    "label": "Wifi signal full.,No internet",
+    "text": null,
+    "resource_id": "com.android.systemui:id/wifi_combo",
+    "package": "com.android.systemui",
+    "bounds": {
+     "x1": 885,
+     "y1": 35,
+     "x2": 931,
+     "y2": 93
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 99,
+    "parent": 94,
+    "role": "container",
+    "class_name": "android.widget.FrameLayout",
+    "label": "Phone three bars.",
+    "text": null,
+    "resource_id": "com.android.systemui:id/mobile_combo",
+    "package": "com.android.systemui",
+    "bounds": {
+     "x1": 931,
+     "y1": 35,
+     "x2": 970,
+     "y2": 93
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 100,
+    "parent": 94,
+    "role": "container",
+    "class_name": "android.widget.LinearLayout",
+    "label": "Battery 100 percent.",
+    "text": null,
+    "resource_id": "com.android.systemui:id/battery",
+    "package": "com.android.systemui",
+    "bounds": {
+     "x1": 986,
+     "y1": 1,
+     "x2": 1006,
+     "y2": 128
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   }
+  ],
+  "installed_apps": [
+   {
+    "label": "clipper",
+    "package": "ca.zgrs.clipper",
+    "activity": "ca.zgrs.clipper/ca.zgrs.clipper.Main"
+   },
+   {
+    "label": "retro music",
+    "package": "code.name.monkey.retromusic",
+    "activity": "code.name.monkey.retromusic/.activities.MainActivity"
+   },
+   {
+    "label": "camera",
+    "package": "com.android.camera2",
+    "activity": "com.android.camera2/com.android.camera.CameraLauncher"
+   },
+   {
+    "label": "google chrome",
+    "package": "com.android.chrome",
+    "activity": "com.android.chrome/com.google.android.apps.chrome.Main"
+   },
+   {
+    "label": "settings",
+    "package": "com.android.settings",
+    "activity": "com.android.settings/.Settings"
+   },
+   {
+    "label": "google play",
+    "package": "com.android.vending",
+    "activity": "com.android.vending/com.google.android.finsky.activities.MainActivity"
+   },
+   {
+    "label": "pro expense",
+    "package": "com.arduia.expense",
+    "activity": "com.arduia.expense/com.arduia.expense.ui.MainActivity"
+   },
+   {
+    "label": "audio recorder",
+    "package": "com.dimowner.audiorecorder",
+    "activity": "com.dimowner.audiorecorder/com.dimowner.audiorecorder.app.welcome.WelcomeActivity"
+   },
+   {
+    "label": "android world",
+    "package": "com.example.androidworld",
+    "activity": "com.example.androidworld/.MainActivity"
+   },
+   {
+    "label": "broccoli",
+    "package": "com.flauschcode.broccoli",
+    "activity": "com.flauschcode.broccoli/com.flauschcode.broccoli.MainActivity"
+   },
+   {
+    "label": "google drive",
+    "package": "com.google.android.apps.docs",
+    "activity": "com.google.android.apps.docs/.drive.startup.StartupActivity"
+   },
+   {
+    "label": "google maps",
+    "package": "com.google.android.apps.maps",
+    "activity": "com.google.android.apps.maps/com.google.android.maps.MapsActivity"
+   },
+   {
+    "label": "messages",
+    "package": "com.google.android.apps.messaging",
+    "activity": "com.google.android.apps.messaging/com.google.android.apps.messaging.ui.ConversationListActivity"
+   },
+   {
+    "label": "google photos",
+    "package": "com.google.android.apps.photos",
+    "activity": "com.google.android.apps.photos/com.google.android.apps.photos.home.HomeActivity"
+   },
+   {
+    "label": "google calendar",
+    "package": "com.google.android.calendar",
+    "activity": "com.google.android.calendar/com.android.calendar.AllInOneActivity"
+   },
+   {
+    "label": "contacts",
+    "package": "com.google.android.contacts",
+    "activity": "com.google.android.contacts/com.android.contacts.activities.PeopleActivity"
+   },
+   {
+    "label": "clock",
+    "package": "com.google.android.deskclock",
+    "activity": "com.google.android.deskclock/com.android.deskclock.DeskClock"
+   },
+   {
+    "label": "dialer",
+    "package": "com.google.android.dialer",
+    "activity": "com.google.android.dialer/com.google.android.dialer.extensions.GoogleDialtactsActivity"
+   },
+   {
+    "label": "files",
+    "package": "com.google.android.documentsui",
+    "activity": "com.google.android.documentsui/com.android.documentsui.files.FilesActivity"
+   },
+   {
+    "label": "gmail",
+    "package": "com.google.android.gm",
+    "activity": "com.google.android.gm/.ConversationListActivityGmail"
+   },
+   {
+    "label": "google search",
+    "package": "com.google.android.googlequicksearchbox",
+    "activity": "com.google.android.googlequicksearchbox/com.google.android.googlequicksearchbox.SearchActivity"
+   },
+   {
+    "label": "youtube",
+    "package": "com.google.android.youtube",
+    "activity": "com.google.android.youtube/com.google.android.apps.youtube.app.WatchWhileActivity"
+   },
+   {
+    "label": "miniwob",
+    "package": "com.google.androidenv.miniwob",
+    "activity": "com.google.androidenv.miniwob/com.google.androidenv.miniwob.app.MainActivity"
+   },
+   {
+    "label": "simple calendar pro",
+    "package": "com.simplemobiletools.calendar.pro",
+    "activity": "com.simplemobiletools.calendar.pro/com.simplemobiletools.calendar.pro.activities.MainActivity"
+   },
+   {
+    "label": "simple draw pro",
+    "package": "com.simplemobiletools.draw.pro",
+    "activity": "com.simplemobiletools.draw.pro/com.simplemobiletools.draw.pro.activities.MainActivity"
+   },
+   {
+    "label": "simple gallery pro",
+    "package": "com.simplemobiletools.gallery.pro",
+    "activity": "com.simplemobiletools.gallery.pro/com.simplemobiletools.gallery.pro.activities.MainActivity"
+   },
+   {
+    "label": "simple sms messenger",
+    "package": "com.simplemobiletools.smsmessenger",
+    "activity": "com.simplemobiletools.smsmessenger/com.simplemobiletools.smsmessenger.activities.MainActivity"
+   },
+   {
+    "label": "open tracks sports tracker",
+    "package": "de.dennisguse.opentracks",
+    "activity": "de.dennisguse.opentracks/de.dennisguse.opentracks.TrackListActivity"
+   },
+   {
+    "label": "joplin",
+    "package": "net.cozic.joplin",
+    "activity": "net.cozic.joplin/.MainActivity"
+   },
+   {
+    "label": "markor",
+    "package": "net.gsantner.markor",
+    "activity": "net.gsantner.markor/net.gsantner.markor.activity.MainActivity"
+   },
+   {
+    "label": "osmand",
+    "package": "net.osmand",
+    "activity": "net.osmand/net.osmand.plus.activities.MapActivity"
+   },
+   {
+    "label": "tasks",
+    "package": "org.tasks",
+    "activity": "org.tasks/com.todoroo.astrid.activity.MainActivity"
+   },
+   {
+    "label": "vlc",
+    "package": "org.videolan.vlc",
+    "activity": "org.videolan.vlc/.gui.MainActivity"
+   }
+  ]
+ }
+}

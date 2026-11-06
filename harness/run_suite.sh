@@ -28,9 +28,10 @@ printf "task\tresult\tsteps\tseconds\texit\n" >> "$OUT"
 for t in $TASKS; do
   # run_task.py's verdict line, for every agent:  PASS|FAIL  <task>  steps=N  time=Ts  [exit=N  model_calls=N]
   # exit= is core's exit code (empty for t3a/m3a); a FAIL with a non-zero exit is core erroring, not the task.
-  line=$($PY harness/run_task.py --task "$t" --agent "$AGENT" --model "$MODEL" --base_url "$BASE_URL" \
+  log="${OUT%.tsv}_${t}.log"
+  line=$($PY -u harness/run_task.py --task "$t" --agent "$AGENT" --model "$MODEL" --base_url "$BASE_URL" \
            --confirm approve --max_tokens 2000 --timeout 120 2>&1 \
-         | grep -E "^(PASS|FAIL) " | tail -1)
+         | tee "$log" | grep -E "^(PASS|FAIL) " | tail -1)
   res=$(echo "$line" | awk '{print $1}'); res=${res:-ERROR}
   steps=$(echo "$line" | sed -n 's/.*steps=\([0-9]*\).*/\1/p')
   secs=$(echo "$line" | sed -n 's/.*time=\([0-9.]*\)s.*/\1/p')

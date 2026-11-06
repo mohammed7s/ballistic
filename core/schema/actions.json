@@ -1,0 +1,287 @@
+{
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "const": "open_app"
+        },
+        "why": {
+          "type": "string"
+        },
+        "app": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "app"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "const": "tap"
+        },
+        "why": {
+          "type": "string"
+        },
+        "target": {
+          "type": "string",
+          "pattern": "^e[1-9][0-9]*$"
+        }
+      },
+      "required": [
+        "action",
+        "target"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "const": "long_press"
+        },
+        "why": {
+          "type": "string"
+        },
+        "target": {
+          "type": "string",
+          "pattern": "^e[1-9][0-9]*$"
+        }
+      },
+      "required": [
+        "action",
+        "target"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "const": "type"
+        },
+        "why": {
+          "type": "string"
+        },
+        "target": {
+          "type": "string",
+          "pattern": "^e[1-9][0-9]*$"
+        },
+        "text": {
+          "type": "string"
+        },
+        "submit": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "action",
+        "target",
+        "text"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "const": "scroll"
+        },
+        "why": {
+          "type": "string"
+        },
+        "direction": {
+          "enum": [
+            "up",
+            "down",
+            "left",
+            "right"
+          ]
+        },
+        "target": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^e[1-9][0-9]*$"
+        }
+      },
+      "required": [
+        "action",
+        "direction"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "const": "swipe"
+        },
+        "why": {
+          "type": "string"
+        },
+        "target": {
+          "type": "string",
+          "pattern": "^e[1-9][0-9]*$"
+        },
+        "direction": {
+          "enum": [
+            "up",
+            "down",
+            "left",
+            "right"
+          ]
+        }
+      },
+      "required": [
+        "action",
+        "target",
+        "direction"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "const": "back"
+        },
+        "why": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "const": "home"
+        },
+        "why": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "const": "wait"
+        },
+        "why": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "const": "read"
+        },
+        "why": {
+          "type": "string"
+        },
+        "targets": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^c[1-9][0-9]*$"
+          }
+        },
+        "question": {
+          "type": "string"
+        },
+        "shape": {
+          "enum": [
+            "summary",
+            "facts",
+            "element"
+          ]
+        }
+      },
+      "required": [
+        "action",
+        "targets",
+        "question",
+        "shape"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "const": "answer"
+        },
+        "why": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "text"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "const": "done"
+        },
+        "why": {
+          "type": "string"
+        },
+        "evidence": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "evidence"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "const": "give_up"
+        },
+        "why": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "reason"
+      ],
+      "additionalProperties": false
+    }
+  ]
+}

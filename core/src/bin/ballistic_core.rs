@@ -21,7 +21,7 @@ struct Args {
 
 fn parse_args() -> Result<Args, String> {
     let mut it = std::env::args().skip(1);
-    let mode = it.next().ok_or("usage: ballistic-core observe | run --request TEXT [--max-steps N]")?;
+    let mode = it.next().ok_or("usage: ballistic-core filter [--request TEXT] | observe | run --request TEXT [--max-steps N]")?;
     let mut request = String::new();
     let mut max_steps = 15;
     while let Some(a) = it.next() {
@@ -51,16 +51,25 @@ fn main() {
             std::process::exit(2);
         }
     };
+    if args.mode == "filter" {
+        let result = serde_json::from_reader::<_, ballistic_core::types::ScreenState>(io::stdin().lock());
+        match result {
+            Ok(screen) => {
+                let view = ballistic_core::screen_filter::filter(&screen,
+                    &ballistic_core::screen_filter::FilterContext { request: &args.request, typed: &[] });
+                println!("{}", ballistic_core::screen_filter::render(&view));
+                return;
+            }
+            Err(e) => { eprintln!("invalid screen: {e}"); std::process::exit(1); }
+        }
+    }
     let stdin = io::stdin();
     let stdout = io::stdout();
     let mut host = Bridge::new(BufReader::new(stdin.lock()), stdout.lock());
 
     let result = match args.mode.as_str() {
         "observe" => observe_once(&mut host),
-        "run" => Err(format!(
-            "run is not implemented yet (request: {:?}, max_steps: {})",
-            args.request, args.max_steps
-        )),
+        "run" => ballistic_core::agent::run(&mut host, &args.request, args.max_steps).map_err(|e| e.to_string()),
         other => Err(format!("unknown mode {other}")),
     };
     let event = match &result {

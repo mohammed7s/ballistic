@@ -1,0 +1,1134 @@
+{
+ "task": "ContactsAddContact",
+ "goal": "Create a new contact for Muhammad Mohammed. Their number is +10891448553.",
+ "step": 4,
+ "t3a_action": "Reason: I need to enter the first name \"Muhammad\" into the first name text field, which is element 7.\nAction: {\"action_type\": \"input_text\", \"index\": 7, \"text\": \"Muhammad\"}",
+ "t3a_text": "UI element 0: UIElement(text=None, content_description='Cancel', class_name='android.widget.ImageButton', bbox=None, bbox_pixels=BoundingBox(x_min=0, x_max=147, y_min=138, y_max=285), hint_text=None, is_checked=False, is_checkable=False, is_clickable=True, is_editable=False, is_enabled=True, is_focused=False, is_focusable=True, is_long_clickable=False, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.contacts', resource_name=None, tooltip=None, resource_id=None, metadata=None)\nUI element 1: UIElement(text='Create contact', content_description=None, class_name='android.widget.TextView', bbox=None, bbox_pixels=BoundingBox(x_min=157, x_max=551, y_min=175, y_max=248), hint_text=None, is_checked=False, is_checkable=False, is_clickable=False, is_editable=False, is_enabled=True, is_focused=False, is_focusable=False, is_long_clickable=False, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.contacts', resource_name=None, tooltip=None, resource_id=None, metadata=None)\nUI element 2: UIElement(text='Save', content_description=None, class_name='android.widget.Button', bbox=None, bbox_pixels=BoundingBox(x_min=723, x_max=954, y_min=148, y_max=274), hint_text=None, is_checked=False, is_checkable=False, is_clickable=True, is_editable=False, is_enabled=True, is_focused=False, is_focusable=True, is_long_clickable=False, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.contacts', resource_name='com.google.android.contacts:id/toolbar_button', tooltip=None, resource_id=None, metadata=None)\nUI element 3: UIElement(text=None, content_description='More options', class_name='android.widget.ImageView', bbox=None, bbox_pixels=BoundingBox(x_min=954, x_max=1080, y_min=148, y_max=274), hint_text=None, is_checked=False, is_checkable=False, is_clickable=True, is_editable=False, is_enabled=True, is_focused=False, is_focusable=True, is_long_clickable=True, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.contacts', resource_name=None, tooltip=None, resource_id=None, metadata=None)\nUI element 4: UIElement(text=None, content_description=None, class_name='android.widget.ScrollView', bbox=None, bbox_pixels=BoundingBox(x_min=0, x_max=1080, y_min=296, y_max=2337), hint_text=None, is_checked=False, is_checkable=False, is_clickable=False, is_editable=False, is_enabled=True, is_focused=False, is_focusable=True, is_long_clickable=False, is_scrollable=True, is_selected=False, is_visible=True, package_name='com.google.android.contacts', resource_name='com.google.android.contacts:id/contact_editor_scroller', tooltip=None, resource_id=None, metadata=None)\nUI element 5: UIElement(text=None, content_description='Add contact photo', class_name='android.widget.FrameLayout', bbox=None, bbox_pixels=BoundingBox(x_min=382, x_max=697, y_min=349, y_max=664), hint_text=None, is_checked=False, is_checkable=False, is_clickable=True, is_editable=False, is_enabled=True, is_focused=False, is_focusable=True, is_long_clickable=False, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.contacts', resource_name='com.google.android.contacts:id/photo_update_clickable', tooltip=None, resource_id=None, metadata=None)\nUI element 6: UIElement(text='Add picture', content_description=None, class_name='android.widget.Button', bbox=None, bbox_pixels=BoundingBox(x_min=406, x_max=673, y_min=664, y_max=790), hint_text=None, is_checked=False, is_checkable=False, is_clickable=True, is_editable=False, is_enabled=True, is_focused=False, is_focusable=True, is_long_clickable=False, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.contacts', resource_name='com.google.android.contacts:id/button_change_photo', tooltip=None, resource_id=None, metadata=None)\nUI element 7: UIElement(text='First name', content_description=None, class_name='android.widget.EditText', bbox=None, bbox_pixels=BoundingBox(x_min=137, x_max=933, y_min=858, y_max=1007), hint_text='First name', is_checked=False, is_checkable=False, is_clickable=True, is_editable=True, is_enabled=True, is_focused=False, is_focusable=True, is_long_clickable=True, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.contacts', resource_name=None, tooltip=None, resource_id=None, metadata=None)\nUI element 8: UIElement(text='Last name', content_description=None, class_name='android.widget.EditText', bbox=None, bbox_pixels=BoundingBox(x_min=137, x_max=933, y_min=1043, y_max=1192), hint_text='Last name', is_checked=False, is_checkable=False, is_clickable=True, is_editable=True, is_enabled=True, is_focused=False, is_focusable=True, is_long_clickable=True, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.contacts', resource_name=None, tooltip=None, resource_id=None, metadata=None)\nUI element 9: UIElement(text='Company', content_description=None, class_name='android.widget.EditText', bbox=None, bbox_pixels=BoundingBox(x_min=137, x_max=933, y_min=1249, y_max=1398), hint_text='Company', is_checked=False, is_checkable=False, is_clickable=True, is_editable=True, is_enabled=True, is_focused=False, is_focusable=True, is_long_clickable=True, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.contacts', resource_name=None, tooltip=None, resource_id=None, metadata=None)\nUI element 10: UIElement(text='Phone', content_description=None, class_name='android.widget.EditText', bbox=None, bbox_pixels=BoundingBox(x_min=137, x_max=933, y_min=1455, y_max=1604), hint_text='Phone', is_checked=False, is_checkable=False, is_clickable=True, is_editable=True, is_enabled=True, is_focused=False, is_focusable=True, is_long_clickable=True, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.contacts', resource_name=None, tooltip=None, resource_id=None, metadata=None)\nUI element 11: UIElement(text='Mobile', content_description='Mobile Phone', class_name='android.widget.Spinner', bbox=None, bbox_pixels=BoundingBox(x_min=137, x_max=586, y_min=1640, y_max=1789), hint_text='Label', is_checked=False, is_checkable=False, is_clickable=True, is_editable=True, is_enabled=True, is_focused=False, is_focusable=True, is_long_clickable=True, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.contacts', resource_name=None, tooltip=None, resource_id=None, metadata=None)\nUI element 12: UIElement(text=None, content_description='Show dropdown menu', class_name='android.widget.ImageButton', bbox=None, bbox_pixels=BoundingBox(x_min=460, x_max=586, y_min=1651, y_max=1777), hint_text=None, is_checked=False, is_checkable=True, is_clickable=True, is_editable=False, is_enabled=True, is_focused=False, is_focusable=True, is_long_clickable=False, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.contacts', resource_name='com.google.android.contacts:id/text_input_end_icon', tooltip=None, resource_id=None, metadata=None)\nUI element 13: UIElement(text='Email', content_description=None, class_name='android.widget.EditText', bbox=None, bbox_pixels=BoundingBox(x_min=137, x_max=933, y_min=1851, y_max=2000), hint_text='Email', is_checked=False, is_checkable=False, is_clickable=True, is_editable=True, is_enabled=True, is_focused=False, is_focusable=True, is_long_clickable=True, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.contacts', resource_name=None, tooltip=None, resource_id=None, metadata=None)\nUI element 14: UIElement(text='Home', content_description='Home Email', class_name='android.widget.Spinner', bbox=None, bbox_pixels=BoundingBox(x_min=137, x_max=557, y_min=2036, y_max=2185), hint_text='Label', is_checked=False, is_checkable=False, is_clickable=True, is_editable=True, is_enabled=True, is_focused=False, is_focusable=True, is_long_clickable=True, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.contacts', resource_name=None, tooltip=None, resource_id=None, metadata=None)\nUI element 15: UIElement(text=None, content_description='Show dropdown menu', class_name='android.widget.ImageButton', bbox=None, bbox_pixels=BoundingBox(x_min=431, x_max=557, y_min=2047, y_max=2173), hint_text=None, is_checked=False, is_checkable=True, is_clickable=True, is_editable=False, is_enabled=True, is_focused=False, is_focusable=True, is_long_clickable=False, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.contacts', resource_name='com.google.android.contacts:id/text_input_end_icon', tooltip=None, resource_id=None, metadata=None)\nUI element 16: UIElement(text='Significant date', content_description=None, class_name='android.widget.EditText', bbox=None, bbox_pixels=BoundingBox(x_min=137, x_max=933, y_min=2247, y_max=2337), hint_text='Significant date', is_checked=False, is_checkable=False, is_clickable=True, is_editable=True, is_enabled=True, is_focused=False, is_focusable=False, is_long_clickable=True, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.contacts', resource_name=None, tooltip=None, resource_id=None, metadata=None)\nUI element 17: UIElement(text=None, content_description='Show date picker', class_name='android.widget.ImageButton', bbox=None, bbox_pixels=BoundingBox(x_min=807, x_max=933, y_min=2258, y_max=2337), hint_text=None, is_checked=False, is_checkable=False, is_clickable=True, is_editable=False, is_enabled=True, is_focused=False, is_focusable=True, is_long_clickable=False, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.contacts', resource_name='com.google.android.contacts:id/text_input_end_icon', tooltip=None, resource_id=None, metadata=None)\nUI element 18: UIElement(text=None, content_description='Show more name fields', class_name='android.widget.ImageView', bbox=None, bbox_pixels=BoundingBox(x_min=933, x_max=1080, y_min=843, y_max=990), hint_text=None, is_checked=False, is_checkable=False, is_clickable=False, is_editable=False, is_enabled=True, is_focused=False, is_focusable=False, is_long_clickable=False, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.google.android.contacts', resource_name='com.google.android.contacts:id/expansion_view', tooltip=None, resource_id=None, metadata=None)\nUI element 19: UIElement(text='15:34', content_description='16:34', class_name='android.widget.TextView', bbox=None, bbox_pixels=BoundingBox(x_min=50, x_max=148, y_min=1, y_max=128), hint_text=None, is_checked=False, is_checkable=False, is_clickable=False, is_editable=False, is_enabled=True, is_focused=False, is_focusable=False, is_long_clickable=False, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.android.systemui', resource_name='com.android.systemui:id/clock', tooltip=None, resource_id=None, metadata=None)\nUI element 20: UIElement(text=None, content_description='Clock notification: ', class_name='android.widget.ImageView', bbox=None, bbox_pixels=BoundingBox(x_min=148, x_max=206, y_min=1, y_max=128), hint_text=None, is_checked=False, is_checkable=False, is_clickable=False, is_editable=False, is_enabled=True, is_focused=False, is_focusable=False, is_long_clickable=False, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.android.systemui', resource_name=None, tooltip=None, resource_id=None, metadata=None)\nUI element 21: UIElement(text=None, content_description='Android System notification: ', class_name='android.widget.ImageView', bbox=None, bbox_pixels=BoundingBox(x_min=206, x_max=264, y_min=1, y_max=128), hint_text=None, is_checked=False, is_checkable=False, is_clickable=False, is_editable=False, is_enabled=True, is_focused=False, is_focusable=False, is_long_clickable=False, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.android.systemui', resource_name=None, tooltip=None, resource_id=None, metadata=None)\nUI element 22: UIElement(text=None, content_description='Wifi signal full.,No internet', class_name='android.widget.FrameLayout', bbox=None, bbox_pixels=BoundingBox(x_min=885, x_max=931, y_min=35, y_max=93), hint_text=None, is_checked=False, is_checkable=False, is_clickable=False, is_editable=False, is_enabled=True, is_focused=False, is_focusable=False, is_long_clickable=False, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.android.systemui', resource_name='com.android.systemui:id/wifi_combo', tooltip=None, resource_id=None, metadata=None)\nUI element 23: UIElement(text=None, content_description='Phone three bars.', class_name='android.widget.FrameLayout', bbox=None, bbox_pixels=BoundingBox(x_min=931, x_max=970, y_min=35, y_max=93), hint_text=None, is_checked=False, is_checkable=False, is_clickable=False, is_editable=False, is_enabled=True, is_focused=False, is_focusable=False, is_long_clickable=False, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.android.systemui', resource_name='com.android.systemui:id/mobile_combo', tooltip=None, resource_id=None, metadata=None)\nUI element 24: UIElement(text=None, content_description='Battery 100 percent.', class_name='android.widget.LinearLayout', bbox=None, bbox_pixels=BoundingBox(x_min=986, x_max=1006, y_min=1, y_max=128), hint_text=None, is_checked=False, is_checkable=False, is_clickable=False, is_editable=False, is_enabled=True, is_focused=False, is_focusable=False, is_long_clickable=False, is_scrollable=False, is_selected=False, is_visible=True, package_name='com.android.systemui', resource_name='com.android.systemui:id/battery', tooltip=None, resource_id=None, metadata=None)\n",
+ "screen": {
+  "package": "com.google.android.contacts",
+  "activity": "com.google.android.apps.contacts.editor.ContactEditorActivity",
+  "width": 1080,
+  "height": 2400,
+  "nodes": [
+   {
+    "id": 1,
+    "parent": null,
+    "role": "container",
+    "class_name": "android.widget.FrameLayout",
+    "label": null,
+    "text": null,
+    "resource_id": null,
+    "package": "com.google.android.contacts",
+    "bounds": {
+     "x1": 0,
+     "y1": 0,
+     "x2": 1080,
+     "y2": 2400
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 2,
+    "parent": 1,
+    "role": "container",
+    "class_name": "android.view.ViewGroup",
+    "label": null,
+    "text": null,
+    "resource_id": "com.google.android.contacts:id/contact_editor_fragment",
+    "package": "com.google.android.contacts",
+    "bounds": {
+     "x1": 0,
+     "y1": 0,
+     "x2": 1080,
+     "y2": 2400
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 3,
+    "parent": 2,
+    "role": "button",
+    "class_name": "android.widget.ImageButton",
+    "label": "Cancel",
+    "text": null,
+    "resource_id": null,
+    "package": "com.google.android.contacts",
+    "bounds": {
+     "x1": 0,
+     "y1": 138,
+     "x2": 147,
+     "y2": 285
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 4,
+    "parent": 2,
+    "role": "text",
+    "class_name": "android.widget.TextView",
+    "label": null,
+    "text": "Create contact",
+    "resource_id": null,
+    "package": "com.google.android.contacts",
+    "bounds": {
+     "x1": 157,
+     "y1": 175,
+     "x2": 551,
+     "y2": 248
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 5,
+    "parent": 2,
+    "role": "button",
+    "class_name": "android.widget.Button",
+    "label": null,
+    "text": "Save",
+    "resource_id": "com.google.android.contacts:id/toolbar_button",
+    "package": "com.google.android.contacts",
+    "bounds": {
+     "x1": 723,
+     "y1": 148,
+     "x2": 954,
+     "y2": 274
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 6,
+    "parent": 2,
+    "role": "image",
+    "class_name": "android.widget.ImageView",
+    "label": "More options",
+    "text": null,
+    "resource_id": null,
+    "package": "com.google.android.contacts",
+    "bounds": {
+     "x1": 954,
+     "y1": 148,
+     "x2": 1080,
+     "y2": 274
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": true,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 7,
+    "parent": 2,
+    "role": "list",
+    "class_name": "android.widget.ScrollView",
+    "label": null,
+    "text": null,
+    "resource_id": "com.google.android.contacts:id/contact_editor_scroller",
+    "package": "com.google.android.contacts",
+    "bounds": {
+     "x1": 0,
+     "y1": 296,
+     "x2": 1080,
+     "y2": 2337
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": true,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 8,
+    "parent": 7,
+    "role": "container",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": null,
+    "package": "com.google.android.contacts",
+    "bounds": {
+     "x1": 0,
+     "y1": 296,
+     "x2": 0,
+     "y2": 296
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 9,
+    "parent": 7,
+    "role": "item",
+    "class_name": "android.widget.FrameLayout",
+    "label": "Add contact photo",
+    "text": null,
+    "resource_id": "com.google.android.contacts:id/photo_update_clickable",
+    "package": "com.google.android.contacts",
+    "bounds": {
+     "x1": 382,
+     "y1": 349,
+     "x2": 697,
+     "y2": 664
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 10,
+    "parent": 7,
+    "role": "button",
+    "class_name": "android.widget.Button",
+    "label": null,
+    "text": "Add picture",
+    "resource_id": "com.google.android.contacts:id/button_change_photo",
+    "package": "com.google.android.contacts",
+    "bounds": {
+     "x1": 406,
+     "y1": 664,
+     "x2": 673,
+     "y2": 790
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 11,
+    "parent": 7,
+    "role": "edit",
+    "class_name": "android.widget.EditText",
+    "label": "First name",
+    "text": "First name",
+    "resource_id": null,
+    "package": "com.google.android.contacts",
+    "bounds": {
+     "x1": 137,
+     "y1": 858,
+     "x2": 933,
+     "y2": 1007
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": true,
+     "editable": true,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 12,
+    "parent": 7,
+    "role": "edit",
+    "class_name": "android.widget.EditText",
+    "label": "Last name",
+    "text": "Last name",
+    "resource_id": null,
+    "package": "com.google.android.contacts",
+    "bounds": {
+     "x1": 137,
+     "y1": 1043,
+     "x2": 933,
+     "y2": 1192
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": true,
+     "editable": true,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 13,
+    "parent": 7,
+    "role": "item",
+    "class_name": "android.widget.FrameLayout",
+    "label": null,
+    "text": null,
+    "resource_id": "com.google.android.contacts:id/expansion_view_container",
+    "package": "com.google.android.contacts",
+    "bounds": {
+     "x1": 933,
+     "y1": 843,
+     "x2": 1080,
+     "y2": 990
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 14,
+    "parent": 13,
+    "role": "image",
+    "class_name": "android.widget.ImageView",
+    "label": "Show more name fields",
+    "text": null,
+    "resource_id": "com.google.android.contacts:id/expansion_view",
+    "package": "com.google.android.contacts",
+    "bounds": {
+     "x1": 933,
+     "y1": 843,
+     "x2": 1080,
+     "y2": 990
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 15,
+    "parent": 7,
+    "role": "edit",
+    "class_name": "android.widget.EditText",
+    "label": "Company",
+    "text": "Company",
+    "resource_id": null,
+    "package": "com.google.android.contacts",
+    "bounds": {
+     "x1": 137,
+     "y1": 1249,
+     "x2": 933,
+     "y2": 1398
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": true,
+     "editable": true,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 16,
+    "parent": 7,
+    "role": "edit",
+    "class_name": "android.widget.EditText",
+    "label": "Phone",
+    "text": "Phone",
+    "resource_id": null,
+    "package": "com.google.android.contacts",
+    "bounds": {
+     "x1": 137,
+     "y1": 1455,
+     "x2": 933,
+     "y2": 1604
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": true,
+     "editable": true,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 17,
+    "parent": 7,
+    "role": "other",
+    "class_name": "android.widget.Spinner",
+    "label": "Mobile Phone",
+    "text": "Mobile",
+    "resource_id": null,
+    "package": "com.google.android.contacts",
+    "bounds": {
+     "x1": 137,
+     "y1": 1640,
+     "x2": 586,
+     "y2": 1789
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": true,
+     "editable": true,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 18,
+    "parent": 7,
+    "role": "button",
+    "class_name": "android.widget.ImageButton",
+    "label": "Show dropdown menu",
+    "text": null,
+    "resource_id": "com.google.android.contacts:id/text_input_end_icon",
+    "package": "com.google.android.contacts",
+    "bounds": {
+     "x1": 460,
+     "y1": 1651,
+     "x2": 586,
+     "y2": 1777
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": true,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 19,
+    "parent": 7,
+    "role": "edit",
+    "class_name": "android.widget.EditText",
+    "label": "Email",
+    "text": "Email",
+    "resource_id": null,
+    "package": "com.google.android.contacts",
+    "bounds": {
+     "x1": 137,
+     "y1": 1851,
+     "x2": 933,
+     "y2": 2000
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": true,
+     "editable": true,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 20,
+    "parent": 7,
+    "role": "other",
+    "class_name": "android.widget.Spinner",
+    "label": "Home Email",
+    "text": "Home",
+    "resource_id": null,
+    "package": "com.google.android.contacts",
+    "bounds": {
+     "x1": 137,
+     "y1": 2036,
+     "x2": 557,
+     "y2": 2185
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": true,
+     "editable": true,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 21,
+    "parent": 7,
+    "role": "button",
+    "class_name": "android.widget.ImageButton",
+    "label": "Show dropdown menu",
+    "text": null,
+    "resource_id": "com.google.android.contacts:id/text_input_end_icon",
+    "package": "com.google.android.contacts",
+    "bounds": {
+     "x1": 431,
+     "y1": 2047,
+     "x2": 557,
+     "y2": 2173
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": true,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 22,
+    "parent": 7,
+    "role": "edit",
+    "class_name": "android.widget.EditText",
+    "label": "Significant date",
+    "text": "Significant date",
+    "resource_id": null,
+    "package": "com.google.android.contacts",
+    "bounds": {
+     "x1": 137,
+     "y1": 2247,
+     "x2": 933,
+     "y2": 2337
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": true,
+     "editable": true,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 23,
+    "parent": 7,
+    "role": "button",
+    "class_name": "android.widget.ImageButton",
+    "label": "Show date picker",
+    "text": null,
+    "resource_id": "com.google.android.contacts:id/text_input_end_icon",
+    "package": "com.google.android.contacts",
+    "bounds": {
+     "x1": 807,
+     "y1": 2258,
+     "x2": 933,
+     "y2": 2337
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 24,
+    "parent": 7,
+    "role": "other",
+    "class_name": "android.widget.Spinner",
+    "label": "Birthday Special date",
+    "text": "Birthday",
+    "resource_id": null,
+    "package": "com.google.android.contacts",
+    "bounds": {
+     "x1": 137,
+     "y1": 2432,
+     "x2": 557,
+     "y2": 2337
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": true,
+     "editable": true,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 25,
+    "parent": 7,
+    "role": "button",
+    "class_name": "android.widget.ImageButton",
+    "label": "Show dropdown menu",
+    "text": null,
+    "resource_id": "com.google.android.contacts:id/text_input_end_icon",
+    "package": "com.google.android.contacts",
+    "bounds": {
+     "x1": 431,
+     "y1": 2443,
+     "x2": 557,
+     "y2": 2337
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": true,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 26,
+    "parent": 7,
+    "role": "text",
+    "class_name": "android.widget.TextView",
+    "label": null,
+    "text": "More fields",
+    "resource_id": "com.google.android.contacts:id/more_fields",
+    "package": "com.google.android.contacts",
+    "bounds": {
+     "x1": 0,
+     "y1": 2628,
+     "x2": 1080,
+     "y2": 2337
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 27,
+    "parent": null,
+    "role": "container",
+    "class_name": "android.widget.FrameLayout",
+    "label": null,
+    "text": null,
+    "resource_id": null,
+    "package": "com.android.systemui",
+    "bounds": {
+     "x1": 0,
+     "y1": 0,
+     "x2": 1080,
+     "y2": 128
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 28,
+    "parent": 27,
+    "role": "container",
+    "class_name": "android.widget.FrameLayout",
+    "label": null,
+    "text": null,
+    "resource_id": "com.android.systemui:id/status_bar",
+    "package": "com.android.systemui",
+    "bounds": {
+     "x1": 0,
+     "y1": 0,
+     "x2": 1080,
+     "y2": 128
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 29,
+    "parent": 28,
+    "role": "text",
+    "class_name": "android.widget.TextView",
+    "label": "16:34",
+    "text": "15:34",
+    "resource_id": "com.android.systemui:id/clock",
+    "package": "com.android.systemui",
+    "bounds": {
+     "x1": 50,
+     "y1": 1,
+     "x2": 148,
+     "y2": 128
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 30,
+    "parent": 28,
+    "role": "image",
+    "class_name": "android.widget.ImageView",
+    "label": "Clock notification: ",
+    "text": null,
+    "resource_id": null,
+    "package": "com.android.systemui",
+    "bounds": {
+     "x1": 148,
+     "y1": 1,
+     "x2": 206,
+     "y2": 128
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 31,
+    "parent": 28,
+    "role": "image",
+    "class_name": "android.widget.ImageView",
+    "label": "Android System notification: ",
+    "text": null,
+    "resource_id": null,
+    "package": "com.android.systemui",
+    "bounds": {
+     "x1": 206,
+     "y1": 1,
+     "x2": 264,
+     "y2": 128
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 32,
+    "parent": 28,
+    "role": "container",
+    "class_name": "android.widget.FrameLayout",
+    "label": "Wifi signal full.,No internet",
+    "text": null,
+    "resource_id": "com.android.systemui:id/wifi_combo",
+    "package": "com.android.systemui",
+    "bounds": {
+     "x1": 885,
+     "y1": 35,
+     "x2": 931,
+     "y2": 93
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 33,
+    "parent": 28,
+    "role": "container",
+    "class_name": "android.widget.FrameLayout",
+    "label": "Phone three bars.",
+    "text": null,
+    "resource_id": "com.android.systemui:id/mobile_combo",
+    "package": "com.android.systemui",
+    "bounds": {
+     "x1": 931,
+     "y1": 35,
+     "x2": 970,
+     "y2": 93
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 34,
+    "parent": 28,
+    "role": "container",
+    "class_name": "android.widget.LinearLayout",
+    "label": "Battery 100 percent.",
+    "text": null,
+    "resource_id": "com.android.systemui:id/battery",
+    "package": "com.android.systemui",
+    "bounds": {
+     "x1": 986,
+     "y1": 1,
+     "x2": 1006,
+     "y2": 128
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   }
+  ],
+  "installed_apps": [
+   {
+    "label": "clipper",
+    "package": "ca.zgrs.clipper",
+    "activity": "ca.zgrs.clipper/ca.zgrs.clipper.Main"
+   },
+   {
+    "label": "retro music",
+    "package": "code.name.monkey.retromusic",
+    "activity": "code.name.monkey.retromusic/.activities.MainActivity"
+   },
+   {
+    "label": "camera",
+    "package": "com.android.camera2",
+    "activity": "com.android.camera2/com.android.camera.CameraLauncher"
+   },
+   {
+    "label": "google chrome",
+    "package": "com.android.chrome",
+    "activity": "com.android.chrome/com.google.android.apps.chrome.Main"
+   },
+   {
+    "label": "settings",
+    "package": "com.android.settings",
+    "activity": "com.android.settings/.Settings"
+   },
+   {
+    "label": "google play",
+    "package": "com.android.vending",
+    "activity": "com.android.vending/com.google.android.finsky.activities.MainActivity"
+   },
+   {
+    "label": "pro expense",
+    "package": "com.arduia.expense",
+    "activity": "com.arduia.expense/com.arduia.expense.ui.MainActivity"
+   },
+   {
+    "label": "audio recorder",
+    "package": "com.dimowner.audiorecorder",
+    "activity": "com.dimowner.audiorecorder/com.dimowner.audiorecorder.app.welcome.WelcomeActivity"
+   },
+   {
+    "label": "android world",
+    "package": "com.example.androidworld",
+    "activity": "com.example.androidworld/.MainActivity"
+   },
+   {
+    "label": "broccoli",
+    "package": "com.flauschcode.broccoli",
+    "activity": "com.flauschcode.broccoli/com.flauschcode.broccoli.MainActivity"
+   },
+   {
+    "label": "google drive",
+    "package": "com.google.android.apps.docs",
+    "activity": "com.google.android.apps.docs/.drive.startup.StartupActivity"
+   },
+   {
+    "label": "google maps",
+    "package": "com.google.android.apps.maps",
+    "activity": "com.google.android.apps.maps/com.google.android.maps.MapsActivity"
+   },
+   {
+    "label": "messages",
+    "package": "com.google.android.apps.messaging",
+    "activity": "com.google.android.apps.messaging/com.google.android.apps.messaging.ui.ConversationListActivity"
+   },
+   {
+    "label": "google photos",
+    "package": "com.google.android.apps.photos",
+    "activity": "com.google.android.apps.photos/com.google.android.apps.photos.home.HomeActivity"
+   },
+   {
+    "label": "google calendar",
+    "package": "com.google.android.calendar",
+    "activity": "com.google.android.calendar/com.android.calendar.AllInOneActivity"
+   },
+   {
+    "label": "contacts",
+    "package": "com.google.android.contacts",
+    "activity": "com.google.android.contacts/com.android.contacts.activities.PeopleActivity"
+   },
+   {
+    "label": "clock",
+    "package": "com.google.android.deskclock",
+    "activity": "com.google.android.deskclock/com.android.deskclock.DeskClock"
+   },
+   {
+    "label": "dialer",
+    "package": "com.google.android.dialer",
+    "activity": "com.google.android.dialer/com.google.android.dialer.extensions.GoogleDialtactsActivity"
+   },
+   {
+    "label": "files",
+    "package": "com.google.android.documentsui",
+    "activity": "com.google.android.documentsui/com.android.documentsui.files.FilesActivity"
+   },
+   {
+    "label": "gmail",
+    "package": "com.google.android.gm",
+    "activity": "com.google.android.gm/.ConversationListActivityGmail"
+   },
+   {
+    "label": "google search",
+    "package": "com.google.android.googlequicksearchbox",
+    "activity": "com.google.android.googlequicksearchbox/com.google.android.googlequicksearchbox.SearchActivity"
+   },
+   {
+    "label": "youtube",
+    "package": "com.google.android.youtube",
+    "activity": "com.google.android.youtube/com.google.android.apps.youtube.app.WatchWhileActivity"
+   },
+   {
+    "label": "miniwob",
+    "package": "com.google.androidenv.miniwob",
+    "activity": "com.google.androidenv.miniwob/com.google.androidenv.miniwob.app.MainActivity"
+   },
+   {
+    "label": "simple calendar pro",
+    "package": "com.simplemobiletools.calendar.pro",
+    "activity": "com.simplemobiletools.calendar.pro/com.simplemobiletools.calendar.pro.activities.MainActivity"
+   },
+   {
+    "label": "simple draw pro",
+    "package": "com.simplemobiletools.draw.pro",
+    "activity": "com.simplemobiletools.draw.pro/com.simplemobiletools.draw.pro.activities.MainActivity"
+   },
+   {
+    "label": "simple gallery pro",
+    "package": "com.simplemobiletools.gallery.pro",
+    "activity": "com.simplemobiletools.gallery.pro/com.simplemobiletools.gallery.pro.activities.MainActivity"
+   },
+   {
+    "label": "simple sms messenger",
+    "package": "com.simplemobiletools.smsmessenger",
+    "activity": "com.simplemobiletools.smsmessenger/com.simplemobiletools.smsmessenger.activities.MainActivity"
+   },
+   {
+    "label": "open tracks sports tracker",
+    "package": "de.dennisguse.opentracks",
+    "activity": "de.dennisguse.opentracks/de.dennisguse.opentracks.TrackListActivity"
+   },
+   {
+    "label": "joplin",
+    "package": "net.cozic.joplin",
+    "activity": "net.cozic.joplin/.MainActivity"
+   },
+   {
+    "label": "markor",
+    "package": "net.gsantner.markor",
+    "activity": "net.gsantner.markor/net.gsantner.markor.activity.MainActivity"
+   },
+   {
+    "label": "osmand",
+    "package": "net.osmand",
+    "activity": "net.osmand/net.osmand.plus.activities.MapActivity"
+   },
+   {
+    "label": "tasks",
+    "package": "org.tasks",
+    "activity": "org.tasks/com.todoroo.astrid.activity.MainActivity"
+   },
+   {
+    "label": "vlc",
+    "package": "org.videolan.vlc",
+    "activity": "org.videolan.vlc/.gui.MainActivity"
+   }
+  ]
+ }
+}
