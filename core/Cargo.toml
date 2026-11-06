@@ -1,0 +1,19 @@
+[package]
+name = "ballistic_core"
+version = "0.1.0"
+edition = "2021"
+description = "Ballistic's agent: reads a screen, decides one action, checks it against the owner's rules. Hosts supply Screen, Hands, Models and Confirm."
+license = "MIT"
+
+[lib]
+name = "ballistic_core"
+path = "src/lib.rs"
+
+[[bin]]
+name = "ballistic-core"
+path = "src/bin/ballistic_core.rs"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"

@@ -49,7 +49,10 @@ FLAGS = flags.FLAGS
 flags.DEFINE_string("base_url", os.environ.get("BALLISTIC_BASE_URL", "http://127.0.0.1:11434/v1"), "OpenAI-compatible endpoint")
 flags.DEFINE_string("model", os.environ.get("BALLISTIC_MODEL", "gemma3:4b"), "Model name at the endpoint")
 flags.DEFINE_string("api_key", os.environ.get("BALLISTIC_API_KEY", "ollama"), "Bearer token (ignored by Ollama)")
-flags.DEFINE_enum("agent", "t3a", ["t3a", "m3a"], "t3a = text only (UI tree), m3a = screenshot + UI tree")
+flags.DEFINE_enum("agent", "t3a", ["t3a", "m3a", "core"], "t3a = text only (UI tree), m3a = screenshot + UI tree, core = Ballistic's agent (Rust, over JSON lines)")
+flags.DEFINE_string("core_bin", None, "Path to the ballistic-core binary (default: core/target/{release,debug})")
+flags.DEFINE_enum("core_mode", "run", ["run", "observe"], "core: run the agent, or observe once (pipe smoke test)")
+flags.DEFINE_enum("confirm", "approve", ["approve", "deny"], "core: answer to every confirmation request")
 flags.DEFINE_string("task", None, "AndroidWorld task name; random if omitted")
 flags.DEFINE_string("goal", None, "Free-form goal; skips AndroidWorld task setup and success check")
 flags.DEFINE_integer("max_steps", 15, "Step budget for --goal runs")
@@ -147,10 +150,15 @@ def _main() -> None:
         task.initialize_task(env)
         name, goal, budget = task_type.__name__, task.goal, int(task.complexity * 10)
 
+    print(f"\nTask:  {name}\nGoal:  {goal}\nAgent: {FLAGS.agent}  Model: {FLAGS.model} @ {FLAGS.base_url}\nStep budget: {budget}\n")
+    if FLAGS.agent == "core":
+        _run_core(env, task, name, goal, budget)
+        env.close()
+        return
+
     llm = OpenAICompatWrapper(FLAGS.base_url, FLAGS.model, FLAGS.api_key, FLAGS.temperature, FLAGS.max_tokens, FLAGS.timeout, FLAGS.no_think)
     agent = m3a.M3A(env, llm) if FLAGS.agent == "m3a" else t3a.T3A(env, llm)
 
-    print(f"\nTask:  {name}\nGoal:  {goal}\nAgent: {FLAGS.agent}  Model: {FLAGS.model} @ {FLAGS.base_url}\nStep budget: {budget}\n")
     steps: list[dict[str, Any]] = []
     done = False
     t_start = time.time()
@@ -183,6 +191,53 @@ def _main() -> None:
         }, f, indent=2)
     print(f"written {out}")
     env.close()
+
+
+def _run_core(env, task, name: str, goal: str, budget: int) -> None:
+    """Serve ballistic-core over the bridge, then judge the task as for the other agents."""
+    import core_bridge  # local module, same directory
+
+    route = (FLAGS.base_url, FLAGS.model, FLAGS.api_key)
+    models = core_bridge.ModelClient({"planner": route}, FLAGS.temperature, FLAGS.timeout)
+
+    def on_event(ev: dict[str, Any]) -> None:
+        if "step" in ev:
+            print(f"step {ev.get('step'):>2}  {ev.get('seconds', 0):5.1f}s  {str(ev.get('action'))[:110]}")
+        elif ev.get("finished"):
+            print("finished:", json.dumps(ev.get("report") or ev.get("error"))[:300])
+
+    host = core_bridge.CoreHost(env, models, FLAGS.confirm, on_event)
+    core_bin = FLAGS.core_bin or core_bridge.default_core_bin()
+    args = ["observe"] if FLAGS.core_mode == "observe" else ["run", "--request", goal, "--max-steps", str(budget)]
+    t_start = time.time()
+    proc = core_bridge.start_core(core_bin, args)
+    finished = host.serve(proc)
+    proc.stdin.close()
+    stderr = proc.stderr.read().decode("utf-8", "replace") if proc.stderr else ""
+    code = proc.wait(timeout=30)
+    total = round(time.time() - t_start, 1)
+    done = bool(finished.get("report", {}).get("done")) if isinstance(finished.get("report"), dict) else False
+
+    success = None
+    if task is not None and FLAGS.core_mode == "run":
+        success = bool(done and task.is_successful(env) == 1)
+    verdict = "DONE" if task is None or FLAGS.core_mode == "observe" else ("PASS" if success else "FAIL")
+    steps = [e for e in host.events if "step" in e]
+    print(f"\n{verdict}  {name}  steps={len(steps)}  time={total}s  exit={code}  model_calls={len(models.calls)}")
+    if stderr.strip():
+        print("core stderr:", stderr.strip()[:2000])
+
+    os.makedirs(FLAGS.out_dir, exist_ok=True)
+    out = os.path.join(FLAGS.out_dir, f"{time.strftime('%Y%m%d-%H%M%S')}_{name}.json")
+    with open(out, "w") as f:
+        json.dump({
+            "task": name, "goal": goal, "agent": "core", "core_mode": FLAGS.core_mode, "model": FLAGS.model,
+            "base_url": FLAGS.base_url, "success": success, "done": done, "steps": steps,
+            "finished": finished, "model_calls": models.calls, "confirmations": host.confirmations,
+            "total_seconds": total, "exit_code": code, "stderr": stderr[-4000:],
+            "lines": host.lines,
+        }, f, indent=1)
+    print(f"written {out}")
 
 
 def main(argv) -> None:
