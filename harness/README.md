@@ -38,23 +38,92 @@ bash harness/run_emulator.sh start        # status | stop
 # your own instruction, no benchmark task (watch it with WINDOW=1 below)
 ~/android_world/.venv/bin/python harness/run_task.py --goal "open Chrome and search for the weather in Berlin"
 
-# a cloud model for fast iteration (2-3 s per call). Key lives in ~/.ballistic_env, never in the repo.
-source ~/.ballistic_env
+# a cloud model for fast iteration (2-3 s per call). The key is read from BALLISTIC_API_KEY in the
+# environment (see "API key" below); set -a exports it to the python child.
+set -a; source ~/.ballistic_env; set +a
 ~/android_world/.venv/bin/python harness/run_task.py --base_url https://generativelanguage.googleapis.com/v1beta/openai/ \
-    --model gemini-flash-lite-latest --api_key "$BALLISTIC_API_KEY" --max_tokens 2000 --task ContactsAddContact
+    --model gemini-flash-lite-latest --max_tokens 2000 --task ContactsAddContact
 
-# interactive: type instructions one at a time and watch the emulator (Gemini, key from ~/.ballistic_env)
-bash harness/chat.sh          # at the prompt: an instruction, /home, /steps N, /quit
+# interactive: type instructions one at a time and watch the emulator (Gemini; chat.sh sources
+# ~/.ballistic_env itself, extra flags pass through to chat.py)
+bash harness/chat.sh                  # T3A
+bash harness/chat.sh --agent core     # Ballistic's agent
+
+# the 20-task suite, pass table in ~/ballistic_runs/suite_<agent>_<time>.tsv
+bash harness/run_suite.sh                         # T3A, Gemini flash-lite
+bash harness/run_suite.sh --agent core            # Ballistic's agent, confirmations approved
+bash harness/run_suite.sh --agent core qwen3:4b http://127.0.0.1:11434/v1
 
 # planner on another machine: just change the endpoint
 ~/android_world/.venv/bin/python harness/run_task.py --base_url http://100.x.y.z:11434/v1 --model qwen3:4b --task ...
 ```
+
+### API key
+
+The key lives in `~/.ballistic_env` (`BALLISTIC_API_KEY=...`), never in the repo and never on a
+command line (a command line shows in `ps` and in shell history). `chat.sh` and `run_suite.sh`
+source the file with `set -a` so the variable reaches Python; `run_task.py`, `chat.py` and
+`record_screens.py` read it from the environment when the model client is built. `--api_key`
+still exists as an override for one-off use; no script passes it. No harness file prints the key
+or writes it to a run file, and `ballistic-core` is started without it in its environment (model
+calls are made by the harness, not by core).
 
 To watch the emulator on the machine's own screen, start it with `WINDOW=1 bash harness/run_emulator.sh start`
 from a terminal on that desktop (stop the headless one first). The agent runs identically; you just see it.
 
 `run_task.py` prints each step and writes a JSON record to `~/ballistic_runs/`. `--agent t3a` is
 text-only (UI tree), `m3a` sends the screenshot too (needs a vision model such as `gemma3:4b`).
+
+### The core agent (`--agent core`)
+
+`--agent core` runs Ballistic's own agent, the Rust process `ballistic-core` (`core/`, build it with
+`cargo build --release` there; the harness finds it under cargo's target dir, or pass `--core_bin`).
+Core asks and the harness answers, one JSON line each way (`core/src/bridge.rs`):
+`harness/core_bridge.py` serves observe (screen from the accessibility tree), act (adb), complete
+(the model endpoint) and confirm (a fixed policy), and decides nothing.
+
+| Flag | Meaning |
+|---|---|
+| `--confirm approve\|deny` | answer to every confirmation core asks for (benchmark: approve; injection tests: deny) |
+| `--reader_model`, `--judge_model`, `--verifier_model` | model name for that role on the same `--base_url`; default `--model` (the planner's) |
+| `--core_bin` | path to `ballistic-core` |
+| `--core_mode observe` | observe once and report counts (pipe smoke test) |
+
+A core run's JSON has the same fields as before plus `core_args`, `roles`, `confirm`,
+`finished` (core's last event), `confirmations`, `exit_code`, `stderr`, and `lines`: every bridge
+line in both directions, in order.
+
+### Prompt box (`chat.sh`)
+
+One emulator connection for the session; each line typed is a fresh run starting from the
+current screen. With `--agent core` each line starts
+`ballistic-core run --request <line> --max-steps <budget>`; one line per step is printed from
+core's log events, then core's finished report. Every run is written to
+`~/ballistic_runs/<time>_Chat.json` (core runs: the same fields as `run_task.py --agent core`,
+`lines` included).
+
+| At the prompt | |
+|---|---|
+| any text | instruction |
+| `/home` | go to the home screen |
+| `/steps N` | step budget per instruction (default `--max_steps`, 15) |
+| `/confirm approve\|deny` | core's confirmation policy from the next instruction on |
+| `/agent core\|t3a\|m3a` | switch agents live |
+| `/quit`, Ctrl+D | leave |
+| Ctrl+C while a run is going | stop it (core: the process is killed), back to the prompt |
+
+### Replay a core run without the emulator (`replay_core.py`)
+
+```bash
+python3 harness/replay_core.py ~/ballistic_runs/<time>_Chat.json   # any core run JSON
+```
+Starts `ballistic-core` with the recorded arguments and answers each ask from the recorded
+`lines` (observe -> recorded screen, complete -> recorded completion, act -> recorded result,
+confirm -> recorded verdict). No emulator, no model, standard library only, works on either
+laptop. It reports the first ask where core differs from the recording (index, the differing
+field, both lines) and exits 1, or reports a match and exits 0. Timing keys in log events
+(`seconds`, ...) are left out of the comparison; `--ignore_keys` changes the list. This is
+core/README.md §15 rule 4, on the host side.
 
 Ollama is configured by `setup_emulator.sh`'s systemd override with `OLLAMA_CONTEXT_LENGTH=8192`
 (AndroidWorld prompts exceed the 4k default), `OLLAMA_KEEP_ALIVE=1h`, and listening on all

@@ -14,7 +14,11 @@ Flags:
   --base_url   OpenAI-compatible endpoint (default http://127.0.0.1:11434/v1, Ollama)
   --model      model name at that endpoint (default gemma3:4b). Cloud example (Gemini):
                --base_url https://generativelanguage.googleapis.com/v1beta/openai/ --model gemini-3.8-flash
-  --agent      t3a (text: UI tree only) or m3a (multimodal: screenshot + UI tree)
+  --api_key    override only; the key normally comes from $BALLISTIC_API_KEY so it never sits on a
+               command line
+  --agent      t3a (text: UI tree only), m3a (multimodal: screenshot + UI tree) or core (Ballistic's
+               agent, ballistic-core over JSON lines; --confirm approve|deny, --reader_model,
+               --judge_model, --verifier_model)
   --task       AndroidWorld task name; random if omitted
   --goal       free-form instruction instead of a task ("open Chrome and search for weather in Berlin");
                no success check, just the agent loop. --max_steps caps it (default 15)
@@ -27,6 +31,7 @@ import base64
 import json
 import os
 import random
+import subprocess
 import sys
 import time
 from typing import Any, Optional
@@ -35,6 +40,7 @@ from absl import app, flags, logging
 import numpy as np
 import requests
 
+import core_bridge  # local module, same directory
 from android_world import registry
 from android_world.agents import infer, m3a, t3a
 from android_world.env import env_launcher
@@ -48,11 +54,15 @@ os.environ["GRPC_TRACE"] = "none"
 FLAGS = flags.FLAGS
 flags.DEFINE_string("base_url", os.environ.get("BALLISTIC_BASE_URL", "http://127.0.0.1:11434/v1"), "OpenAI-compatible endpoint")
 flags.DEFINE_string("model", os.environ.get("BALLISTIC_MODEL", "gemma3:4b"), "Model name at the endpoint")
-flags.DEFINE_string("api_key", os.environ.get("BALLISTIC_API_KEY", "ollama"), "Bearer token (ignored by Ollama)")
+# The key's default is read at use time (api_key()), not here: a flag default shows in --help.
+flags.DEFINE_string("api_key", None, "Bearer token override; default $BALLISTIC_API_KEY (ignored by Ollama). Scripts never pass it: a command line shows in ps and shell history")
 flags.DEFINE_enum("agent", "t3a", ["t3a", "m3a", "core"], "t3a = text only (UI tree), m3a = screenshot + UI tree, core = Ballistic's agent (Rust, over JSON lines)")
 flags.DEFINE_string("core_bin", None, "Path to the ballistic-core binary (default: core/target/{release,debug})")
 flags.DEFINE_enum("core_mode", "run", ["run", "observe"], "core: run the agent, or observe once (pipe smoke test)")
 flags.DEFINE_enum("confirm", "approve", ["approve", "deny"], "core: answer to every confirmation request")
+flags.DEFINE_string("reader_model", None, "core: model for the reader role, same base_url (default --model)")
+flags.DEFINE_string("judge_model", None, "core: model for the judge role, same base_url (default --model)")
+flags.DEFINE_string("verifier_model", None, "core: model for the verifier role, same base_url (default --model)")
 flags.DEFINE_string("task", None, "AndroidWorld task name; random if omitted")
 flags.DEFINE_string("goal", None, "Free-form goal; skips AndroidWorld task setup and success check")
 flags.DEFINE_integer("max_steps", 15, "Step budget for --goal runs")
@@ -65,6 +75,11 @@ flags.DEFINE_integer("max_tokens", 600, "Max completion tokens per step (T3A/M3A
 flags.DEFINE_integer("timeout", 600, "Per-call HTTP timeout, seconds (local models are slow)")
 flags.DEFINE_string("out_dir", os.path.expanduser("~/ballistic_runs"), "Where to write run JSON")
 flags.DEFINE_bool("no_think", True, "Prefix prompts with /no_think (disables Qwen3 reasoning mode; harmless for other models)")
+
+
+def api_key() -> str:
+    """--api_key if given, else $BALLISTIC_API_KEY. Never printed or written to a run file."""
+    return FLAGS.api_key or os.environ.get("BALLISTIC_API_KEY", "ollama")
 
 
 class OpenAICompatWrapper(infer.LlmWrapper, infer.MultimodalLlmWrapper):
@@ -156,7 +171,7 @@ def _main() -> None:
         env.close()
         return
 
-    llm = OpenAICompatWrapper(FLAGS.base_url, FLAGS.model, FLAGS.api_key, FLAGS.temperature, FLAGS.max_tokens, FLAGS.timeout, FLAGS.no_think)
+    llm = OpenAICompatWrapper(FLAGS.base_url, FLAGS.model, api_key(), FLAGS.temperature, FLAGS.max_tokens, FLAGS.timeout, FLAGS.no_think)
     agent = m3a.M3A(env, llm) if FLAGS.agent == "m3a" else t3a.T3A(env, llm)
 
     steps: list[dict[str, Any]] = []
@@ -195,49 +210,91 @@ def _main() -> None:
 
 def _run_core(env, task, name: str, goal: str, budget: int) -> None:
     """Serve ballistic-core over the bridge, then judge the task as for the other agents."""
-    import core_bridge  # local module, same directory
-
-    route = (FLAGS.base_url, FLAGS.model, FLAGS.api_key)
-    models = core_bridge.ModelClient({"planner": route}, FLAGS.temperature, FLAGS.timeout)
-
-    def on_event(ev: dict[str, Any]) -> None:
-        if "step" in ev:
-            print(f"step {ev.get('step'):>2}  {ev.get('seconds', 0):5.1f}s  {str(ev.get('action'))[:110]}")
-        elif ev.get("finished"):
-            print("finished:", json.dumps(ev.get("report") or ev.get("error"))[:300])
-
-    host = core_bridge.CoreHost(env, models, FLAGS.confirm, on_event)
-    core_bin = FLAGS.core_bin or core_bridge.default_core_bin()
+    host = core_bridge.CoreHost(env, core_models(), FLAGS.confirm, print_core_event)
     args = ["observe"] if FLAGS.core_mode == "observe" else ["run", "--request", goal, "--max-steps", str(budget)]
-    t_start = time.time()
-    proc = core_bridge.start_core(core_bin, args)
-    finished = host.serve(proc)
-    proc.stdin.close()
-    stderr = proc.stderr.read().decode("utf-8", "replace") if proc.stderr else ""
-    code = proc.wait(timeout=30)
-    total = round(time.time() - t_start, 1)
-    done = bool(finished.get("report", {}).get("done")) if isinstance(finished.get("report"), dict) else False
+    run = serve_core(host, args)
 
     success = None
-    if task is not None and FLAGS.core_mode == "run":
-        success = bool(done and task.is_successful(env) == 1)
+    if task is not None and FLAGS.core_mode == "run" and not run["stopped"]:
+        success = bool(run["done"] and task.is_successful(env) == 1)
     verdict = "DONE" if task is None or FLAGS.core_mode == "observe" else ("PASS" if success else "FAIL")
     steps = [e for e in host.events if "step" in e]
-    print(f"\n{verdict}  {name}  steps={len(steps)}  time={total}s  exit={code}  model_calls={len(models.calls)}")
-    if stderr.strip():
-        print("core stderr:", stderr.strip()[:2000])
+    print(f"\n{verdict}  {name}  steps={len(steps)}  time={run['total_seconds']}s  exit={run['exit_code']}  model_calls={len(host.models.calls)}")
+    if run["stderr"].strip():
+        print("core stderr:", run["stderr"].strip()[:2000])
+    print(f"written {write_core_record(name, goal, FLAGS.core_mode, args, host, run, success)}")
 
+
+# ---- core runs, shared with chat.py ---------------------------------------------------------
+
+def core_models() -> core_bridge.ModelClient:
+    """Every role on --base_url; --reader_model / --judge_model / --verifier_model override the
+    model name for that role, otherwise it is --model."""
+    key = api_key()
+    routes = {"planner": (FLAGS.base_url, FLAGS.model, key)}
+    for role, model in (("reader", FLAGS.reader_model), ("judge", FLAGS.judge_model), ("verifier", FLAGS.verifier_model)):
+        routes[role] = (FLAGS.base_url, model or FLAGS.model, key)
+    return core_bridge.ModelClient(routes, FLAGS.temperature, FLAGS.timeout)
+
+
+def print_core_event(ev: dict[str, Any]) -> None:
+    """One line per step from core's log events, and the finished report."""
+    if "step" in ev:
+        print(f"step {ev.get('step'):>2}  {ev.get('seconds', 0):5.1f}s  {str(ev.get('action'))[:110]}")
+    elif ev.get("finished"):
+        print("finished:", json.dumps(ev.get("report") or ev.get("error"))[:300])
+
+
+def serve_core(host: core_bridge.CoreHost, args: list[str]) -> dict[str, Any]:
+    """Start ballistic-core with `args` and answer it through `host` until it finishes.
+    Ctrl+C kills core and returns what was served so far (host.lines keeps every line)."""
+    core_bin = FLAGS.core_bin or core_bridge.default_core_bin()
+    t_start = time.time()
+    proc = core_bridge.start_core(core_bin, args)
+    stopped = False
+    try:
+        finished = host.serve(proc)
+    except KeyboardInterrupt:
+        stopped = True
+        proc.kill()
+        finished = {"finished": True, "error": "stopped with Ctrl+C"}
+        print("\n(stopped)")
+    except BaseException:
+        proc.kill()
+        raise
+    finally:
+        try:
+            proc.stdin.close()
+        except OSError:
+            pass
+    try:
+        code = proc.wait(timeout=30)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        code = proc.wait()
+    stderr = proc.stderr.read().decode("utf-8", "replace") if proc.stderr else ""
+    report = finished.get("report")
+    return {"finished": finished, "done": bool(isinstance(report, dict) and report.get("done")),
+            "stopped": stopped, "exit_code": code, "stderr": stderr,
+            "total_seconds": round(time.time() - t_start, 1)}
+
+
+def write_core_record(name: str, goal: str, core_mode: str, args: list[str], host: core_bridge.CoreHost,
+                      run: dict[str, Any], success: Optional[bool]) -> str:
+    """The run JSON for a core run. `lines` (every line, both directions) is what replay_core.py reads."""
     os.makedirs(FLAGS.out_dir, exist_ok=True)
     out = os.path.join(FLAGS.out_dir, f"{time.strftime('%Y%m%d-%H%M%S')}_{name}.json")
     with open(out, "w") as f:
         json.dump({
-            "task": name, "goal": goal, "agent": "core", "core_mode": FLAGS.core_mode, "model": FLAGS.model,
-            "base_url": FLAGS.base_url, "success": success, "done": done, "steps": steps,
-            "finished": finished, "model_calls": models.calls, "confirmations": host.confirmations,
-            "total_seconds": total, "exit_code": code, "stderr": stderr[-4000:],
+            "task": name, "goal": goal, "agent": "core", "core_mode": core_mode, "core_args": args,
+            "model": FLAGS.model, "roles": {r: m for r, (_, m, _) in host.models.routes.items()},
+            "base_url": FLAGS.base_url, "confirm": host.confirm_policy, "success": success, "done": run["done"],
+            "steps": [e for e in host.events if "step" in e], "finished": run["finished"],
+            "model_calls": host.models.calls, "confirmations": host.confirmations,
+            "total_seconds": run["total_seconds"], "exit_code": run["exit_code"], "stderr": run["stderr"][-4000:],
             "lines": host.lines,
         }, f, indent=1)
-    print(f"written {out}")
+    return out
 
 
 def main(argv) -> None:

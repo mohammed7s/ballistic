@@ -7,11 +7,11 @@ For every step it saves, under core/tests/screens/<Task>/<step>.json:
   goal, task, step, t3a_action
 The screens are test fixtures: core's unit tests read them with no emulator.
 
-Run on the ThinkPad (emulator up, nothing else using it):
-  source ~/.ballistic_env
+Run on the ThinkPad (emulator up, nothing else using it); the key comes from BALLISTIC_API_KEY in
+the environment, never from the command line:
+  set -a; source ~/.ballistic_env; set +a
   ~/android_world/.venv/bin/python harness/record_screens.py --tasks ContactsAddContact,SimpleSmsSend \
-     --model gemini-flash-lite-latest --base_url https://generativelanguage.googleapis.com/v1beta/openai/ \
-     --api_key "$BALLISTIC_API_KEY"
+     --model gemini-flash-lite-latest --base_url https://generativelanguage.googleapis.com/v1beta/openai/
 `--tasks suite` records the 20 tasks of run_suite.sh.
 """
 
@@ -42,8 +42,10 @@ def suite_tasks() -> list[str]:
     here = os.path.dirname(os.path.abspath(__file__))
     with open(os.path.join(here, "run_suite.sh")) as f:
         text = f.read()
-    m = re.search(r"TASKS=\(([^)]*)\)", text, re.S)
-    return m.group(1).split() if m else []
+    m = re.search(r'TASKS="\$\{TASKS:-([^}]*)\}"', text)
+    if not m or not m.group(1).split():
+        raise ValueError("No default suite tasks found in run_suite.sh")
+    return m.group(1).split()
 
 
 def record_task(env, aw, name: str, llm) -> int:
@@ -83,7 +85,7 @@ def main(argv) -> None:
     names = suite_tasks() if FLAGS.tasks == "suite" else FLAGS.tasks.split(",")
     env = env_launcher.load_and_setup_env(console_port=FLAGS.console_port, emulator_setup=False, adb_path=FLAGS.adb_path)
     env.reset(go_home=True)
-    llm = run_task.OpenAICompatWrapper(FLAGS.base_url, FLAGS.model, FLAGS.api_key, FLAGS.temperature, FLAGS.max_tokens, FLAGS.timeout, FLAGS.no_think)
+    llm = run_task.OpenAICompatWrapper(FLAGS.base_url, FLAGS.model, run_task.api_key(), FLAGS.temperature, FLAGS.max_tokens, FLAGS.timeout, FLAGS.no_think)
     total = 0
     t0 = time.time()
     for name in names:

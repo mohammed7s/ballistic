@@ -21,13 +21,14 @@ import subprocess
 import time
 from typing import Any, Callable, Optional
 
-import requests
-
-from android_world.env import adb_utils
+try:
+    from android_world.env import adb_utils
+except ImportError:  # replay_core.py uses start_core/default_core_bin only, with no AndroidWorld
+    adb_utils = None
 
 # AndroidWorld's name->activity table, reused as our installed-app labels (first alternative of
 # each regex key is the label shown to the planner).
-_PATTERN_TO_ACTIVITY = adb_utils._PATTERN_TO_ACTIVITY  # pylint: disable=protected-access
+_PATTERN_TO_ACTIVITY = adb_utils._PATTERN_TO_ACTIVITY if adb_utils else {}  # pylint: disable=protected-access
 
 _ROLE_BY_CLASS = [
     (re.compile(r"\.(Button|ImageButton|FloatingActionButton|MaterialButton|Chip)$"), "button"),
@@ -258,6 +259,8 @@ class ModelClient:
         self.calls: list[dict[str, Any]] = []
 
     def complete(self, role: str, messages: list[dict[str, str]], max_tokens: int) -> dict[str, Any]:
+        import requests  # here, so replay_core.py runs without it
+
         base_url, model, api_key = self.routes.get(role) or self.routes["planner"]
         body = {"model": model, "messages": messages, "temperature": self.temperature, "max_tokens": max_tokens}
         t0 = time.time()
@@ -298,5 +301,8 @@ def default_core_bin() -> str:
 
 
 def start_core(core_bin: str, args: list[str]) -> subprocess.Popen:
+    """Core gets its own session, so Ctrl+C reaches only the harness, which then kills core; and
+    no API key in its environment, since model calls are made here, not in core."""
+    env = {k: v for k, v in os.environ.items() if k != "BALLISTIC_API_KEY"}
     return subprocess.Popen([core_bin, *args], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE, bufsize=0)
+                            stderr=subprocess.PIPE, bufsize=0, env=env, start_new_session=True)
