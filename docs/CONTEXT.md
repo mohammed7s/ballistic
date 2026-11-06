@@ -412,11 +412,29 @@ Verified on the Latitude and ThinkPad, unless explicitly described as external r
   success must be measured on the live run. Form hints stay visible; arbitrary matching content
   is revealed only if its entire string appears at word boundaries in the owner's request.
 - Deployment/live core Contacts test was attempted after pushes, but SSH timed out before
-  connecting and Tailscale showed the ThinkPad offline. **No live core benchmark or new 20-task
-  score exists yet.** Last verified deployed commit is `edfbf55`; local core commits `ebe14e9`
+  connecting and Tailscale showed the ThinkPad offline. **At that point no live core benchmark existed; the reconnect results below supersede
+  that blocker. No new 20-task score exists yet.** Last verified deployed commit is `edfbf55`; local core commits `ebe14e9`
   and `585ae30` are pushed. Reconnect, preserve the remote untracked recorded fixtures before
   pulling their committed counterparts, pull/build/test, then run Contacts, prompt input,
   and the suite sequentially. Do not run chat alongside the suite.
+- Reconnection follow-up (7 November 2026): ThinkPad returned online; code pulled and all
+  17 Rust tests passed there, release binary rebuilt. First live core Contacts run reached
+  the editor then gave up: **FAIL, 4 steps, 16.6 s, 5 model calls**, no HTTP errors. Log
+  `~/ballistic_runs/20261106-233502_ContactsAddContact.json`. Root cause: host readiness counted
+  the six status-bar nodes while the app window was loading. `7250912` changes readiness to
+  require visible foreground-app content; two host regression tests pass. Offline replay of
+  the failed run matched all **17 bridge asks**, zero model/emulator calls.
+- Retry after the readiness fix: **ContactsAddContact PASS, 8 steps, 65.5 s, 9 model calls**
+  (8 planner + 1 verifier), 0 confirmations. AndroidWorld verified Elias Garcia / +19752947256.
+  Total prompt tokens **19,423**, mean **2,158/call** (planner-only mean 2,371); the baseline
+  Contacts row was ~12,000/call, but different randomized contacts/state and run conditions mean
+  this is not a controlled same-input token comparison. No HTTP errors. Remote record:
+  `~/ballistic_runs/20261106-233759_ContactsAddContact.json` (filename UTC, local date 7 November).
+  Offline replay matches all **34 bridge asks**, with zero live model/emulator calls.
+- Opened a visible ThinkPad terminal titled `Ballistic — emulator prompt` running
+  `bash harness/chat.sh --agent core --confirm deny`. Guarded actions are denied until the owner
+  changes `/confirm approve`; this is harness behavior, not phone biometrics. No suite is running
+  concurrently. Next: broader core task comparison and remaining security/reader/skill work.
 - External research (not measured on our phone): `docs/PIXEL10PRO_MODELS.md` records the local
   model shortlist and sources. It supersedes broad older claims that the Tensor SDK is only
   EAP, G5 NPU only supports Gemma3-1B, or Vulkan is universally unusable. Tensor SDK Beta was

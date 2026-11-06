@@ -3,7 +3,7 @@
 Current implementation (7 November 2026): initial tree agent, action validation, compact filter,
 confirmation hooks, verifier and stdio bridge; 17 tests pass. Reader/taint/Rule of Two, deny-only
 judge, full policy/configuration and skill execution below are the **design still to implement**.
-Live core emulator validation is pending ThinkPad reconnection. Harness terminal prompt input
+Live Contacts validation passed (8 steps, 65.5 s, 7 November 2026). Harness terminal prompt input
 and offline port replay exist; offline replay is not live skill execution.
 
 Status: **agreed by the owner on 7 Nov 2026**: principles (§2, §7–§9), app-only, and Rust from
