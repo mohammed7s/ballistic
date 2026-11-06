@@ -140,10 +140,23 @@ DRM; a Linux-based phone; upstreaming the agent itself.
   resolve through a fixed regex table, `android_world/env/adb_utils.py` `_PATTERN_TO_ACTIVITY`, not
   through the launcher; any name outside it fails ("Expense" vs the app's label "pro expense").
   The task registry holds 116 tasks (`task_metadata.json`).
-- **Hardware (6 Nov 2026):** the owner has a **Pixel 10 (non-Pro, 12 GB)**, their daily phone, not
-  carrier-locked. GrapheneOS supports it (reported). It serves as the dev device for steps 3–5;
-  flashing waits until our signed build exists so the daily phone is wiped once, not twice. OEM
-  unlocking was greyed out on first look (no SIM, Wi-Fi connected); see open questions.
+- **Hardware (6 Nov 2026, corrected same day):** the owner's phone is a **Pixel 10 Pro**
+  (`blazer`, SKU GEHN3, serial 56181FDCH0070R, stock Android 17 `CP2A.260805.005`), not a Pixel 10.
+  **It cannot be bootloader-unlocked, so it cannot run GrapheneOS or Ballistic as it stands.**
+  Verified on the device over adb: `fastboot flashing get_unlock_ability` = 0; Settings shows
+  "Connect to the internet or contact your operator"; single owner user, no device/profile owner,
+  no `no_factory_reset`, Wi-Fi validated, GMS enabled. Per AOSP `OemUnlockPreferenceController`
+  that leaves only the carrier-allow flag in the IOemLock HAL (Titan M2) as the cause. User 0 also
+  carries a base `no_oem_unlock` restriction not set by device policy. The device is **not
+  SIM-locked**: it has `FEATURE_TELEPHONY_CARRIERLOCK` and the allowed-carriers list is empty. The
+  phone is in India; it is most likely an imported carrier unit (carrier not yet identified).
+  **Update, later on 6 Nov 2026:** the owner got OEM unlocking enabled (how is not recorded); the
+  `no_oem_unlock` restriction was gone and `get_unlock_ability` = 1. Stock GrapheneOS
+  `2026110200` (`blazer`) was then installed with the CLI method from laptop B (ThinkPad, over
+  SSH): signature verified against `allowed_signers`, `flash-all.sh` clean, bootloader relocked.
+  Expected boot key hash: `4e8ee8f717754052198ca6d2d3aaa232e2461b4293c0d6f297e519cc778de093`.
+  This is stock GrapheneOS, not a Ballistic build; flashing our own signed build later means
+  unlocking and wiping again.
 
 ## 4b. Findings from source research on 6 Nov 2026 (public AOSP/GrapheneOS source; nothing run on a device)
 
@@ -300,6 +313,8 @@ DRM; a Linux-based phone; upstreaming the agent itself.
 11. Does GrapheneOS sepolicy let system_server create `/dev/uinput` devices for Computer Control?
 12. Which allowlist path is live for Computer Control in `cp2a`: DeviceConfig/files or the newer
     `AllowlistManager` IDs 3–5?
+13. ~~Dev phone carrier-restricted?~~ Resolved 6 Nov: OEM unlocking became available; stock
+    GrapheneOS installed on the Pixel 10 Pro (§4).
 
 ## 7. Questions to put to the GrapheneOS team
 
