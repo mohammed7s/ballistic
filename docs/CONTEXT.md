@@ -361,7 +361,7 @@ checklist: `ballistic-os/docs/patches.md`.
   clean both stores on user deletion, receive uninstall broadcasts for every user, and scope
   session closures by user. The original shared construction/edit lock is superseded by the
   second review fixes below. The final asynchronous check uses the request's user.
-  In the patched frameworks/base tree, `services/companion/.../computercontrol/`:
+  In the first-review frameworks/base tree (`28e9047c4`), `services/companion/.../computercontrol/`:
   `ComputerControlAllowlistController.java:215,239,519,651,657,694`,
   `ComputerControlSessionProcessor.java:491`, `ComputerControlUserAllowlist.java:144`.
   **Verified at the tag:** `core/java/android/companion/virtual/VirtualDeviceManager.java:140`
@@ -382,6 +382,10 @@ checklist: `ballistic-os/docs/patches.md`.
   The prior inversion is verified against `services/core/java/com/android/server/wm/ActivityClientController.java:1966,1994`:
   Back holds WindowManager's global lock while querying the session registry. Sixteen regression
   tests added, not executed; build and device stress checks remain in `ballistic-os/docs/patches.md` §10.
+  **Application verification (7 Nov 2026):** all eleven patches apply to fresh shallow clones of
+  `2026110200`, pass source whitespace checks, and reproduce the implementation trees. Final
+  frameworks/base source commit: `3e3376079`; its tree is
+  `0ef7ff77cf4ac2f5136fbb246dd45b10a3632922`. This does not establish compilation or runtime safety.
 - **AppFunctions (verified; design only).** Does not fall out of the Computer Control store.
   `CallerValidatorImpl.java:117-130` → `SystemAppFunctionAllowlistReader.java:126`
   (`AllowlistManager` ID 2); :179-183 fails open on ERROR_PROVIDER/INVALID_REQUEST/NETWORK;
