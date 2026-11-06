@@ -148,6 +148,26 @@ DRM; a Linux-based phone; upstreaming the agent itself.
   did not apply the disk size twice (got 32 GB); the `vastai` CLI with `--disk 550` works
   (`~/.local/bin/vastai` on laptop A, account key stored by the owner). Offers with
   `inet_down_cost` near $40/TB are a trap for a ~200 GB source sync.
+- **OS build track, plan step 4 (6 Nov 2026, evening; verified on the box unless noted):** recipe
+  and scripts in `ballistic-os` (`MANIFEST` = `2026110200`, `scripts/{sync,build,sign}.sh`,
+  `docs/keys.md`). 2026110200 is still the current blazer release on stable and beta (checked
+  `releases.grapheneos.org/blazer-{stable,beta}`). Manifest tag signature verified ("Good git
+  signature for contact@grapheneos.org", key `SHA256:AhgHif0mei+9aNyKLfMZBh2yptHdw/aN7Tlh/j2eFwM`).
+  **Sync:** 43 min wall, 154 GB with `--depth=1`. `-j32` hit googlesource quota (RESOURCE_EXHAUSTED /
+  HTTP 429, 63 projects); `-j8` worked, but repo retried `prebuilts/tools` and
+  `tools/tradefederation/prebuilts` with full history (49 GB+ and still going); fetching their pinned
+  commits with `git fetch --depth=1` took 13 s. **No user namespaces is not a blocker:** Soong logs
+  "Build sandboxing disabled due to nsjail error." and builds. It does break adevtool's dependency
+  build, which treats that stderr line as fatal although the build exits 0; re-run with
+  `ADEVTOOL_SKIP_DEP_BUILD=1`. adevtool refuses to run as root, so the tree lives under an
+  unprivileged `build` user on the box. adevtool pulls the stock `blazer CP3A.261005.005` factory
+  image (11.4 GB) and checks the generated vendor module against `vendor-specs/` hashes (throws on
+  mismatch); it passed. GrapheneOS 2026110200 builds as `BUILD_ID=CP3A.261005.005`.
+  `OFFICIAL_BUILD` only adds the Updater app in this tree (`media_system.mk`); our build leaves it
+  unset, so no Updater until we have our own update server. Updates go by `adb sideload` of our
+  signed OTA. Our `BUILD_NUMBER` is `2026110600`, so our fingerprint differs from the official one.
+  The phone's yellow boot notice shows `sha256(avb_pkmd.bin)` (checked: the official blazer
+  `avb_pkmd.bin` hashes to the `4e8ee8f7…` value above).
 - **Hardware (6 Nov 2026, corrected same day):** the owner's phone is a **Pixel 10 Pro**
   (`blazer`, SKU GEHN3, serial 56181FDCH0070R, stock Android 17 `CP2A.260805.005`), not a Pixel 10.
   **It cannot be bootloader-unlocked, so it cannot run GrapheneOS or Ballistic as it stands.**
