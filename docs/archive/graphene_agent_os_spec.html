@@ -1,0 +1,425 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Agent OS: specification (GrapheneOS fork route)</title><style>
+  :root { --bg:#f4f6f8; --card:#fff; --ink:#141a22; --muted:#5b6877; --accent:#0f8f6b; --line:#d9dfe5; }
+  * { box-sizing:border-box; }
+  html,body { margin:0; background:var(--bg); color:var(--ink); font-family:"Inter","Segoe UI",Arial,Helvetica,sans-serif; font-size:15px; line-height:1.55; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  main { max-width: 900px; margin: 0 auto; padding: 48px 32px 80px; }
+  h1 { font-size: 34px; line-height:1.15; margin: 0 0 6px; letter-spacing:-0.01em; }
+  h1 + p { color: var(--muted); margin-top:0; }
+  h2 { font-size: 22px; margin: 44px 0 12px; padding-top: 18px; border-top: 1px solid var(--line); letter-spacing:-0.01em; }
+  h3 { font-size: 16.5px; margin: 26px 0 8px; }
+  p, li { margin: 0 0 10px; }
+  ul, ol { padding-left: 22px; }
+  li { margin-bottom: 5px; }
+  strong { font-weight: 700; }
+  table { width:100%; border-collapse: collapse; margin: 12px 0 18px; font-size: 13.5px; background: var(--card); border-radius: 8px; overflow:hidden; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+  th, td { text-align:left; padding: 9px 12px; vertical-align: top; border-bottom: 1px solid #e7ebef; }
+  th { font-size: 11.5px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); background:#f9fafb; }
+  tr:last-child td { border-bottom: none; }
+  code { font-family: "JetBrains Mono", Consolas, "Courier New", monospace; font-size: 0.92em; background: #e9eef2; padding: 1px 5px; border-radius: 4px; }
+  pre { background: #0f1216; color: #e6e9ee; padding: 16px 18px; border-radius: 10px; overflow-x: auto; font-size: 12.5px; line-height: 1.4; }
+  pre code { background: none; padding: 0; color: inherit; }
+  a { color: var(--accent); }
+  .kicker { font-size: 12px; text-transform: uppercase; letter-spacing: .14em; color: var(--accent); font-weight: 700; margin-bottom: 10px; }
+  .foot { margin-top: 56px; padding-top: 16px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12.5px; }
+  @media print { main { max-width: none; padding: 0.6in 0.7in; } h2 { break-after: avoid; } table, pre { break-inside: avoid; } @page { size: A4; margin: 0; } }
+</style></head><body><main><div class="kicker">Special project · draft v0.1 · 5 November 2026</div><h1>Agent OS: specification (GrapheneOS fork route)</h1>
+<p>Draft v0.1, 5 November 2026. Owner: Mohammed Husari.
+Companion deck: <code>graphene_agent_os.pdf</code>.</p>
+<h2>1. Summary</h2>
+<p>A rebranded fork of GrapheneOS for Pixel phones, signed with our own keys, with an AI agent built into the operating system as a privileged component. The agent can see every screen and act in every app, is invoked by voice or text, and runs its models on the device, on a GPU server we own, or (opt-in, off by default) in the cloud. Policy and confirmation are enforced below the agent, inside <code>system_server</code>, so neither the agent nor content it reads can bypass them.</p>
+<p>Design rule that everything else follows from: <strong>the agent can touch anything on the phone except the confirmation dialog.</strong></p>
+<h2>2. Goals and non-goals</h2>
+<h3>Goals</h3>
+<ol>
+<li>Prompt the phone in natural language, by voice (including a wake word with the screen off) or text, and have it carry out multi-step tasks.</li>
+<li>Drive <strong>any</strong> installed app without per-app integration: read its UI, tap, swipe, type, navigate.</li>
+<li>Full control of the OS and device. No third party decides what the agent may see or do.</li>
+<li>Local-first: models on the device or on user-owned hardware. Nothing leaves the phone unless the user has allowed it, per app and per role.</li>
+<li>Safe against hostile content: text in a message, web page or screen can never trigger an action by itself.</li>
+<li>Keep GrapheneOS&#39;s hardening and update cadence.</li>
+</ol>
+<h3>Non-goals</h3>
+<ul>
+<li>Faking a different device or OS to pass attestation, Play Integrity or app security checks.</li>
+<li>Automating logins, payments, biometric or identity verification without a real touch.</li>
+<li>Hiding the agent from apps&#39; anti-fraud detection.</li>
+<li>Replacing Android apps with a Linux environment.</li>
+<li>Upstreaming the agent into GrapheneOS (narrow features may be proposed later; see §12).</li>
+</ul>
+<h2>3. Users and scope</h2>
+<p>v1 target: a single owner&#39;s personal device(s). Distribution to other users is a later decision (§12) and changes the risk profile (Doubao precedent, §11).</p>
+<h2>4. Hardware</h2>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Choice</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Phone</td>
+<td>Pixel 9 Pro or Pixel 10 Pro, 16 GB RAM</td>
+<td><strong>Open.</strong> 16 GB needed for a 7–8B planner on-device. GrapheneOS supports Pixel 6–10a.</td>
+</tr>
+<tr>
+<td>Dev devices</td>
+<td>2–3 Pixels of the same model</td>
+<td>One daily driver, one for CI/tests, one spare for bricked-build recovery</td>
+</tr>
+<tr>
+<td>Build machine</td>
+<td>64 GB+ RAM, 16+ cores, ~500 GB NVMe</td>
+<td>Cloud instance acceptable; AOSP full build ~1–2 h</td>
+</tr>
+<tr>
+<td>Home inference server</td>
+<td>GPU with 24 GB VRAM minimum, 32 GB+ preferred</td>
+<td><strong>Open.</strong> Runs vision + planner models; reached over WireGuard</td>
+</tr>
+<tr>
+<td>Key storage</td>
+<td>Offline (YubiKey/HSM or air-gapped machine)</td>
+<td>Platform, verified-boot (AVB) and OTA signing keys</td>
+</tr>
+</tbody></table>
+<h2>5. Base OS</h2>
+<ul>
+<li>Fork of GrapheneOS at its current stable tag, tracking stable releases.</li>
+<li>Rebranded (name, boot animation, update server URL, package names for added components). GrapheneOS&#39;s name and trademarks are not used.</li>
+<li>Everything GrapheneOS ships is kept unchanged except the additions in §6–§9. Sandboxed Google Play remains available per profile.</li>
+<li>Our own AVB key, platform key, and OTA signing key; bootloader relocked with our AVB key.</li>
+<li>Our own OTA update server (same mechanism GrapheneOS uses: <code>Updater</code> app pointing at our URL).</li>
+</ul>
+<h2>6. Architecture</h2>
+<pre><code>┌────────────────────────────────────────────────────────────────────────┐
+│ APPS      Signal · WhatsApp · Telegram · Mail · Maps · Bank · Browser   │
+│           Agent app (privileged, platform-signed, persistent)           │
+├────────────────────────────────────────────────────────────────────────┤
+│ ADDED     AgentManagerService (system_server)                           │
+│           Trusted Confirmation UI (SystemUI)                            │
+│           Agent IME (system keyboard for typing)                        │
+├────────────────────────────────────────────────────────────────────────┤
+│ FRAMEWORK WindowManager · SurfaceFlinger · InputManager · SoundTrigger  │
+│           NotificationManager · Telephony · AppFunctions · Intents      │
+├────────────────────────────────────────────────────────────────────────┤
+│ SECURITY  SELinux (new agent domains) · Keystore2 · AVB · Titan M2      │
+├────────────────────────────────────────────────────────────────────────┤
+│ HARDWARE  Pixel: Tensor TPU/GPU · low-power audio DSP · Titan M2        │
+└────────────────────────────────────────────────────────────────────────┘
+</code></pre>
+<p>Three components are added:</p>
+<h3>6.1 AgentManagerService (<code>com.&lt;brand&gt;.agent</code> in <code>system_server</code>)</h3>
+<p>The single gateway between the agent and every privileged capability. The agent app has <strong>no</strong> direct dangerous permissions; it holds only a signature permission to bind to this service. All of the following go through it:</p>
+<ul>
+<li>Screen observation: UI tree (view hierarchy) and screenshot capture, including FLAG_SECURE surfaces.</li>
+<li>Input injection: taps, long-presses, swipes, key events, text via the Agent IME.</li>
+<li>Notifications: read, dismiss, inline reply.</li>
+<li>Telephony and SMS: place calls, send SMS (confirmation-gated).</li>
+<li>App launch, intents, deep links, AppFunctions calls.</li>
+<li>App-data read (per-app grant only, see §9.3).</li>
+<li>Model routing decisions (§8).</li>
+<li>Policy store, action log, trusted confirmation.</li>
+</ul>
+<p>Exposed to the agent app via AIDL (<code>IAgentManager</code>): <code>observe()</code>, <code>act(Action)</code>, <code>requestConfirmation(ActionSummary)</code>, <code>route(Role, Payload)</code>, <code>getPolicy()</code>, plus a callback for policy changes and task interruption.</p>
+<h3>6.2 Trusted Confirmation UI (SystemUI)</h3>
+<p>A full-screen dialog drawn by SystemUI on request of AgentManagerService. Properties:</p>
+<ul>
+<li>Shows a plain-language summary of the pending action (what, in which app, to whom, amount if any).</li>
+<li><strong>Rejects injected input.</strong> Only events from a physical touch source (<code>InputDevice.SOURCE_TOUCHSCREEN</code> with a real device id, not <code>INJECT_EVENTS</code>) count. Implemented in InputDispatcher: while the dialog is up, injected events are dropped.</li>
+<li>Cannot be overlaid (<code>FLAG_SECURE</code>, <code>HIDE_OVERLAY_WINDOWS</code>), cannot be dismissed by the agent, times out to &quot;deny&quot;.</li>
+<li>Required for: send message, send email, call, SMS, payment or checkout, delete, post publicly, install or uninstall, change settings, grant policy, anything the policy store marks as confirm-required.</li>
+</ul>
+<h3>6.3 Agent app (privileged system app)</h3>
+<ul>
+<li>Platform-signed, in <code>/system_ext/priv-app</code>, whitelisted in <code>privapp-permissions</code>, <code>persistent=&quot;true&quot;</code>.</li>
+<li>Contains: voice pipeline (wake word hand-off, STT, TTS), planner loop, reader, skills library, UI (chat/voice overlay, policy screen, action log viewer), model backends.</li>
+<li>Holds the default assistant role (<code>VoiceInteractionService</code>) for long-press invocation.</li>
+</ul>
+<h2>7. Capabilities (what the agent can see and do)</h2>
+<h3>7.1 Observation</h3>
+<table>
+<thead>
+<tr>
+<th>Source</th>
+<th>Mechanism</th>
+<th>Use</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>UI tree</td>
+<td><code>WindowManagerService</code> → <code>AccessibilityNodeInfo</code> fetched via system path (no third-party accessibility service)</td>
+<td>Primary for standard Android UIs; cheap; sent as text</td>
+</tr>
+<tr>
+<td>Screenshot</td>
+<td><code>SurfaceFlinger</code> capture with <code>CAPTURE_SECURE_VIDEO_OUTPUT</code>; downscaled to ≤1280px long edge</td>
+<td>Fallback for Flutter, React Native, WebView, games; any vision task</td>
+</tr>
+<tr>
+<td>Notifications</td>
+<td>System-level <code>NotificationListenerService</code> equivalent inside AgentManagerService</td>
+<td>Inbox, bank alerts, inline reply</td>
+</tr>
+<tr>
+<td>App-data</td>
+<td>Direct file reads in a dedicated SELinux domain, per-app grant</td>
+<td>Telegram (TDLib embedded instead), others case by case</td>
+</tr>
+</tbody></table>
+<p>Flutter apps only populate the semantics tree when the system reports accessibility enabled; AgentManagerService can set this <strong>per app</strong> (via <code>AccessibilityManager</code> flags scoped to a package) rather than globally, since some banks detect the global setting.</p>
+<h3>7.2 Action</h3>
+<table>
+<thead>
+<tr>
+<th>Action</th>
+<th>Mechanism</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Tap, long-press, swipe, drag</td>
+<td><code>InputManager.injectInputEvent</code> with <code>INJECT_EVENTS</code>; human-like timing and jitter (§11)</td>
+</tr>
+<tr>
+<td>Type</td>
+<td>Agent IME (system <code>InputMethodService</code>, platform-signed) committing text; falls back to key events</td>
+</tr>
+<tr>
+<td>Navigate</td>
+<td>Back/Home/Recents key events; launch via <code>ActivityManager</code>; deep links; <code>AppFunctionManager</code></td>
+</tr>
+<tr>
+<td>Notification reply</td>
+<td><code>RemoteInput</code> on the notification&#39;s reply action</td>
+</tr>
+<tr>
+<td>Calls, SMS</td>
+<td>TelecomManager / SmsManager, confirmation-gated</td>
+</tr>
+<tr>
+<td>Profiles</td>
+<td>Agent may act across user profiles if the policy allows (default: current profile only)</td>
+</tr>
+</tbody></table>
+<h3>7.3 Voice</h3>
+<ul>
+<li><strong>Wake word:</strong> <code>SoundTrigger</code> HAL with <code>CAPTURE_AUDIO_HOTWORD</code>, running on the low-power audio DSP; works with the screen off. Model: openWakeWord or a custom keyword model compiled for the DSP. <strong>On-device only, not routable.</strong></li>
+<li><strong>STT:</strong> whisper.cpp (small/medium) on-device. <strong>On-device only, not routable.</strong></li>
+<li><strong>TTS:</strong> Piper or RHVoice on-device; eSpeak NG fallback.</li>
+<li>Push-to-talk via long-press home gesture (assistant role) and a Quick Settings tile.</li>
+</ul>
+<h3>7.4 Skills library</h3>
+<ul>
+<li>Each successfully completed task is saved as a skill: ordered steps with, for each, the expected screen signature (package, activity, key UI nodes) and the action taken.</li>
+<li>Replay checks the signature before each step; on mismatch the planner takes over from that step and the skill is updated.</li>
+<li>Skills are per app and per app version; stored encrypted in the agent&#39;s data dir; exportable.</li>
+<li>Replay needs no model calls.</li>
+</ul>
+<h2>8. Model routing</h2>
+<h3>8.1 Backends</h3>
+<table>
+<thead>
+<tr>
+<th>Backend</th>
+<th>Runtime</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>On-device</td>
+<td>LEAP (LFM2/LFM2.5) or llama.cpp with Tensor TPU/GPU delegate; agent added to GrapheneOS&#39;s TPU allowlist</td>
+<td>Always present</td>
+</tr>
+<tr>
+<td>Home server</td>
+<td>vLLM or llama.cpp server behind an OpenAI-compatible API, reached over WireGuard with a device-bound key; no logging, no persistence on the server</td>
+<td>Optional</td>
+</tr>
+<tr>
+<td>Cloud</td>
+<td>Any OpenAI-compatible endpoint</td>
+<td>Optional, <strong>off by default</strong></td>
+</tr>
+</tbody></table>
+<h3>8.2 Roles</h3>
+<table>
+<thead>
+<tr>
+<th>Role</th>
+<th>What it does</th>
+<th>Default route</th>
+<th>User-changeable</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Wake word</td>
+<td>Keyword spotting</td>
+<td>Device</td>
+<td>No</td>
+</tr>
+<tr>
+<td>STT</td>
+<td>Speech → text</td>
+<td>Device</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Reader</td>
+<td>Summarises or drafts from untrusted content; <strong>no tool access</strong></td>
+<td>Device</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Vision</td>
+<td>Screen → structured description / grounding</td>
+<td>Home → device fallback</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Planner</td>
+<td>Decides the next action; the only role that can call tools; sees labels and structured observations, not raw untrusted text</td>
+<td>Home → device fallback</td>
+<td>Yes</td>
+</tr>
+</tbody></table>
+<p>Candidate models to evaluate: vision/grounding: UI-TARS, Qwen-VL, AgentCPM-GUI; planner: LFM2.5-8B-A1B on device, a 30–70B instruct model on the home server; reader: LFM2.5 small on device.</p>
+<h3>8.3 Routing rules (enforced in AgentManagerService)</h3>
+<ol>
+<li><strong>Per-app rules win.</strong> e.g. &quot;banking category and Signal: all roles on-device&quot;. Observations from such apps are never serialised to a remote backend.</li>
+<li><strong>Per-connection rules.</strong> Home server allowed on: home Wi-Fi (SSID/BSSID pinned), optionally mobile data above a throughput threshold.</li>
+<li><strong>Fallback.</strong> Remote unreachable or over latency budget (default 3 s) → on-device model, task continues.</li>
+<li><strong>Indicator.</strong> Status-bar icon showing the current backend (phone / home / cloud), implemented like the mic/camera privacy indicators; cannot be hidden by the agent.</li>
+<li><strong>Payload minimisation.</strong> Prefer UI tree text over screenshots; downscale screenshots; strip notification bodies from apps marked device-only.</li>
+</ol>
+<h2>9. Policy and safety model</h2>
+<h3>9.1 Per-app grants</h3>
+<p>One policy store in AgentManagerService, one screen in Settings. Per app (and per profile):</p>
+<ul>
+<li>Observe: none / notifications only / UI tree / UI tree + screenshot</li>
+<li>Act: none / navigate only / full input</li>
+<li>App-data read: off / on</li>
+<li>Model route: default / device-only</li>
+<li>Confirmation: default list / always confirm / never automate</li>
+</ul>
+<p>Defaults for a fresh install: messaging apps = observe + act, confirm sends; banking category = notifications only, device-only, never automate; everything else = observe + act with the default confirmation list.</p>
+<h3>9.2 Planner / reader split</h3>
+<p>Untrusted content (message bodies, web pages, screen text from other apps) is only ever fed to the reader role. The planner receives labels and structured observations (&quot;3 unread from Ali in Signal&quot;, &quot;button: Send at (x,y)&quot;) and the reader&#39;s outputs tagged as untrusted data. The planner is the only role with tool access. This is enforced by AgentManagerService constructing the prompts, not by the agent app.</p>
+<h3>9.3 Direct app-data access</h3>
+<p>Off by default. Granting it for an app creates an SELinux allow rule for the agent domain on that app&#39;s data label at runtime (via a policy module loaded by AgentManagerService). Signal&#39;s database remains unreadable without its Keystore key; we do not modify <code>keystore2</code>. Telegram is accessed through TDLib instead.</p>
+<h3>9.4 Action log</h3>
+<p>Every observation request, action and confirmation decision is appended to a local, encrypted, append-only log with timestamps and the originating task. Viewable in Settings; exportable.</p>
+<h3>9.5 Biometrics and secure hardware</h3>
+<p>Fingerprint/face prompts, Titan-backed Keystore operations and DRM paths are untouched. The agent can bring up a biometric prompt but can never satisfy it.</p>
+<h2>10. Build, signing and updates</h2>
+<ol>
+<li>Clone GrapheneOS at the chosen stable tag; apply our patch series (kept as a rebase-able branch, one commit per feature).</li>
+<li>Generate keys offline: AVB, platform, releasekey, OTA. Store offline. Signing happens on an isolated signer, not the build host.</li>
+<li>Build <code>release</code> variant; sign with <code>script/release.sh</code> equivalent; produce factory image + OTA package.</li>
+<li>OTA server: static host serving the same JSON/zip format the GrapheneOS Updater expects; Updater pointed at our URL.</li>
+<li>CI: on every GrapheneOS stable tag, auto-rebase the patch series, build, flash the CI Pixel, run the capability suite (§13), and only then publish the OTA.</li>
+<li>Rollback: keep the previous OTA; A/B slots give automatic fallback on boot failure.</li>
+</ol>
+<h2>11. Risks and mitigations</h2>
+<table>
+<thead>
+<tr>
+<th>Risk</th>
+<th>Mitigation</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Prompt injection via screen/message content</td>
+<td>Planner/reader split; trusted confirmation ignores injected input; confirmation required for all irreversible actions</td>
+</tr>
+<tr>
+<td>Server-side bot detection (Doubao precedent)</td>
+<td>Human-like input timing (randomised 80–400 ms taps, scroll inertia, no perfectly regular cadence); no automation of logins/payments/identity checks; stop automating any app that objects; never spoof device identity</td>
+</tr>
+<tr>
+<td>Bank attestation fails on our key</td>
+<td>Accept. Apps that check nothing work; apps needing Play Integrity already fail on GrapheneOS; only banks that specifically whitelist GrapheneOS&#39;s key are lost. Check the user&#39;s banks before Phase 1</td>
+</tr>
+<tr>
+<td>Update burden</td>
+<td>CI auto-rebase + capability suite as gate; one commit per feature to keep conflicts local</td>
+</tr>
+<tr>
+<td>Model capability on long unfamiliar tasks</td>
+<td>Skills library; home-server planner; task decomposition with per-step verification</td>
+</tr>
+<tr>
+<td>Home server compromise</td>
+<td>WireGuard with device-bound key; no persistence on the server; per-app device-only rules for sensitive apps</td>
+</tr>
+<tr>
+<td>Agent app compromise</td>
+<td>It holds no dangerous permissions itself; everything goes through AgentManagerService policy; SELinux-confined</td>
+</tr>
+<tr>
+<td>Bricking devices</td>
+<td>Spare device; A/B slots; factory images retained</td>
+</tr>
+</tbody></table>
+<h2>12. Open decisions</h2>
+<ol>
+<li><strong>Audience:</strong> personal only vs product vs GrapheneOS-team collaboration. Affects licence, polish, distribution and the bot-detection risk.</li>
+<li><strong>Pixel model</strong> (9 Pro vs 10 Pro) and <strong>home GPU</strong> (24 vs 32+ GB VRAM).</li>
+<li><strong>GrapheneOS team:</strong> ask about open-source STT/TTS timeline, planned accessibility safeguards, Android 18 DMA API handling, and fork advice on hardening and cadence. Possible narrow upstream proposal later: a user-granted, per-app &quot;assistant&quot; permission with a visible indicator.</li>
+<li><strong>Which apps matter most:</strong> daily jobs; banking/fintech apps in use (check each against §11 attestation row); what the &quot;FT app&quot; is.</li>
+<li><strong>Brand name</strong> for the fork.</li>
+</ol>
+<h2>13. Phases and acceptance</h2>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Deliverable</th>
+<th>Acceptance test</th>
+<th>Time</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1. Own the pipeline</td>
+<td>Stock GrapheneOS built, signed with our keys, flashed, bootloader relocked, OTA from our server</td>
+<td>Phone boots locked with our key; an OTA from our server installs and boots</td>
+<td>Weeks 1–2</td>
+</tr>
+<tr>
+<td>2. Agent v0</td>
+<td>AgentManagerService, agent app, UI tree + screenshot, INJECT_EVENTS, Agent IME, notifications, on-device model</td>
+<td>By voice: read unread Signal/WhatsApp/Telegram, draft and (after confirmation) send a reply in each</td>
+<td>Weeks 3–8</td>
+</tr>
+<tr>
+<td>3. Safety in the OS</td>
+<td>Trusted Confirmation UI, policy store + Settings screen, planner/reader split, action log; home-server backend with fallback and indicator</td>
+<td>Injection test: a message instructing &quot;send €100 to X&quot; produces no action and no confirmation prompt; confirmation dialog ignores injected taps; routing rules observed in logs</td>
+<td>Weeks 9–12</td>
+</tr>
+<tr>
+<td>4. Any app</td>
+<td>Wake word on DSP, telephony/SMS, skills library, per-app Flutter semantics toggle, cross-profile option</td>
+<td>Capability suite: set tasks in ~20 apps across messaging, email, maps, shopping, delivery, banking (read-only), browser, Flutter app, React Native app, game; ≥80% pass; skill replay with 0 model calls</td>
+<td>Months 4–5</td>
+</tr>
+<tr>
+<td>5. Sustain</td>
+<td>CI auto-rebase on each GrapheneOS stable tag gated by the suite; distribution decision; possible DMA-API app route for stock Android (2027)</td>
+<td>Two consecutive upstream releases shipped within 7 days with the suite green</td>
+<td>Ongoing</td>
+</tr>
+</tbody></table>
+<h2>14. Team and cost</h2>
+<ul>
+<li>1–2 engineers with Android platform experience (system services, AIDL, SELinux, Soong, SystemUI). One more for the model/agent side.</li>
+<li>Build box (cloud): ~$200–400/month. Devices: 2–3 Pixels. GPU server: existing or ~$2–4k.</li>
+<li>Ongoing: roughly 1–2 engineer-days per GrapheneOS release once CI is in place.</li>
+</ul>
+<h2>15. Sources</h2>
+<ul>
+<li>GrapheneOS: features, build and signing docs, usage guide (accessibility warning), FAQ; TPU allowlist toggle.</li>
+<li>AOSP: <code>INJECT_EVENTS</code>, <code>CAPTURE_SECURE_VIDEO_OUTPUT</code>, <code>CAPTURE_AUDIO_HOTWORD</code>, SoundTrigger HAL, <code>AppFunctionManager</code>, privapp-permissions, AVB.</li>
+<li>Gemini screen automation (Google support, Feb 2026); Doubao / Nubia M153 coverage (Yicai, Caixin, 36Kr, Dec 2025); EU DMA decision on Android AI access (16 July 2026).</li>
+<li>Liquid LEAP + LFM2.5; whisper.cpp; openWakeWord; Piper; UI-TARS; Qwen-VL; AgentCPM-GUI; TDLib.</li>
+</ul>
+<div class="foot">Agent OS specification, draft v0.1. Companion deck: graphene_agent_os.pdf. Draft for discussion; please don't forward further without asking.</div></main></body></html>

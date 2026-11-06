@@ -1,0 +1,8 @@
+# local
+*.log
+__pycache__/
+*.pyc
+.venv/
+ballistic_runs/
+*.gguf
+.DS_Store
