@@ -121,6 +121,19 @@ def installed_apps(controller: Any) -> list[dict[str, Any]]:
     return apps
 
 
+def foreground_tree_ready(nodes: list[dict[str, Any]], package: str) -> bool:
+    """Do not mistake status-bar/keyboard nodes for a loaded foreground app."""
+    return bool(package) and any(
+        n.get("package") == package
+        and n["flags"].get("visible")
+        and n["bounds"]["x2"] > n["bounds"]["x1"]
+        and n["bounds"]["y2"] > n["bounds"]["y1"]
+        and (n.get("label") or n.get("text") or n["flags"].get("clickable")
+             or n["flags"].get("editable"))
+        for n in nodes
+    )
+
+
 class CoreHost:
     """Answers core's asks. `confirm_policy` is "approve" or "deny"."""
 
@@ -141,7 +154,10 @@ class CoreHost:
         for attempt in range(6):  # the step-1 Bluetooth failure: Settings returned an empty tree
             state = self.env.get_state(wait_to_stabilize=True)
             nodes = forest_to_nodes(state.forest) if state.forest is not None else []
-            if len([n for n in nodes if n["label"] or n["text"]]) >= 3:
+            # The status bar can have six labelled nodes while the app window is
+            # still loading. Only foreground-app content makes the tree ready.
+            foreground = (self.env.foreground_activity_name or "").partition("/")[0]
+            if foreground_tree_ready(nodes, foreground):
                 break
             time.sleep(0.7 * (attempt + 1))
         fg = self.env.foreground_activity_name or ""
