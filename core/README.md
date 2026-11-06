@@ -300,7 +300,8 @@ The refined contract keeps execution and verification separate:
 
 | Field | Values | Meaning |
 |---|---|---|
-| execution status | `completed`, `opened_ui`, `pending`, `failed`, `unsupported` | What the executor reports happened |
+| task status (`task_status`) | `completed`, `opened_ui`, `pending`, `failed`, `unsupported` | Reported progress toward the requested effect |
+| transport status (`execution_status`) | `executed`, `not_executed`, `unknown` | Whether input was acknowledged, absent or ambiguous; not proof of task completion |
 | verification status | `verified`, `failed`, `unknown` | Whether evidence establishes the requested final postcondition |
 | evidence | receipt, structured readback, explicit UI assertions, model judgment | Source and strength, with the operation and postcondition it supports |
 

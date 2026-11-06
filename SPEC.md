@@ -198,8 +198,9 @@ affected app, required grants, confirmation class and expected completion eviden
 metadata cannot invent an unavailable AppFunction or imply a production permission from a
 benchmark's privileges.
 
-Keep execution status (`completed`, `opened_ui`, `pending`, `failed`, `unsupported`) separate from
-verification (`verified`, `failed`, `unknown`). Log evidence type and strength: receipt,
+Keep task/operation progress (`task_status`: `completed`, `opened_ui`, `pending`, `failed`,
+`unsupported`) separate from transport acknowledgment (`execution_status`: `executed`,
+`not_executed`, `unknown`) and verification (`verified`, `failed`, `unknown`). Log evidence type and strength: receipt,
 structured readback, explicit UI assertions or model judgment. Interpret receipt semantics:
 accepted/queued is not completed, and a successfully opened compose screen is not a sent message.
 A model saying done is not independent verification; missing evidence remains unknown.

@@ -106,7 +106,7 @@ DRM; a Linux-based phone; upstreaming the agent itself.
   laptop B's own desktop (`WINDOW=1`, GDM Xauthority), boots in 34 s with host GPU.
 - **Step 1 baseline (6 Nov 2026, 18:14–18:47, measured):** `harness/run_suite.sh`, 20 AndroidWorld
   tasks, T3A (UI tree, no screenshots), `gemini-flash-lite-latest`, one emulator on laptop B.
-  **13 / 20 PASS.** Agent time 1,496 s total (median ~64 s/task); 281 model calls (T3A makes
+  **13 / 20 PASS.** Agent time 1,496 s total (median 66.4 s/task); 281 model calls (T3A makes
   ~2 per step: action + summary), 3.0 M prompt tokens, mean 10.7 k / call, max 43 k / call. No
   quota (429) errors. Laptop A ↔ B Tailscale dropped twice during the run; 4 `Error calling LLM`
   steps (EventsOnDate 1, MarkorDeleteNote 3) are network, not model. Table:
@@ -485,7 +485,13 @@ prompt UI is planned. Subagents use GPT-6-Astra at the owner's request.
   input operations only; semantic adapters, authoritative production readback, full provenance,
   typed reader, deny-only judge and saved skill execution are still pending. Binding a screen
   coordinate is not yet equivalent to binding the semantic recipient/body visible behind it.
-- Full 20-task core comparison is next; do not infer a suite score from the single Contacts pass.
+- Full 20-task core comparison started on ThinkPad at 23:49 UTC on 6 November (02:49 local,
+  7 November): code commit `a13f59e`, Gemini flash-lite, seed 0, confirmations approved.
+  Table `~/ballistic_runs/suite_core_20261106-234941.tsv`; log
+  `~/ballistic_runs/core_suite_refinements.log`. Prompt chat was idle and stopped for the suite;
+  restore it only after the suite releases the emulator. Astra delegated evaluation is monitoring
+  the existing run, not starting another. **Results pending; no full core score yet.**
+  Original baseline TSV totals 1,495.7 s, median 66.4 s/task (corrects earlier ~64 estimate).
 
 ## 5. Reported facts (from docs/press; re-check before relying on them)
 
