@@ -140,6 +140,14 @@ DRM; a Linux-based phone; upstreaming the agent itself.
   resolve through a fixed regex table, `android_world/env/adb_utils.py` `_PATTERN_TO_ACTIVITY`, not
   through the launcher; any name outside it fails ("Expense" vs the app's label "pro expense").
   The task registry holds 116 tasks (`task_metadata.json`).
+- **Build box (6 Nov 2026):** Hetzner Cloud refused (new-account limits: 8 dedicated vCPUs, no
+  increase button); Contabo needs ID verification (order pending, may be cancelled). Using
+  **vast.ai** hourly: instance 59466158, Belgium, EPYC 7662, 61-core quota, 550 GB disk, ~$0.94/h
+  incl. disk, download $2.7/TB. It is an unprivileged Docker container: user namespaces are
+  blocked (`unshare -Ur` fails), no VM. vast.ai VM templates failed (host QEMU missing). The web UI
+  did not apply the disk size twice (got 32 GB); the `vastai` CLI with `--disk 550` works
+  (`~/.local/bin/vastai` on laptop A, account key stored by the owner). Offers with
+  `inet_down_cost` near $40/TB are a trap for a ~200 GB source sync.
 - **Hardware (6 Nov 2026, corrected same day):** the owner's phone is a **Pixel 10 Pro**
   (`blazer`, SKU GEHN3, serial 56181FDCH0070R, stock Android 17 `CP2A.260805.005`), not a Pixel 10.
   **It cannot be bootloader-unlocked, so it cannot run GrapheneOS or Ballistic as it stands.**
