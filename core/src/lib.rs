@@ -11,3 +11,6 @@ pub mod types;
 pub mod actions;
 pub mod screen_filter;
 pub mod agent;
+
+pub mod capabilities;
+pub mod verification;

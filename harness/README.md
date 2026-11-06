@@ -136,3 +136,24 @@ interfaces so another machine can use it over Tailscale.
   ("Failed to automatically setup app …"); re-running `--perform_emulator_setup` or dismissing
   the dialog by hand fixes it.
 - First model call after idle takes ~20 s (model load); later calls are faster.
+
+### Independent outcomes and capability contracts (7 November 2026)
+
+Benchmark runs now record `agent_reported_done`, `benchmark_success`, `benchmark_status`,
+`benchmark_error`, `checker_seconds` and `combined_success` separately. The existing `success`
+field and PASS score remain the combined result for comparison with the original baseline.
+The state checker runs even when core gives up or exhausts its budget; checker failures are
+unknown/error, not model failures. Free prompts have no benchmark checker. Core's own
+`verification.evidence_basis=model_assessment` is weaker than AndroidWorld's state check.
+
+The suite TSV adds independent state outcome, agent completion, failure category, call/token
+counts and the JSON path. Full task logs are preserved. `SEED=0` is the new default; the original
+baseline was unseeded, so comparisons with it are descriptive rather than matched-input trials.
+`TASK_TIMEOUT` bounds a task process (default 900 seconds). HTTP/checker/process errors are
+reported separately. The harness advertises only its actual input operations and test app scopes;
+these emulator grants do not establish production Android permissions.
+
+Core binds guarded approvals to one exact resolved operation and app. A host error after dispatch
+is ambiguous: core stops instead of retrying a possible send/delete. `not_executed` is reserved
+for cases where the host can guarantee no input was dispatched. Do not classify a timeout as
+`not_executed` merely because an acknowledgment was not received.

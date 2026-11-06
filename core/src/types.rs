@@ -107,6 +107,9 @@ pub struct ScreenState {
     /// Sent once per session by the host; core keeps the last non-empty list.
     #[serde(default)]
     pub installed_apps: Vec<AppEntry>,
+    /// Host authority, never model text. None parses old recordings but denies execution.
+    #[serde(default)]
+    pub capabilities: Option<HostCapabilities>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -193,7 +196,7 @@ pub struct Tagged {
 
 /// What Hands actually executes: coordinates and strings only, no element ids.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(tag = "op", rename_all = "snake_case")]
+#[serde(tag = "op", rename_all = "snake_case", deny_unknown_fields)]
 pub enum HandsOp {
     OpenApp {
         package: String,
@@ -225,6 +228,8 @@ pub enum HandsOp {
 pub enum HandsResult {
     Ok,
     Error { message: String },
+    /// Host guarantees no input was dispatched.
+    NotExecuted { message: String },
 }
 
 /// Which model answers. Each may be a different backend (§12).
@@ -259,6 +264,8 @@ pub struct Completion {
 /// What the owner is shown before a guarded action (§9). Every value names its source.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ConfirmRequest {
+    /// Exact resolved parameters covered by this one-use approval.
+    pub operation: HandsOp,
     pub app: String,
     pub verb: String,
     pub target: String,
@@ -273,4 +280,33 @@ pub struct ConfirmRequest {
 pub enum ConfirmResult {
     Approved,
     Denied,
+}
+
+/// A host can restrict the shipped action set, never extend it with executable app text.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct HostCapabilities {
+    pub operations: Vec<String>,
+    pub app_grants: Vec<String>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ExecutionStatus { NotExecuted, Executed, Unknown }
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum VerificationStatus { Verified, Failed, Unknown }
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Verification {
+    pub status: VerificationStatus,
+    /// Set by core. A model never upgrades itself to authoritative readback.
+    pub evidence_basis: String,
+    pub nodes: Vec<String>,
+}
+impl Default for Verification {
+    fn default() -> Self {
+        Self { status: VerificationStatus::Unknown, evidence_basis: "none".into(), nodes: vec![] }
+    }
 }

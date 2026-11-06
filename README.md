@@ -9,7 +9,10 @@ the device, and a confirmation step the agent can raise but never press. The nam
 itself: electrons move through it *ballistically*, fast and straight, without scattering.
 
 Status: **design and harness stage** (November 2026). The agent loop runs on an emulator; nothing
-ships yet. Apache 2.0. Not affiliated with or endorsed by GrapheneOS.
+ships yet. The Rust core has an initial tree agent, confirmation hooks and verifier; typed reader,
+provenance rules, deny-only judge and recorded skills are still planned. The terminal prompt is
+the current interface, followed later by a native Android app; no localhost/browser UI is planned.
+Apache 2.0. Not affiliated with or endorsed by GrapheneOS.
 
 ## Why
 
@@ -74,6 +77,15 @@ are vendor-controlled and cloud-first. Nobody has built the owner-controlled, lo
   (`core/`) is written once and shared by the Android app, the laptop test bench and a future iOS
   app.
 
+The 7 November 2026 design refinement makes each host expose only operations it can execute,
+with typed inputs, affected app, required grants, confirmation and completion evidence. Ballistic
+preserves the app you request and can use that app's structured API without opening its screen.
+Approval covers the exact recipient, value and attachments on every route. Opening a screen or
+receiving an acceptance receipt does not prove completion: execution status, verification and
+evidence are recorded separately. An uncertain send is inspected before retrying; without reliable
+readback or idempotency, it stops. These are implementation requirements; current coverage is in
+[`core/README.md`](core/README.md) and [`docs/CONTEXT.md`](docs/CONTEXT.md).
+
 ## What we would ask of GrapheneOS
 
 Three small, independent changes, each defensible on privacy grounds alone and each off by default:
@@ -95,7 +107,7 @@ land. The agent itself is not proposed for upstream.
 | Step | State |
 |---|---|
 | 1. Harness: emulator + [AndroidWorld](https://github.com/google-research/android_world) + local models, agent loop driving a phone | **Running.** First full task completed end to end (failed on quality, not plumbing). |
-| 2. Core library: filtered UI tree, planner/reader split with source tags, deny-only judge, skills, routing, injection tests | **Design agreed 7 Nov 2026** (`core/README.md`); Rust, being built. |
+| 2. Core library: filtered UI tree, planner/reader split with source tags, deny-only judge, skills, routing, injection tests | **Initial Rust implementation.** Contracts, evidence and exact-operation approval refinements agreed 7 Nov; reader/provenance/judge/skills pending (`core/README.md`). |
 | 3. Assistant as an ordinary app (no privileges) on any Android phone | |
 | 4. Own GrapheneOS build, own keys, own OTA | |
 | 5. Computer Control gate; assistant runs through `ComputerControlSession` on a Pixel | |

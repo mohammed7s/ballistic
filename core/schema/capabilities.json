@@ -1,0 +1,118 @@
+{
+  "version": 1,
+  "authority": "shipped_metadata",
+  "operations": [
+    {
+      "id": "open_app",
+      "arguments": {
+        "package": "string",
+        "activity": "string|null"
+      },
+      "app_scope": "resolved_package",
+      "required_grant": "host_app_grant",
+      "confirmation": "core_policy_exact_operation",
+      "execution_evidence": "opened_ui",
+      "completion_evidence": "fresh_screen_model_assessment; independent readback adapter pending",
+      "retry": "replan_only_if_not_executed; stop_on_unknown"
+    },
+    {
+      "id": "tap",
+      "arguments": {
+        "x": "integer",
+        "y": "integer"
+      },
+      "app_scope": "foreground_package",
+      "required_grant": "host_app_grant",
+      "confirmation": "core_policy_exact_operation",
+      "execution_evidence": "host_acknowledgment",
+      "completion_evidence": "fresh_screen_model_assessment; independent readback adapter pending",
+      "retry": "replan_only_if_not_executed; stop_on_unknown"
+    },
+    {
+      "id": "long_press",
+      "arguments": {
+        "x": "integer",
+        "y": "integer"
+      },
+      "app_scope": "foreground_package",
+      "required_grant": "host_app_grant",
+      "confirmation": "core_policy_exact_operation",
+      "execution_evidence": "host_acknowledgment",
+      "completion_evidence": "fresh_screen_model_assessment; independent readback adapter pending",
+      "retry": "replan_only_if_not_executed; stop_on_unknown"
+    },
+    {
+      "id": "type",
+      "arguments": {
+        "x": "integer",
+        "y": "integer",
+        "text": "string",
+        "submit": "boolean"
+      },
+      "app_scope": "foreground_package",
+      "required_grant": "host_app_grant",
+      "confirmation": "core_policy_exact_operation",
+      "execution_evidence": "host_acknowledgment",
+      "completion_evidence": "fresh_screen_model_assessment; independent readback adapter pending",
+      "retry": "replan_only_if_not_executed; stop_on_unknown"
+    },
+    {
+      "id": "scroll",
+      "arguments": {
+        "area": "Bounds",
+        "direction": "Direction"
+      },
+      "app_scope": "foreground_package",
+      "required_grant": "host_app_grant",
+      "confirmation": "core_policy_exact_operation",
+      "execution_evidence": "host_acknowledgment",
+      "completion_evidence": "fresh_screen_model_assessment; independent readback adapter pending",
+      "retry": "replan_only_if_not_executed; stop_on_unknown"
+    },
+    {
+      "id": "swipe",
+      "arguments": {
+        "area": "Bounds",
+        "direction": "Direction"
+      },
+      "app_scope": "foreground_package",
+      "required_grant": "host_app_grant",
+      "confirmation": "core_policy_exact_operation",
+      "execution_evidence": "host_acknowledgment",
+      "completion_evidence": "fresh_screen_model_assessment; independent readback adapter pending",
+      "retry": "replan_only_if_not_executed; stop_on_unknown"
+    },
+    {
+      "id": "back",
+      "arguments": {},
+      "app_scope": "foreground_package",
+      "required_grant": "host_app_grant",
+      "confirmation": "core_policy_exact_operation",
+      "execution_evidence": "host_acknowledgment",
+      "completion_evidence": "fresh_screen_model_assessment; independent readback adapter pending",
+      "retry": "replan_only_if_not_executed; stop_on_unknown"
+    },
+    {
+      "id": "home",
+      "arguments": {},
+      "app_scope": "foreground_package",
+      "required_grant": "host_app_grant",
+      "confirmation": "core_policy_exact_operation",
+      "execution_evidence": "host_acknowledgment",
+      "completion_evidence": "fresh_screen_model_assessment; independent readback adapter pending",
+      "retry": "replan_only_if_not_executed; stop_on_unknown"
+    },
+    {
+      "id": "wait",
+      "arguments": {
+        "millis": "u32"
+      },
+      "app_scope": "foreground_package",
+      "required_grant": "host_app_grant",
+      "confirmation": "core_policy_exact_operation",
+      "execution_evidence": "host_acknowledgment",
+      "completion_evidence": "fresh_screen_model_assessment; independent readback adapter pending",
+      "retry": "replan_only_if_not_executed; stop_on_unknown"
+    }
+  ]
+}

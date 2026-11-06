@@ -291,7 +291,7 @@ DRM; a Linux-based phone; upstreaming the agent itself.
 
 All **verified** at GrapheneOS tag `2026110200` (line numbers at the tag; frameworks/base unless
 stated). Inferences are labelled. The patch set built on these answers is in
-`ballistic-os/patches/` (eight patches: build/release ×3, frameworks/base ×3, packages/apps/Settings
+`ballistic-os/patches/` (eleven patches: build/release ×3, frameworks/base ×6, packages/apps/Settings
 ×2), applied with `git am` to fresh clones; **not compiled or run yet**. Design and first-build
 checklist: `ballistic-os/docs/patches.md`.
 
@@ -359,8 +359,8 @@ checklist: `ballistic-os/docs/patches.md`.
 - **Review follow-up (7 Nov 2026; source verified, not built).** Three additional commits enable
   and require version 5, protect Settings/consent UI, clear a withdrawn target's saved consent,
   clean both stores on user deletion, receive uninstall broadcasts for every user, and scope
-  session closures by user. Creation and Settings edits share the session lock; the final
-  asynchronous check uses the request's user and rechecks the owner, targets and saved consent.
+  session closures by user. The original shared construction/edit lock is superseded by the
+  second review fixes below. The final asynchronous check uses the request's user.
   In the patched frameworks/base tree, `services/companion/.../computercontrol/`:
   `ComputerControlAllowlistController.java:215,239,519,651,657,694`,
   `ComputerControlSessionProcessor.java:491`, `ComputerControlUserAllowlist.java:144`.
@@ -371,6 +371,17 @@ checklist: `ballistic-os/docs/patches.md`.
   one-time approval for the targets in the current dialog. Regression tests added; execution,
   compilation and device race checks remain on the first-build checklist. Settings footer and
   SPEC now explicitly describe an additional allowlist, not an off switch for DeviceConfig.
+- **Second review fixes (7 Nov 2026; source verified, not built).** frameworks/base patches
+  0004–0006 replace the creation lock with a pending reservation and authorization generation;
+  construction, policy queries, store mutation and session closure occur outside `mSessions`.
+  Incoming Parcel parameters are checked server-side, including notification content and the
+  six-target limit. Permission, role, AppOp and device-policy checks run before construction and
+  immediately before publication with the captured identity; one-time consent cannot override
+  AppOp denial. Source: patched `ComputerControlSessionProcessor.java:261,501,550,565` and
+  `ComputerControlAllowlistController.java:657` under `services/companion/.../computercontrol/`.
+  The prior inversion is verified against `services/core/java/com/android/server/wm/ActivityClientController.java:1966,1994`:
+  Back holds WindowManager's global lock while querying the session registry. Sixteen regression
+  tests added, not executed; build and device stress checks remain in `ballistic-os/docs/patches.md` §10.
 - **AppFunctions (verified; design only).** Does not fall out of the Computer Control store.
   `CallerValidatorImpl.java:117-130` → `SystemAppFunctionAllowlistReader.java:126`
   (`AllowlistManager` ID 2); :179-183 fails open on ERROR_PROVIDER/INVALID_REQUEST/NETWORK;
@@ -443,6 +454,34 @@ Verified on the Latitude and ThinkPad, unless explicitly described as external r
   comparison: Gemma 4 E2B NPU/GPU/CPU, E4B GPU, Qwen3-4B control. No reliable pp2048 measurement
   on Pixel 10 Pro was found. Verify NPU from the actual GrapheneOS app UID and measure sustained
   correct output, full step latency and memory before choosing a default.
+
+## 4e. Adopted refinements and implementation (7 November 2026)
+
+Owner accepted the PhoneHarness-inspired refinement review, kept the Rust architecture, and
+confirmed the terminal prompt is sufficient until the native Android app UI exists. No localhost
+prompt UI is planned. Subagents use GPT-6-Astra at the owner's request.
+
+- Implemented: independent AndroidWorld state scoring even when the agent does not report done;
+  combined score retained for baseline compatibility; checker faults remain errors/unknown.
+  Suite TSV includes both outcomes, failure category, calls/tokens and JSON paths, and preserves
+  full per-task logs. Seed 0 is now explicit; original baseline had no fixed seed.
+- Implemented in core: shipped contracts for existing input capabilities; host-advertised
+  operations/app grants checked before approval or Hands (missing advertisement denies);
+  compact available-operation instructions; exact one-use approval bound to resolved HandsOp
+  and app; ambiguous execution errors halt instead of retrying; explicitly known non-execution
+  permits replanning. Task status, execution status and verification/evidence basis are separate.
+  Model screen assessment is labelled as such, never promoted to authoritative readback.
+- Validation before deployment: **30 Rust tests + 9 Python tests pass**. New regressions cover
+  missing grants, changed operations after approval, no duplicate input after ambiguous timeout,
+  independent state success despite agent failure, false completion and checker faults.
+  These are host/unit tests, not yet the full emulator side-effect or injection suite.
+- SPEC/core design now require semantic capability arguments, same-app routing, receipt/readback
+  interpretation, exact recipient/amount/attachment approvals, workflow compatibility/final
+  postconditions/recovery and side-effect checks across routes. Current implementation supports
+  input operations only; semantic adapters, authoritative production readback, full provenance,
+  typed reader, deny-only judge and saved skill execution are still pending. Binding a screen
+  coordinate is not yet equivalent to binding the semantic recipient/body visible behind it.
+- Full 20-task core comparison is next; do not infer a suite score from the single Contacts pass.
 
 ## 5. Reported facts (from docs/press; re-check before relying on them)
 

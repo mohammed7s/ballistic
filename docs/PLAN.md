@@ -20,6 +20,24 @@ with a taint rule and Rule of Two in code, deny-only judge, verifier before "don
 confirmation list, skill record/replay, backend routing (OpenAI-compatible client). Injection
 test suite. Used by the harness now, by the Android app in step 3 and by an iOS app later; one
 implementation shared by every host, written in Rust (decided 7 Nov 2026).
+**Refinement agreed 7 Nov 2026:** host-advertised executable contracts (typed arguments, app,
+grants, confirmation and completion evidence), relevant/on-demand shipped descriptions separate
+from recorded skills, requested-app-preserving routing, exact-operation approval across every
+route, independent execution/verification statuses, and readback before ambiguous-effect retries.
+Without reliable readback or idempotency, stop. Workflow design includes final postconditions,
+app/version compatibility and recovery checkpoints. Test exact recipients and attachments, no
+unrelated access, denial on all routes, changed approvals/targets and no duplicate sends. Report
+independent benchmark outcome separately from agent done; benchmark inspection never becomes a
+production capability. Measure route, latency and tokens and categorize planning, target
+resolution, permission, environment, execution, verification and policy-denial failures.
+
+**Current boundary:** initial Rust tree loop and harness exist; typed reader/provenance, deny-only
+judge and recorded skills remain pending. The terminal prompt is sufficient for development;
+there is no localhost/browser UI work. Screenshots and a separate GUI worker remain deferred;
+the next product interface is the native Android app in step 3. Consult `docs/CONTEXT.md` for the
+implemented contract subset and measured results; the following deliverables remain acceptance
+criteria, not a claim that step 2 is complete.
+
 **You see:** injection tests passing on the emulator (hostile message → summary, no action; a
 forged number stopped at a confirmation that names its source); a task replayed from a saved
 skill with zero model calls; backend switched by one config line; the 20-task score against the

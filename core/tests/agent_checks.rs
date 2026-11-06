@@ -4,6 +4,7 @@ use std::io::Cursor;
 
 fn screen() -> ScreenState {
     serde_json::from_value(json!({"package":"example.notes","activity":"Main","width":100,"height":100,
+        "capabilities":{"operations":["open_app","tap","long_press","type","scroll","swipe","back","home","wait"],"app_grants":["example.notes"]},
         "nodes":[{"id":1,"role":"button","text":"Delete","bounds":{"x1":0,"y1":0,"x2":40,"y2":20},
             "flags":{"enabled":true,"visible":true,"clickable":true}}]})).unwrap()
 }
@@ -31,14 +32,15 @@ fn invalid_actions_retry_once_and_never_call_hands() {
     assert!(!calls.iter().any(|c|c["ask"]=="act"));
 }
 #[test]
-fn verifier_requires_true_and_current_evidence() {
+fn verifier_requires_status_and_current_evidence() {
     for verdict in [r#"{"done":false,"nodes":["e1"]}"#,r#"{"done":true,"nodes":[]}"#,r#"{"done":true,"nodes":["e99"]}"#,"invalid"] {
         let (result,calls)=run(vec![json!(screen()),completion(r#"{"action":"done","evidence":"trust me"}"#),json!(screen()),completion(verdict)],1);
         assert_eq!(result["done"],false,"{verdict}");
         assert!(!calls.iter().any(|c|c["ask"]=="act"));
     }
-    let (result,_)=run(vec![json!(screen()),completion(r#"{"action":"done","evidence":"e1"}"#),json!(screen()),completion(r#"{"done":true,"nodes":["e1"]}"#)],1);
+    let (result,_)=run(vec![json!(screen()),completion(r#"{"action":"done","evidence":"e1"}"#),json!(screen()),completion(r#"{"status":"verified","evidence_basis":"visible_ui","nodes":["e1"]}"#)],1);
     assert_eq!(result["done"],true);
+    assert_eq!(result["verification"]["evidence_basis"],"model_assessment");
 }
 #[test]
 fn disabled_targets_and_uninstalled_apps_cannot_resolve() {
@@ -86,4 +88,88 @@ fn contacts_form_hints_survive_scrolling_form_classification() {
     for label in ["First name","Last name","Phone"] {
         assert!(view.elements.iter().any(|e|e.flags.editable && e.label.as_deref()==Some(label)),"missing {label}");
     }
+}
+
+#[test]
+fn timeout_after_submit_never_duplicates_input() {
+    let mut s=screen(); s.nodes[0].role=Role::Edit;s.nodes[0].flags.editable=true;
+    let (result,calls)=run(vec![json!(s),completion(r#"{"action":"type","target":"e1","text":"hello","submit":true}"#),json!("approved"),json!({"result":"error","message":"timeout after Enter"})],5);
+    assert_eq!(result["execution_status"],"unknown");
+    assert_eq!(result["verification"]["status"],"unknown");
+    assert_eq!(calls.iter().filter(|c|c["ask"]=="act").count(),1);
+    assert_eq!(calls.iter().filter(|c|c["ask"]=="complete").count(),1);
+}
+#[test]
+fn absent_grant_blocks_before_confirmation_and_hands() {
+    let mut s=screen(); s.capabilities=Some(HostCapabilities{operations:vec!["tap".into()],app_grants:vec![]});
+    let (result,calls)=run(vec![json!(s),completion(r#"{"action":"tap","target":"e1"}"#)],1);
+    assert_eq!(result["failure_category"],"permission");
+    assert!(!calls.iter().any(|c|c["ask"]=="act" || c["ask"]=="confirm"));
+}
+#[test]
+fn exact_operation_cannot_gain_extra_parameters() {
+    assert!(serde_json::from_value::<HandsOp>(json!({"op":"tap","x":1,"y":2,"text":"send"})).is_err());
+    assert!(actions::parse_reply(r#"{"action":"tap","target":"e1","grants":["all"]}"#).is_err());
+}
+#[test]
+fn model_cannot_claim_authoritative_readback() {
+    let view=screen_filter::filter(&screen(),&FilterContext{request:"",typed:&[]});
+    let verdict=ballistic_core::verification::assess(r#"{"status":"verified","evidence_basis":"authoritative_readback","nodes":["e1"]}"#,&view);
+    assert_eq!(verdict.status,VerificationStatus::Unknown);
+}
+#[test]
+fn legacy_host_error_stops_without_another_planner_call() {
+    let input=vec![json!({"id":1,"ok":true,"data":screen()}),json!({"id":2,"ok":true,"data":completion(r#"{"action":"tap","target":"e1"}"#)}),json!({"id":3,"ok":true,"data":"approved"}),json!({"id":4,"ok":false,"error":"connection timed out"})].into_iter().map(|v|v.to_string()+"\n").collect::<String>();
+    let mut output=Vec::new();
+    let result=agent::run(&mut Bridge::new(Cursor::new(input),&mut output),"delete note",5).unwrap();
+    assert_eq!(result["execution_status"],"unknown");
+    assert_eq!(String::from_utf8(output).unwrap().lines().filter(|s|s.contains("\"ask\":\"act\"")).count(),1);
+}
+#[test]
+fn opening_ui_is_execution_not_completion() {
+    let mut s=screen();s.installed_apps=vec![AppEntry{label:"Notes".into(),package:"example.notes".into(),activity:None}];
+    let (result,calls)=run(vec![json!(s),completion(r#"{"action":"open_app","app":"Notes"}"#),json!({"result":"ok"})],1);
+    assert_eq!(result["task_status"],"opened_ui");
+    assert_eq!(result["execution_status"],"executed");
+    assert_eq!(result["verification"]["status"],"unknown");
+    assert_eq!(result["done"],false);
+    assert!(calls.iter().any(|v|v["event"]["capability_mode"]=="advertised"));
+}
+#[test]
+fn known_not_executed_allows_replanning() {
+    let (result,calls)=run(vec![json!(screen()),completion(r#"{"action":"tap","target":"e1"}"#),json!("approved"),json!({"result":"not_executed","message":"rejected before input"}),json!(screen()),completion(r#"{"action":"give_up","reason":"target unavailable"}"#)],2);
+    assert_eq!(result["task_status"],"failed");
+    assert_eq!(calls.iter().filter(|c|c["ask"]=="act").count(),1);
+    assert_eq!(calls.iter().filter(|c|c["ask"]=="complete").count(),2);
+}
+#[test]
+fn verifier_failed_and_unknown_are_distinct() {
+    let view=screen_filter::filter(&screen(),&FilterContext{request:"",typed:&[]});
+    let verdict=ballistic_core::verification::assess(r#"{"status":"failed","evidence_basis":"visible_ui","nodes":["e1"]}"#,&view);
+    assert_eq!(verdict.status,VerificationStatus::Failed);
+    let verdict=ballistic_core::verification::assess(r#"{"status":"verified","evidence_basis":"visible_ui","nodes":["e999"]}"#,&view);
+    assert_eq!(verdict.status,VerificationStatus::Unknown);
+}
+
+#[test]
+fn missing_advertisement_denies_hands() {
+    let mut s=screen();s.capabilities=None;
+    let (result,calls)=run(vec![json!(s),completion(r#"{"action":"tap","target":"e1"}"#)],1);
+    assert_eq!(result["failure_category"],"permission");
+    assert!(!calls.iter().any(|c|c["ask"]=="act" || c["ask"]=="confirm"));
+}
+#[test]
+fn planner_gets_compact_available_operations_without_hands_parameters() {
+    let mut s=screen();s.capabilities.as_mut().unwrap().operations=vec!["tap".into(),"fake_api".into()];
+    let instructions=ballistic_core::capabilities::planner_instructions(s.capabilities.as_ref());
+    assert!(instructions.contains("operations (app grants still apply): tap."));
+    assert!(!instructions.contains("fake_api"));
+    assert!(!instructions.contains("arguments"));
+    assert!(!instructions.contains("integer"));
+}
+#[test]
+fn invalid_later_plan_preserves_prior_execution_status() {
+    let (result,_)=run(vec![json!(screen()),completion(r#"{"action":"home"}"#),json!({"result":"ok"}),json!(screen()),completion("invalid"),completion("invalid")],2);
+    assert_eq!(result["execution_status"],"executed");
+    assert_eq!(result["failure_category"],"planning");
 }

@@ -165,8 +165,13 @@ class CoreHost:
         w, h = self.env.logical_screen_size
         if self._apps is None:
             self._apps = installed_apps(self.env.controller)
+        # The emulator harness is explicitly granted the synthetic test environment.
+        # A phone host must build this list from actual owner grants and API access.
+        capabilities = {"operations": ["open_app", "tap", "long_press", "type", "scroll",
+                                       "swipe", "back", "home", "wait"],
+                        "app_grants": sorted({a["package"] for a in self._apps} | {package})}
         return {"package": package, "activity": activity, "width": w, "height": h,
-                "nodes": nodes, "installed_apps": self._apps}
+                "nodes": nodes, "installed_apps": self._apps, "capabilities": capabilities}
 
     # ---- act -----------------------------------------------------------------------------
     def act(self, op: dict[str, Any]) -> dict[str, Any]:
@@ -206,7 +211,7 @@ class CoreHost:
             elif kind == "wait":
                 time.sleep(op.get("millis", 1000) / 1000)
             else:
-                return {"result": "error", "message": f"unknown op {kind}"}
+                return {"result": "not_executed", "message": f"unknown op {kind}"}
             return {"result": "ok"}
         except Exception as e:  # noqa: BLE001  report, don't decide
             return {"result": "error", "message": f"{type(e).__name__}: {e}"}
@@ -280,16 +285,25 @@ class ModelClient:
         base_url, model, api_key = self.routes.get(role) or self.routes["planner"]
         body = {"model": model, "messages": messages, "temperature": self.temperature, "max_tokens": max_tokens}
         t0 = time.time()
-        r = requests.post(base_url.rstrip("/") + "/chat/completions", json=body, timeout=self.timeout,
-                          headers={"Authorization": f"Bearer {api_key}"})
-        r.raise_for_status()
-        j = r.json()
-        text = j["choices"][0]["message"]["content"] or ""
-        usage = j.get("usage") or {}
-        out = {"text": text, "usage": {"prompt_tokens": usage.get("prompt_tokens", 0),
-                                       "completion_tokens": usage.get("completion_tokens", 0)}}
-        self.calls.append({"role": role, "model": model, "seconds": round(time.time() - t0, 2), **out["usage"]})
-        return out
+        r = None
+        try:
+            r = requests.post(base_url.rstrip("/") + "/chat/completions", json=body, timeout=self.timeout,
+                              headers={"Authorization": f"Bearer {api_key}"})
+            r.raise_for_status()
+            j = r.json()
+            text = j["choices"][0]["message"]["content"] or ""
+            usage = j.get("usage") or {}
+            out = {"text": text, "usage": {"prompt_tokens": usage.get("prompt_tokens", 0),
+                                           "completion_tokens": usage.get("completion_tokens", 0)}}
+            self.calls.append({"role": role, "model": model, "seconds": round(time.time() - t0, 2), **out["usage"]})
+            return out
+        except Exception as exc:
+            # Store transport category/status without headers, key or response content.
+            self.calls.append({"role": role, "model": model, "seconds": round(time.time() - t0, 2),
+                               "error_type": type(exc).__name__,
+                               "http_status": r.status_code if r is not None else None})
+            raise
+
 
 
 def default_core_bin() -> str:

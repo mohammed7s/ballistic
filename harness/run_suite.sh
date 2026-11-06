@@ -23,19 +23,15 @@ PY=~/android_world/.venv/bin/python
 TASKS="${TASKS:-ContactsAddContact ClockTimerEntry ClockStopWatchRunning OpenAppTaskEval SystemWifiTurnOff SystemBluetoothTurnOn SystemBrightnessMax TurnOnWifiAndOpenApp SimpleSmsSend SimpleSmsReplyMostRecent SimpleCalendarAddOneEvent SimpleCalendarEventsOnDate MarkorCreateNote MarkorDeleteNote MarkorCreateFolder ExpenseAddSingle ExpenseDeleteSingle RecipeAddSingleRecipe FilesDeleteFile CameraTakePhoto}"
 OUT=~/ballistic_runs/suite_${AGENT}_$(date +%Y%m%d-%H%M%S).tsv
 mkdir -p ~/ballistic_runs
-printf "# agent=%s model=%s base_url=%s\n" "$AGENT" "$MODEL" "$BASE_URL" > "$OUT"
-printf "task\tresult\tsteps\tseconds\texit\n" >> "$OUT"
+printf "# agent=%s model=%s base_url=%s seed=%s commit=%s\n" "$AGENT" "$MODEL" "$BASE_URL" "${SEED:-0}" "$(git rev-parse --short HEAD)" > "$OUT"
+printf "task\tresult\tsteps\tseconds\texit\tbenchmark\tagent_done\tfailure_category\tmodel_calls\tprompt_tokens\trun_json\n" >> "$OUT"
 for t in $TASKS; do
-  # run_task.py's verdict line, for every agent:  PASS|FAIL  <task>  steps=N  time=Ts  [exit=N  model_calls=N]
-  # exit= is core's exit code (empty for t3a/m3a); a FAIL with a non-zero exit is core erroring, not the task.
   log="${OUT%.tsv}_${t}.log"
-  line=$($PY -u harness/run_task.py --task "$t" --agent "$AGENT" --model "$MODEL" --base_url "$BASE_URL" \
-           --confirm approve --max_tokens 2000 --timeout 120 2>&1 \
-         | tee "$log" | grep -E "^(PASS|FAIL) " | tail -1)
-  res=$(echo "$line" | awk '{print $1}'); res=${res:-ERROR}
-  steps=$(echo "$line" | sed -n 's/.*steps=\([0-9]*\).*/\1/p')
-  secs=$(echo "$line" | sed -n 's/.*time=\([0-9.]*\)s.*/\1/p')
-  code=$(echo "$line" | sed -n 's/.*exit=\(-\{0,1\}[0-9]*\).*/\1/p')
-  printf "%s\t%s\t%s\t%s\t%s\n" "$t" "$res" "$steps" "$secs" "$code" | tee -a "$OUT"
+  timeout --signal=INT --kill-after=15s "${TASK_TIMEOUT:-900}" "$PY" -u harness/run_task.py \
+      --task "$t" --agent "$AGENT" --model "$MODEL" --base_url "$BASE_URL" \
+      --seed "${SEED:-0}" --confirm approve --max_tokens 2000 --timeout 120 > "$log" 2>&1
+  process_exit=$?
+  "$PY" harness/suite_row.py --task "$t" --log "$log" --exit "$process_exit" | tee -a "$OUT"
 done
-echo "$AGENT: passed $(grep -c $'\tPASS\t' "$OUT") / $(echo $TASKS | wc -w)   ($OUT)"
+echo "$AGENT: combined passed $(awk -F '\t' '$2 == "PASS" {n++} END {print n+0}' "$OUT") / $(echo $TASKS | wc -w)   ($OUT)"
+echo "benchmark state passed $(awk -F '\t' '$6 == "passed" {n++} END {print n+0}' "$OUT") / $(echo $TASKS | wc -w)"

@@ -41,6 +41,7 @@ import numpy as np
 import requests
 
 import core_bridge  # local module, same directory
+from outcomes import evaluate_benchmark, combined_verdict, failure_category
 from android_world import registry
 from android_world.agents import infer, m3a, t3a
 from android_world.env import env_launcher
@@ -63,6 +64,7 @@ flags.DEFINE_enum("confirm", "approve", ["approve", "deny"], "core: answer to ev
 flags.DEFINE_string("reader_model", None, "core: model for the reader role, same base_url (default --model)")
 flags.DEFINE_string("judge_model", None, "core: model for the judge role, same base_url (default --model)")
 flags.DEFINE_string("verifier_model", None, "core: model for the verifier role, same base_url (default --model)")
+flags.DEFINE_integer("seed", None, "Seed for task generation; original baseline was unseeded")
 flags.DEFINE_string("task", None, "AndroidWorld task name; random if omitted")
 flags.DEFINE_string("goal", None, "Free-form goal; skips AndroidWorld task setup and success check")
 flags.DEFINE_integer("max_steps", 15, "Step budget for --goal runs")
@@ -137,6 +139,9 @@ class OpenAICompatWrapper(infer.LlmWrapper, infer.MultimodalLlmWrapper):
 
 
 def _main() -> None:
+    if FLAGS.seed is not None:
+        random.seed(FLAGS.seed)
+        np.random.seed(FLAGS.seed)
     task_registry = registry.TaskRegistry()
     aw = task_registry.get_registry(task_registry.ANDROID_WORLD_FAMILY)
     if FLAGS.list:
@@ -191,18 +196,21 @@ def _main() -> None:
             done = True
             break
 
-    success = bool(done and task.is_successful(env) == 1) if task else None
+    agent_seconds = round(time.time() - t_start, 1)
+    outcome = evaluate_benchmark(task, env, done)
+    success = outcome["combined_success"]
     total = round(time.time() - t_start, 1)
-    verdict = "DONE" if task is None else ("PASS" if success else "FAIL")
+    verdict = combined_verdict(outcome)
     print(f"\n{verdict}  {name}  steps={len(steps)}  time={total}s  done_flag={done}")
 
     os.makedirs(FLAGS.out_dir, exist_ok=True)
     out = os.path.join(FLAGS.out_dir, f"{time.strftime('%Y%m%d-%H%M%S')}_{name}.json")
     with open(out, "w") as f:
         json.dump({
-            "task": name, "goal": goal, "agent": FLAGS.agent, "model": FLAGS.model,
+            "task": name, "goal": goal, "seed": FLAGS.seed, "agent": FLAGS.agent, "model": FLAGS.model,
             "base_url": FLAGS.base_url, "success": success, "done": done, "steps": steps,
             "model_calls": llm.calls, "total_seconds": total,
+            "agent_seconds": agent_seconds, **outcome,
         }, f, indent=2)
     print(f"written {out}")
     env.close()
@@ -214,12 +222,13 @@ def _run_core(env, task, name: str, goal: str, budget: int) -> None:
     args = ["observe"] if FLAGS.core_mode == "observe" else ["run", "--request", goal, "--max-steps", str(budget)]
     run = serve_core(host, args)
 
-    success = None
-    if task is not None and FLAGS.core_mode == "run" and not run["stopped"]:
-        success = bool(run["done"] and task.is_successful(env) == 1)
-    verdict = "DONE" if task is None or FLAGS.core_mode == "observe" else ("PASS" if success else "FAIL")
+    outcome = evaluate_benchmark(task if FLAGS.core_mode == "run" else None, env, run["done"])
+    run["benchmark"] = outcome
+    run["failure_category"] = failure_category(run, outcome, host.models.calls)
+    success = outcome["combined_success"]
+    verdict = combined_verdict(outcome)
     steps = [e for e in host.events if "step" in e]
-    print(f"\n{verdict}  {name}  steps={len(steps)}  time={run['total_seconds']}s  exit={run['exit_code']}  model_calls={len(host.models.calls)}")
+    print(f"\n{verdict}  {name}  steps={len(steps)}  time={run['total_seconds']}s  exit={run['exit_code']}  model_calls={len(host.models.calls)} benchmark={outcome['benchmark_status']} agent_done={str(run['done']).lower()}")
     if run["stderr"].strip():
         print("core stderr:", run["stderr"].strip()[:2000])
     print(f"written {write_core_record(name, goal, FLAGS.core_mode, args, host, run, success)}")
@@ -286,13 +295,14 @@ def write_core_record(name: str, goal: str, core_mode: str, args: list[str], hos
     out = os.path.join(FLAGS.out_dir, f"{time.strftime('%Y%m%d-%H%M%S')}_{name}.json")
     with open(out, "w") as f:
         json.dump({
-            "task": name, "goal": goal, "agent": "core", "core_mode": core_mode, "core_args": args,
+            "task": name, "goal": goal, "seed": FLAGS.seed, "agent": "core", "core_mode": core_mode, "core_args": args,
             "model": FLAGS.model, "roles": {r: m for r, (_, m, _) in host.models.routes.items()},
             "base_url": FLAGS.base_url, "confirm": host.confirm_policy, "success": success, "done": run["done"],
             "steps": [e for e in host.events if "step" in e], "finished": run["finished"],
             "model_calls": host.models.calls, "confirmations": host.confirmations,
             "total_seconds": run["total_seconds"], "exit_code": run["exit_code"], "stderr": run["stderr"][-4000:],
-            "lines": host.lines,
+            "lines": host.lines, "failure_category": run.get("failure_category"),
+            **run.get("benchmark", evaluate_benchmark(None, None, run["done"])),
         }, f, indent=1)
     return out
 
