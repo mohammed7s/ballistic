@@ -38,6 +38,9 @@ confirmation dialog.**
 | **Dev phone: used Pixel 8 Pro (12 GB); later Pixel 10 Pro (16 GB)** | Avoid Pixel 6/7 (end of support 2026/27). 8a is the cheapest acceptable. |
 | **Repo: one GitHub org, one monorepo for our code + forks of the 4–5 AOSP repos we patch, glued by a repo manifest overlay** | AOSP's build forces the fork structure; the monorepo is what people read. One commit per feature in the forks so rebasing is mechanical and the upstream proposal is `git log upstream..ballistic-17`. |
 
+| **Fingerprint-gated actions confirmed by the owner (6 Nov 2026)** | Owner's decision: sends, payments, deletes and installs require a biometric (fingerprint) approval on a window the agent cannot press, regardless of whether Protected Confirmation turns out to be available. |
+| **Build pipeline: first build is the pinned GrapheneOS tag unmodified; patches are added one at a time afterwards (6 Nov 2026)** | Proves the build/sign/flash/OTA chain before any of our code is in it; each later patch is then a single, bisectable change. Build machine: rented by the hour (Hetzner-class, 16 vCPU / 64 GB), source tree kept on a persistent volume so re-syncs are cheap. |
+
 ## 3. Things explicitly out of scope
 
 Spoofing attestation / Play Integrity; automating logins, payments, biometric or identity checks;
