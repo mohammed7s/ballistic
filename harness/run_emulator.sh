@@ -16,6 +16,8 @@ case "${1:-start}" in
     if running; then echo "emulator already running"; else
       if [ "${WINDOW:-0}" = "1" ]; then
         export DISPLAY="${DISPLAY:-:1}"
+        # over SSH there is no X cookie in the env; GDM keeps the desktop session's here
+        [ -z "${XAUTHORITY:-}" ] && [ -r /run/user/$(id -u)/gdm/Xauthority ] && export XAUTHORITY=/run/user/$(id -u)/gdm/Xauthority
         nohup emulator -avd "$AVD_NAME" -no-snapshot -grpc 8554 -gpu host -no-audio -no-boot-anim >"$LOG" 2>&1 </dev/null &
       else
         nohup emulator -avd "$AVD_NAME" -no-snapshot -grpc 8554 -no-window -gpu swiftshader_indirect -no-audio -no-boot-anim >"$LOG" 2>&1 </dev/null &
