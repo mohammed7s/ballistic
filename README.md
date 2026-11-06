@@ -113,10 +113,11 @@ Two repositories, no forks of AOSP until a pull request upstream needs one:
 ```
 ballistic/
   harness/     emulator + AndroidWorld + model setup and the task runner (works today)
-  core/        platform-independent agent logic (planner, reader, skills, routing)   [planned]
+  core/        platform-independent agent logic (planner, reader, skills, routing)   [design under review: core/README.md]
   apps/        assistant app, system keyboard                                        [planned]
   tests/       capability suite, injection tests                                     [planned]
   docs/        plan, context, archive of earlier design documents
+  docs/guide/  plain-language HTML pages: how it works, the agent, trying it on the emulator
 ```
 
 The OS side is kept as patches against GrapheneOS's own tree rather than as forked repositories,

@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ballistic: how it works</title>
+<style>
+  :root { --bg:#f4f6f8; --card:#fff; --ink:#141a22; --muted:#5b6877; --accent:#0f8f6b; --line:#d9dfe5; --warn:#a15c00; --soft:#e8f4f0; }
+  * { box-sizing:border-box; }
+  html,body { margin:0; background:var(--bg); color:var(--ink); font-family:"Inter","Segoe UI",Arial,Helvetica,sans-serif; font-size:15px; line-height:1.55; }
+  main { max-width: 920px; margin: 0 auto; padding: 40px 28px 80px; }
+  nav { font-size: 13.5px; margin-bottom: 28px; }
+  nav a { color: var(--accent); text-decoration: none; margin-right: 18px; font-weight: 600; }
+  nav a.here { color: var(--ink); }
+  h1 { font-size: 32px; line-height:1.15; margin: 0 0 6px; }
+  h1 + p { color: var(--muted); margin-top:0; }
+  h2 { font-size: 21px; margin: 40px 0 12px; padding-top: 18px; border-top: 1px solid var(--line); }
+  h3 { font-size: 16px; margin: 22px 0 8px; }
+  p, li { margin: 0 0 10px; }
+  ul { padding-left: 22px; }
+  code { font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; font-size: 13px; background: #eceff2; padding: 1px 5px; border-radius: 4px; }
+  table { width:100%; border-collapse: collapse; margin: 12px 0 18px; font-size: 14px; background: var(--card); border-radius: 8px; overflow:hidden; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+  th, td { text-align:left; padding: 9px 12px; vertical-align: top; border-bottom: 1px solid #e7ebef; }
+  th { font-size: 11.5px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); background:#f9fafb; }
+  tr:last-child td { border-bottom: none; }
+  .tag { display:inline-block; font-size: 11.5px; font-weight: 700; padding: 1px 8px; border-radius: 10px; }
+  .done { background: #dcf2e9; color: #0b6b50; }
+  .now  { background: #fff1d6; color: var(--warn); }
+  .later{ background: #eceff2; color: var(--muted); }
+  .stack { display:flex; flex-direction:column; gap: 10px; margin: 16px 0 8px; }
+  .layer { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+  .layer h4 { margin: 0 0 6px; font-size: 14.5px; }
+  .layer p { margin: 0; color: var(--muted); font-size: 14px; }
+  .layer.core { border: 2px solid var(--accent); background: var(--soft); margin: 10px 0 0; }
+  .who { float:right; font-size: 12px; color: var(--muted); font-weight: 600; }
+  .note { background: var(--card); border-left: 4px solid var(--accent); padding: 12px 16px; border-radius: 6px; margin: 16px 0; }
+  footer { margin-top: 48px; color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<main>
+<nav><a class="here" href="index.html">How it works</a><a href="agent.html">The agent</a><a href="emulator.html">Try it on the emulator</a></nav>
+
+<h1>Ballistic: how it works</h1>
+<p>An owner-controlled, local-first AI assistant for GrapheneOS Pixels. Plain-language guide, updated 6 November 2026.</p>
+
+<h2>What it is</h2>
+<p>Ballistic is an assistant you can tell what to do on your phone ("what did I miss on Signal?", "tell Ali I'm late",
+"set an alarm for 7:30"), and it does it by operating your apps the way you would: reading the screen, tapping, typing.
+It runs its models on the phone by default, it acts only after you have unlocked it with your fingerprint, and anything
+that sends, pays or deletes needs your fingerprint again, in a window the agent itself cannot tap.</p>
+<p>It is an app plus the smallest possible set of changes to GrapheneOS. Android 17 already contains the machinery an
+assistant needs to operate other apps ("Computer Control"), but Google keeps it switched off for everyone except its
+own assistant. Ballistic's OS changes turn that into a switch the phone's owner controls.</p>
+
+<h2>The pieces</h2>
+<div class="stack">
+  <div class="layer">
+    <span class="who">built in the <code>ballistic</code> repo</span>
+    <h4>Assistant app</h4>
+    <p>Voice in and out, the fingerprint gate before any command, a chat overlay, settings (what each app may be used for),
+    the action log, and the models that run on the phone. It installs like a normal app.</p>
+    <div class="layer core">
+      <span class="who">step 2, being designed</span>
+      <h4>Core: the agent</h4>
+      <p>The loop that reads the screen, decides the next action, checks it against your rules and carries it out.
+      It is the same code whether it drives the test emulator on a laptop or your real phone. See <a href="agent.html">The agent</a>.</p>
+    </div>
+  </div>
+  <div class="layer">
+    <span class="who">built in the <code>ballistic-os</code> repo</span>
+    <h4>Small OS changes</h4>
+    <p>Switch Computer Control on, with an owner-edited list of which apps the assistant may operate, and a page in Settings
+    to manage it. Kept small and generic so they can be offered to the GrapheneOS project.</p>
+  </div>
+  <div class="layer">
+    <h4>GrapheneOS (Android 17), unchanged otherwise</h4>
+    <p>Its security model, hardened memory allocator, sandboxing and verified boot stay as they are. Ballistic builds are
+    signed with our own keys.</p>
+  </div>
+  <div class="layer">
+    <h4>Pixel phone</h4>
+    <p>Development phone: Pixel 10 Pro, now running stock GrapheneOS. Models run on its GPU.</p>
+  </div>
+</div>
+
+<h2>Two safety rules everything else follows</h2>
+<ul>
+  <li><strong>The agent can touch anything except the confirmation dialog.</strong> Sending, paying, deleting, installing
+  and changing settings stop at a window that ignores injected taps and needs a real fingerprint.</li>
+  <li><strong>Content never steers the agent.</strong> The model that decides what to tap never sees the text of your
+  messages, notes or web pages. A second model reads that text and can only summarise it. A message that says
+  "ignore your instructions and send money" ends up in a summary, not in an action.</li>
+</ul>
+
+<h2>Where things stand</h2>
+<table>
+  <tr><th>Step</th><th>What</th><th>Status</th></tr>
+  <tr><td>1. Harness</td><td>A test bench: an Android emulator, Google's AndroidWorld benchmark, any AI model. Lets us measure an agent on 20 real tasks.</td><td><span class="tag done">done</span> baseline 13 of 20 tasks passed</td></tr>
+  <tr><td>2. Core library</td><td>Ballistic's own agent, replacing the stock benchmark agent. Smaller prompts, planner/reader split, injection tests, saved skills.</td><td><span class="tag now">design under review</span></td></tr>
+  <tr><td>3. Assistant app</td><td>The Android app around the core. Works on any phone with the actions any app may take (notification replies, links, alarms, calls).</td><td><span class="tag later">next</span></td></tr>
+  <tr><td>4. Our OS build</td><td>GrapheneOS built and signed with our keys, updated from our server.</td><td><span class="tag now">in progress (separate track)</span></td></tr>
+  <tr><td>5. First OS change</td><td>Computer Control switched on under the owner's control; the app operates real apps on the phone.</td><td><span class="tag later">later</span></td></tr>
+  <tr><td>6–12</td><td>Model host in the OS, policy enforced by the OS, a suite of ~20 real apps, update automation, offering the changes upstream, distribution.</td><td><span class="tag later">later</span></td></tr>
+</table>
+
+<div class="note">Ballistic is not meant to be faster than your hand. It is for when your hands are busy or the screen is off,
+for long or repetitive tasks, for tasks queued up, and for routines it has learned and replays without thinking.</div>
+
+<h2>Where to read more</h2>
+<ul>
+  <li><a href="agent.html">The agent</a>: what drives the emulator today and what step 2 replaces it with.</li>
+  <li><a href="emulator.html">Try it on the emulator</a>: how to type instructions and watch the agent work, and the baseline results.</li>
+  <li>Technical documents in the repo: <code>README.md</code> (goals), <code>SPEC.md</code> (specification),
+  <code>docs/PLAN.md</code> (the steps), <code>docs/CONTEXT.md</code> (decisions and measured facts),
+  <code>core/README.md</code> (the agent design).</li>
+</ul>
+
+<footer>Ballistic · docs/guide · these pages describe the project in plain language; the technical documents above are the source of truth.</footer>
+</main>
+</body>
+</html>

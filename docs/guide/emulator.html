@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ballistic: try it on the emulator</title>
+<style>
+  :root { --bg:#f4f6f8; --card:#fff; --ink:#141a22; --muted:#5b6877; --accent:#0f8f6b; --line:#d9dfe5; --warn:#a15c00; --bad:#b3261e; }
+  * { box-sizing:border-box; }
+  html,body { margin:0; background:var(--bg); color:var(--ink); font-family:"Inter","Segoe UI",Arial,Helvetica,sans-serif; font-size:15px; line-height:1.55; }
+  main { max-width: 920px; margin: 0 auto; padding: 40px 28px 80px; }
+  nav { font-size: 13.5px; margin-bottom: 28px; }
+  nav a { color: var(--accent); text-decoration: none; margin-right: 18px; font-weight: 600; }
+  nav a.here { color: var(--ink); }
+  h1 { font-size: 32px; line-height:1.15; margin: 0 0 6px; }
+  h1 + p { color: var(--muted); margin-top:0; }
+  h2 { font-size: 21px; margin: 40px 0 12px; padding-top: 18px; border-top: 1px solid var(--line); }
+  h3 { font-size: 16px; margin: 22px 0 8px; }
+  p, li { margin: 0 0 10px; }
+  ul, ol { padding-left: 22px; }
+  code, pre { font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; font-size: 13px; }
+  code { background: #eceff2; padding: 1px 5px; border-radius: 4px; }
+  pre { background: #1b222b; color: #e6edf3; padding: 14px 16px; border-radius: 8px; overflow-x: auto; line-height: 1.45; }
+  pre .c { color: #8b98a5; }
+  table { width:100%; border-collapse: collapse; margin: 12px 0 18px; font-size: 14px; background: var(--card); border-radius: 8px; overflow:hidden; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+  th, td { text-align:left; padding: 8px 12px; vertical-align: top; border-bottom: 1px solid #e7ebef; }
+  th { font-size: 11.5px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); background:#f9fafb; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  tr:last-child td { border-bottom: none; }
+  .pass { color: #0b6b50; font-weight: 700; }
+  .fail { color: var(--bad); font-weight: 700; }
+  .note { background: var(--card); border-left: 4px solid var(--accent); padding: 12px 16px; border-radius: 6px; margin: 16px 0; }
+  .warn { border-left-color: var(--warn); }
+  footer { margin-top: 48px; color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<main>
+<nav><a href="index.html">How it works</a><a href="agent.html">The agent</a><a class="here" href="emulator.html">Try it on the emulator</a></nav>
+
+<h1>Try it on the emulator</h1>
+<p>Type instructions, watch an AI operate an Android phone, and read the benchmark results.</p>
+
+<h2>The setup</h2>
+<ul>
+  <li><strong>The phone</strong> is an Android emulator (Android 13, the version AndroidWorld targets) running with a
+  window on the ThinkPad's desktop. It is a test phone with fake contacts, messages and files, and none of your accounts.</li>
+  <li><strong>The agent</strong> today is AndroidWorld's stock agent; Ballistic's own agent replaces it in step 2
+  (<a href="agent.html">The agent</a>).</li>
+  <li><strong>The model</strong> is Google's Gemini <code>gemini-flash-lite-latest</code> on the free tier, reached over its
+  OpenAI-compatible interface. The key is in <code>~/.ballistic_env</code> on the ThinkPad and never in the repo.</li>
+</ul>
+
+<h2>Type instructions one at a time</h2>
+<p>On the ThinkPad (or over SSH to it):</p>
+<pre>cd ~/Dropbox/WEB/brainandbot/ballistic
+bash harness/chat.sh</pre>
+<p>Then type at the prompt and watch the emulator window:</p>
+<pre>ballistic&gt; open the Clock app
+<span class="c">  ...the steps scroll by...</span>
+done: 2 steps, 12.4s
+ballistic&gt; add an alarm for 7:15
+ballistic&gt; turn on wifi
+ballistic&gt; /quit</pre>
+<table>
+  <tr><th>At the prompt</th><th>Does</th></tr>
+  <tr><td>any text</td><td>an instruction for the agent</td></tr>
+  <tr><td><code>/home</code></td><td>go to the home screen</td></tr>
+  <tr><td><code>/steps 25</code></td><td>allow more steps per instruction (default 15)</td></tr>
+  <tr><td><code>/quit</code> or Ctrl+D</td><td>leave</td></tr>
+  <tr><td>Ctrl+C while it works</td><td>stop that instruction, back to the prompt</td></tr>
+  <tr><td>↑ / ↓</td><td>earlier instructions</td></tr>
+</table>
+<div class="note">
+  <strong>Good to know</strong>
+  <ul>
+    <li>Each instruction starts from whatever screen is showing, so you can build on the last one ("open Contacts", then
+    "add Sara, 555 1234").</li>
+    <li>The agent does not remember earlier instructions; "now change it to 8" will not work. Say what "it" is.</li>
+    <li>Do not touch the emulator window while it is working; between instructions you can.</li>
+    <li>It reads the screen's structure, not pictures. Sliders, dragging and apps that show a blank structure are hard for it.</li>
+    <li>"Could not get a11y tree, retrying" means the screen description was not ready yet; it usually recovers.</li>
+    <li>Every instruction is saved as <code>~/ballistic_runs/&lt;time&gt;_Chat.json</code>.</li>
+  </ul>
+</div>
+
+<h2>Run a benchmark task</h2>
+<p>A benchmark task sets the phone up, gives the agent the instruction, and checks the result automatically:</p>
+<pre>cd ~/Dropbox/WEB/brainandbot/ballistic && source ~/.ballistic_env
+~/android_world/.venv/bin/python harness/run_task.py --task SimpleSmsSend \
+  --model gemini-flash-lite-latest \
+  --base_url https://generativelanguage.googleapis.com/v1beta/openai/ \
+  --api_key "$BALLISTIC_API_KEY" --max_tokens 2000 --timeout 120</pre>
+<p>It ends with <code>PASS</code> or <code>FAIL</code>. <code>--list</code> shows all 116 task names.</p>
+
+<h2>Run the 20-task suite</h2>
+<pre>bash harness/run_suite.sh          <span class="c"># one task after another; prints a pass table</span></pre>
+<p>Results go to <code>~/ballistic_runs/suite_&lt;time&gt;.tsv</code>, with one JSON file per task next to it: every step,
+the model's reasoning, prompt sizes and timings. Only one thing may use the emulator at a time: do not run
+<code>chat.sh</code> while a suite is running.</p>
+
+<h2>Baseline: 6 November 2026</h2>
+<p>Stock AndroidWorld agent (T3A, screen structure only), Gemini flash-lite. <strong>13 of 20 passed.</strong> A model call
+took 1.6 s in the middle case; the rest of each step is the emulator.</p>
+<table>
+  <tr><th>Task</th><th>Result</th><th class="num">Steps</th><th class="num">Seconds</th><th>Why it failed</th></tr>
+  <tr><td>Add a contact</td><td class="pass">PASS</td><td class="num">8</td><td class="num">57</td><td></td></tr>
+  <tr><td>Set a timer (20 h 16 m 46 s)</td><td class="fail">FAIL</td><td class="num">10</td><td class="num">64</td><td>Model: confused by how the keypad shifts digits</td></tr>
+  <tr><td>Start the stopwatch</td><td class="pass">PASS</td><td class="num">4</td><td class="num">21</td><td></td></tr>
+  <tr><td>Open the camera, allow permissions</td><td class="pass">PASS</td><td class="num">2</td><td class="num">10</td><td></td></tr>
+  <tr><td>Turn Wi-Fi off</td><td class="pass">PASS</td><td class="num">9</td><td class="num">74</td><td></td></tr>
+  <tr><td>Turn Bluetooth on</td><td class="fail">FAIL</td><td class="num">10</td><td class="num">102</td><td>Test bench: Settings showed an empty screen description</td></tr>
+  <tr><td>Brightness to maximum</td><td class="fail">FAIL</td><td class="num">7</td><td class="num">70</td><td>Model: tapped the slider's middle, then claimed done</td></tr>
+  <tr><td>Wi-Fi on, then open Contacts</td><td class="pass">PASS</td><td class="num">6</td><td class="num">69</td><td></td></tr>
+  <tr><td>Send an SMS</td><td class="pass">PASS</td><td class="num">7</td><td class="num">75</td><td></td></tr>
+  <tr><td>Reply to the latest SMS</td><td class="pass">PASS</td><td class="num">7</td><td class="num">47</td><td></td></tr>
+  <tr><td>Add a calendar event</td><td class="fail">FAIL</td><td class="num">14</td><td class="num">90</td><td>Model: left out the 30-minute length, claimed done</td></tr>
+  <tr><td>Which events on a date?</td><td class="fail">FAIL</td><td class="num">10</td><td class="num">172</td><td>Model: looked at the wrong year; network error too</td></tr>
+  <tr><td>Create a note (.txt)</td><td class="fail">FAIL</td><td class="num">7</td><td class="num">48</td><td>Model: left out ".txt" (likely)</td></tr>
+  <tr><td>Delete a note</td><td class="pass">PASS</td><td class="num">8</td><td class="num">191</td><td>(slow: network drop)</td></tr>
+  <tr><td>Create a folder</td><td class="pass">PASS</td><td class="num">5</td><td class="num">29</td><td></td></tr>
+  <tr><td>Add an expense</td><td class="fail">FAIL</td><td class="num">12</td><td class="num">82</td><td>Test bench: app-name lookup failed, steps ran out</td></tr>
+  <tr><td>Delete an expense</td><td class="pass">PASS</td><td class="num">5</td><td class="num">36</td><td></td></tr>
+  <tr><td>Add a recipe</td><td class="pass">PASS</td><td class="num">11</td><td class="num">171</td><td></td></tr>
+  <tr><td>Delete a photo file</td><td class="pass">PASS</td><td class="num">8</td><td class="num">64</td><td></td></tr>
+  <tr><td>Take a photo</td><td class="pass">PASS</td><td class="num">3</td><td class="num">25</td><td></td></tr>
+</table>
+<p>The aim is not 20 of 20 here. This table is the yardstick: Ballistic's own agent is run on the same 20 tasks and
+compared row by row.</p>
+
+<h2>When something goes wrong</h2>
+<table>
+  <tr><th>You see</th><th>Meaning</th></tr>
+  <tr><td><code>429</code> or "quota" in the output</td><td>The free Gemini allowance for the day is used up.</td></tr>
+  <tr><td><code>Error calling LLM</code></td><td>The model could not be reached (network); the step is retried a few times.</td></tr>
+  <tr><td>Emulator window gone</td><td>Restart it on the ThinkPad: <code>WINDOW=1 bash harness/run_emulator.sh start</code></td></tr>
+  <tr><td>The agent keeps waiting on a blank screen</td><td>The app gave an empty screen description; Ctrl+C, <code>/home</code>, try again.</td></tr>
+</table>
+
+<footer>Ballistic · docs/guide · technical details: <code>harness/README.md</code>; measured numbers: <code>docs/CONTEXT.md</code> §4.</footer>
+</main>
+</body>
+</html>

@@ -40,6 +40,10 @@ confirmation dialog.**
 
 | **Fingerprint-gated actions confirmed by the owner (6 Nov 2026)** | Owner's decision: sends, payments, deletes and installs require a biometric (fingerprint) approval on a window the agent cannot press, regardless of whether Protected Confirmation turns out to be available. |
 | **Build pipeline: first build is the pinned GrapheneOS tag unmodified; patches are added one at a time afterwards (6 Nov 2026)** | Proves the build/sign/flash/OTA chain before any of our code is in it; each later patch is then a single, bisectable change. Build machine: rented by the hour (Hetzner-class, 16 vCPU / 64 GB), source tree kept on a persistent volume so re-syncs are cheap. |
+| **Step 1 closed (6 Nov 2026)** | Its deliverable was a baseline, and it exists (13/20, §4). 20/20 on the stock agent is not a goal; the table is the yardstick for step 2. The two harness-side failures (empty Settings tree, app-name lookup) move into core's Screen/Hands port instead of being patched on T3A. |
+| **AndroidWorld: keep environment + benchmark, replace the agent (6 Nov 2026)** | Its env layer (android_env + a11y forwarder over gRPC, ADB actuation) becomes the harness's Screen/Hands port; its 116 tasks and `is_successful` checks stay as the scoreboard; T3A/M3A are replaced by `core/`. No agent framework (LangChain/LangGraph etc.): the loop is small, must port into an Android app, and the safety rules must live in our own testable code. |
+| **Core design proposed, awaiting owner review (6 Nov 2026)** | `core/README.md`: four ports (Screen, Hands, Models, Confirm), filtered tree, one planner call per step by element id, reader for content, verifier before `done`, policy + data-injection check, skills by resource id/label. Open: short item titles visible to the planner?; Python first then Kotlin port (proposed) vs Kotlin first; skill templates; screenshots deferred. No core code until agreed. |
+| **User-facing docs as HTML in `docs/guide/` (6 Nov 2026, owner request)** | Plain-language pages: how it works, the agent, trying it on the emulator. Technical documents stay the source of truth; update the guide when they change. |
 
 ## 3. Things explicitly out of scope
 
@@ -132,6 +136,10 @@ DRM; a Linux-based phone; upstreaming the agent itself.
   Failure split: 5 model (Timer, Brightness, CalendarAdd, CalendarOnDate, MarkorCreateNote),
   2 harness (Bluetooth empty tree, Expense app name). Three of the model failures are false
   "complete" claims, which argues for a verify step before `status: complete`.
+- **AndroidWorld `open_app` (verified 6 Nov 2026 in the installed source on laptop B):** app names
+  resolve through a fixed regex table, `android_world/env/adb_utils.py` `_PATTERN_TO_ACTIVITY`, not
+  through the launcher; any name outside it fails ("Expense" vs the app's label "pro expense").
+  The task registry holds 116 tasks (`task_metadata.json`).
 - **Hardware (6 Nov 2026):** the owner has a **Pixel 10 (non-Pro, 12 GB)**, their daily phone, not
   carrier-locked. GrapheneOS supports it (reported). It serves as the dev device for steps 3–5;
   flashing waits until our signed build exists so the daily phone is wiped once, not twice. OEM

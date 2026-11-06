@@ -132,6 +132,17 @@ Platform-independent: planner, reader, tool schema, skills, policy (v1), backend
 injection test suite. Used by the harness on the laptop, by the app on the phone, and later by the
 v2 service.
 
+Core talks to its host through four ports: **Screen** (the accessibility tree as a flat node
+list plus the installed-app list), **Hands** (tap, type, scroll, swipe, open app, back, home),
+**Models** (one completion call per role: planner, reader, verifier) and **Confirm** (show a
+canonical action description, return approved/denied). The harness implements them on
+AndroidWorld's environment; the app on Computer Control, intents, LiteRT-LM/llama.cpp and the
+confirmation window. The planner sees a filtered tree of labels and structure, makes one call per
+step, and emits one schema-validated action by element id; content goes only to the reader; a
+`done` is checked by a separate verifier call. Schema, prompts, skill format and test cases are
+data files shared by every implementation. Full design and open questions: `core/README.md`
+(proposal under review, 6 Nov 2026).
+
 ## 5. Capabilities
 
 ### 5.1 Observation

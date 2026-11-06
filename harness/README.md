@@ -1,5 +1,7 @@
 # Harness (step 1): emulator + AndroidWorld + local models
 
+Plain-language walkthrough (interactive prompt, tasks, suite, baseline): `docs/guide/emulator.html`.
+
 Runs on any Ubuntu machine with KVM (a 32 GB laptop works). Everything is
 installed by one idempotent script; re-running it is always safe.
 
