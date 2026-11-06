@@ -107,28 +107,14 @@ Steps 6 and 7 are v2 and conditional.
 
 ## Repo layout
 
-One GitHub org, one monorepo for our code, forks only for the AOSP repos we patch.
+Two repositories (decided 6 Nov 2026; replaces the earlier monorepo-plus-forks layout):
 
-```
-ballistic/                                   ← monorepo (Apache 2.0)
-├── README.md · SPEC.md · CLAUDE.md · docs/
-├── manifest/local_manifest.xml        ← overlay onto GrapheneOS's repo manifest
-├── platform/                          ← OS-side code built inside the AOSP tree
-│   ├── services/assistant/            ← policy service (class B)
-│   ├── modelhost/{service,native}/    ← OnDeviceIntelligence implementation
-│   ├── sepolicy/ · overlay/ · vendor/
-├── apps/{assistant,keyboard}/         ← Gradle AND Android.bp builds
-├── core/{planner,reader,policy,skills,routing,tools}/   ← policy runs here in v1
-├── harness/                           ← Python: emulator + ADB + AndroidWorld + llama.cpp config
-├── tests/{capability,injection,device}/
-├── infra/{build,signing,ota,ci}/      ← keys never in the repo
-└── models/                            ← manifests + hashes only
+- **`ballistic`**: `apps/`, `core/`, `harness/`, `tests/`, `docs/`. The app builds with Gradle and
+  installs on any Android.
+- **`ballistic-os`**: `MANIFEST` (pinned GrapheneOS tag), `patches/<aosp-repo>/NNNN-*.patch`
+  (one commit per gate, `git format-patch` output), sepolicy and device config, `scripts/`
+  (sync, build, sign, ota, ci), `docs/` (keys, flashing).
 
-Forks (branch ballistic-17, one commit per feature):
-platform_frameworks_base · platform_frameworks_native (only if needed) ·
-platform_system_sepolicy · device_google_<pixel> · platform_packages_apps_Settings
-releases/                              ← signed factory images + OTA metadata (binaries)
-```
-
-Rules: anything that can be an app lives in `apps/`; forks carry hooks only, never product logic;
-`git log upstream..ballistic-17` on each fork is the upstream proposal.
+No forks of AOSP repositories. A fork is created only when a patch is submitted upstream as a
+pull request, and is generated from the patch files at that moment. Rebasing onto a new GrapheneOS
+tag = `sync.sh` applying the patches; a patch that fails to apply is the conflict to resolve.

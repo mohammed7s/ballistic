@@ -101,20 +101,27 @@ land. The agent itself is not proposed for upstream.
 Full plan: [`docs/PLAN.md`](docs/PLAN.md). Specification: [`SPEC.md`](SPEC.md). Decisions, verified
 facts (checked against `android17-release` source) and open questions: [`docs/CONTEXT.md`](docs/CONTEXT.md).
 
-## Repository
+## Repositories
+
+Two repositories, no forks of AOSP until a pull request upstream needs one:
+
+| Repo | What |
+|---|---|
+| **`ballistic`** (this) | the assistant app, the agent logic, the emulator harness, the design docs |
+| [**`ballistic-os`**](https://github.com/mohammed7s/ballistic-os) | the GrapheneOS build recipe: a pinned GrapheneOS tag, the gate patches as plain `git format-patch` files, sepolicy and device config, build/sign/OTA scripts, the CI rebase bot |
 
 ```
-harness/     emulator + AndroidWorld + model setup and the task runner (works today)
-core/        platform-independent agent logic (planner, reader, skills, routing)   [planned]
-apps/        assistant app, system keyboard                                        [planned]
-platform/    OS-side code: gate patches, sepolicy, device config                   [planned]
-tests/       capability suite, injection tests                                     [planned]
-infra/       build, signing, OTA, CI                                               [planned]
-docs/        plan, context, archive of earlier design documents
+ballistic/
+  harness/     emulator + AndroidWorld + model setup and the task runner (works today)
+  core/        platform-independent agent logic (planner, reader, skills, routing)   [planned]
+  apps/        assistant app, system keyboard                                        [planned]
+  tests/       capability suite, injection tests                                     [planned]
+  docs/        plan, context, archive of earlier design documents
 ```
 
-AOSP repositories we patch will be forks under this organisation with one commit per feature on a
-`ballistic-17` branch, so that `git log upstream..ballistic-17` is the upstream proposal.
+The OS side is kept as patches against GrapheneOS's own tree rather than as forked repositories,
+so that what we change is three readable text files and the build is "GrapheneOS at tag X plus
+these".
 
 ## Contributing and contact
 
