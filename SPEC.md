@@ -114,15 +114,15 @@ and the confirmation window's input filtering (§7.1). An OS-side policy service
 and dropped with the app-only decision (7 Nov 2026).
 
 ### 4.4 Gates (class A, upstream candidates)
-Written as **hardening deltas** on what AOSP ships, never as replacements: strip remote config,
-default empty, user toggle, instant revocation. A delta survives whatever Google ships for the DMA
-in Android 18 and is the shape GrapheneOS already accepts for other features.
+Written as **hardening deltas** on what AOSP ships, never as replacements: add a default-empty user
+allowlist beside DeviceConfig, with user switches and revocation. A delta survives whatever Google
+ships for the DMA in Android 18 and is the shape GrapheneOS already accepts for other features.
 
 | Gate | Today in AOSP / GrapheneOS | Change |
 |---|---|---|
-| Computer Control, build flag | `computer_control_access` unlisted in `cp2a` → DISABLED, READ_ONLY. Service throws; permission undefined. | Add flag value ENABLED in `aconfig/cp2a/android.companion.virtualdevice.flags/`. Also `per_app_consent`. |
-| Computer Control, allowlists | DeviceConfig `computer_control` namespace (`allowed_session_owner_apps`, `allowed_automatable_apps`), fallback files under `/data/system/computercontrol/`, newer `AllowlistManager` IDs 3–5 | User store edited from Settings; default empty; `role_assistant_requirement` kept on. |
-| Computer Control, consent app | `packages/VirtualDeviceManager` only built in `trunk_staging` | Include it (`RELEASE_PACKAGE_COMPUTER_CONTROL`), or set app op `COMPUTER_CONTROL` from Settings. |
+| Computer Control, build flag | `computer_control_access` unlisted in `cp2a` → DISABLED, READ_ONLY. Service throws; permission undefined. | Add flag value ENABLED in `aconfig/cp2a/android.companion.virtualdevice.flags/`. Also `per_app_consent` and `support_v5`; require version 5 for its foreground-window check. |
+| Computer Control, allowlists | DeviceConfig `computer_control` namespace (`allowed_session_owner_apps`, `allowed_automatable_apps`), fallback files under `/data/system/computercontrol/`; `AllowlistManager` IDs 3–5 are not consulted here | Signer-bound user store edited from Settings, ORed with DeviceConfig; default empty; assistant role and per-target consent retained. Settings and the consent app cannot be targets. |
+| Computer Control, consent app | `packages/VirtualDeviceManager` only built in `trunk_staging` | Include it (`RELEASE_PACKAGE_COMPUTER_CONTROL`) and keep its per-target consent dialog. |
 | AppFunctions callers | Normal permission + `AllowlistManager` provider (empty on AOSP → fails open) + user approval | User-visible allowlist; verify the approval flags are checked on the execute path. |
 | Hotword | `CAPTURE_AUDIO_HOTWORD` via role | Unchanged; granted by holding the assistant role. |
 

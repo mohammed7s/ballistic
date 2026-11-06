@@ -78,9 +78,11 @@ are vendor-controlled and cloud-first. Nobody has built the owner-controlled, lo
 
 Three small, independent changes, each defensible on privacy grounds alone and each off by default:
 
-1. **Computer Control gate**: enable the feature flags, and replace the Google-DeviceConfig
+1. **Computer Control gate**: enable the feature flags, and supplement the Google-DeviceConfig
    allowlists (`allowed_session_owner_apps`, `allowed_automatable_apps`, dead code on GrapheneOS
-   today) with a user-managed store and a Settings page. Assistant-role requirement stays on.
+   today) with a user-managed store and a Settings page. Assistant-role and per-target consent
+   requirements stay on. Computer Control requires the assistant to ship as a privileged app
+   with `ACCESS_COMPUTER_CONTROL` allowlisted in the image.
 2. **AppFunctions gate**: the same user-managed allowlist for callers.
 3. **OnDeviceIntelligence provider**: let the user choose the on-device model service, the way they
    choose a keyboard, instead of a hard-coded OEM component.

@@ -291,8 +291,8 @@ DRM; a Linux-based phone; upstreaming the agent itself.
 
 All **verified** at GrapheneOS tag `2026110200` (line numbers at the tag; frameworks/base unless
 stated). Inferences are labelled. The patch set built on these answers is in
-`ballistic-os/patches/` (five patches: build/release ×2, frameworks/base ×2, packages/apps/Settings
-×1), applied with `git am` to fresh clones; **not compiled or run yet**. Design and first-build
+`ballistic-os/patches/` (eight patches: build/release ×3, frameworks/base ×3, packages/apps/Settings
+×2), applied with `git am` to fresh clones; **not compiled or run yet**. Design and first-build
 checklist: `ballistic-os/docs/patches.md`.
 
 - **Flags (verified).** `core/java/android/companion/virtual/flags/flags.aconfig`:
@@ -356,6 +356,21 @@ checklist: `ballistic-os/docs/patches.md`.
   "Allow screen automation of this app", both off by default, strings in
   `res/values/strings_computer_control_ext.xml`. Untouched: GrapheneOS hardening, GosPackageState,
   keystore, verified boot, attestation, sepolicy.
+- **Review follow-up (7 Nov 2026; source verified, not built).** Three additional commits enable
+  and require version 5, protect Settings/consent UI, clear a withdrawn target's saved consent,
+  clean both stores on user deletion, receive uninstall broadcasts for every user, and scope
+  session closures by user. Creation and Settings edits share the session lock; the final
+  asynchronous check uses the request's user and rechecks the owner, targets and saved consent.
+  In the patched frameworks/base tree, `services/companion/.../computercontrol/`:
+  `ComputerControlAllowlistController.java:215,239,519,651,657,694`,
+  `ComputerControlSessionProcessor.java:491`, `ComputerControlUserAllowlist.java:144`.
+  **Verified at the tag:** `core/java/android/companion/virtual/VirtualDeviceManager.java:140`
+  advertises 5 only with `computerControlSupportV5`; `ComputerControlSessionParams.java:41`
+  defines the Android 17 minimum as 5. `packages/VirtualDeviceManager/src/com/android/virtualdevicemanager/RequestComputerControlAccessFragment.java:183-212`
+  distinguishes one-time consent (RESULT_OK only) from persistent consent. The recheck retains
+  one-time approval for the targets in the current dialog. Regression tests added; execution,
+  compilation and device race checks remain on the first-build checklist. Settings footer and
+  SPEC now explicitly describe an additional allowlist, not an off switch for DeviceConfig.
 - **AppFunctions (verified; design only).** Does not fall out of the Computer Control store.
   `CallerValidatorImpl.java:117-130` → `SystemAppFunctionAllowlistReader.java:126`
   (`AllowlistManager` ID 2); :179-183 fails open on ERROR_PROVIDER/INVALID_REQUEST/NETWORK;
