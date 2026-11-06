@@ -89,6 +89,19 @@ DRM; a Linux-based phone; upstreaming the agent itself.
   `OLLAMA_CONTEXT_LENGTH=16384`, listening on 0.0.0.0), emulator on laptop B; RTT between
   them over Tailscale is ~175 ms (relayed, not LAN), negligible next to model time.
   `harness/run_task.py` takes `--base_url` for this. Smoke-test task: `ContactsAddContact`, T3A.
+- **Step 1 state (6 Nov 2026 afternoon):** first **PASS**: `ContactsAddContact`, T3A,
+  `gemini-flash-lite-latest` via Google's OpenAI-compatible endpoint, 11 steps, 96 s, 2–3 s per
+  model call (vs 2–3 min per call for a local 4B on laptop A). A free-prompt mode (`--goal`) set a
+  7:30 alarm in 10 steps / 80 s. The cloud path is a `--base_url/--model/--api_key` change only;
+  no code change beyond tolerating Gemini's list-shaped error replies. Gemini free tier:
+  `gemini-3.8-flash` is 20 requests/day (one task is ~24 calls, so unusable); `gemini-2.5-flash`
+  is closed to new keys; `gemini-flash-lite-latest` worked for ~50 calls without a limit error.
+  Key lives in `~/.ballistic_env` on laptop B, never in the repo. Emulator now runs with a window on
+  laptop B's own desktop (`WINDOW=1`, GDM Xauthority), boots in 34 s with host GPU.
+- **Hardware (6 Nov 2026):** the owner has a **Pixel 10 (non-Pro, 12 GB)**, their daily phone, not
+  carrier-locked. GrapheneOS supports it (reported). It serves as the dev device for steps 3–5;
+  flashing waits until our signed build exists so the daily phone is wiped once, not twice. OEM
+  unlocking was greyed out on first look (no SIM, Wi-Fi connected); see open questions.
 
 ## 4b. Findings from source research on 6 Nov 2026 (public AOSP/GrapheneOS source; nothing run on a device)
 
