@@ -1,7 +1,8 @@
 # Plan of attack and repo layout
 
 No dates. Order matters; each step ends with something you can see. Components are named for what
-they are: assistant app, model host, policy service, gates, harness.
+they are: assistant app, core, gates, harness. Ballistic is always an app; the OS side is gates
+only (decision 7 Nov 2026), which is why steps 6 and 7 below are dropped.
 
 ## Steps
 
@@ -13,15 +14,20 @@ endpoint for faster iteration. AndroidWorld installed, 10–20 task subset.
 Resources: ~9.5 GB RAM with the emulator, ~30–35 GB disk.
 
 ### 2. Core library: the agent logic, platform-independent
-Planner/reader split, tool schema, skill record/replay, backend routing (OpenAI-compatible client),
-retries. Injection test suite. Used by the harness now and by the app later.
-**You see:** injection tests passing on the emulator (hostile message → summary, no action); a
-task replayed from a saved skill with zero model calls; backend switched by one config line;
-AndroidWorld score moving up.
+Design agreed 7 Nov 2026 (`core/README.md`; survey in `docs/AGENT_SECURITY_SURVEY.md`). Filtered
+UI tree, one planner call per step, reader that returns typed fields, source tags on every value
+with a taint rule and Rule of Two in code, deny-only judge, verifier before "done", policy and
+confirmation list, skill record/replay, backend routing (OpenAI-compatible client). Injection
+test suite. Used by the harness now, by the Android app in step 3 and by an iOS app later; one
+implementation shared by every host (Rust proposed).
+**You see:** injection tests passing on the emulator (hostile message → summary, no action; a
+forged number stopped at a confirmation that names its source); a task replayed from a saved
+skill with zero model calls; backend switched by one config line; the 20-task score against the
+13/20 baseline, on Gemini and on a local model, with prompt tokens per call.
 
 ### 3. Assistant as an ordinary app (no privileges)
-Android app (Gradle): voice in/out, command gate (biometric/passkey before any command), chat
-overlay, settings, action log. **Models in the app** behind the core library's backend interface
+Android app (Kotlin shell around the core library): voice in/out, command gate (biometric/passkey
+before any command), chat overlay, settings, action log. **Models in the app** behind the core library's backend interface
 (LiteRT-LM GPU and llama.cpp CPU), model picked per hardware. **Policy in the app** (`core/policy`:
 grants, planner/reader prompt assembly, confirmation broker, log). Confirmation window built as in
 SPEC §7.1 (biometric-bound per-operation key; window drops injected events). Actions limited to
@@ -48,20 +54,14 @@ lets system_server use `/dev/uinput`.
 **You see:** the assistant opening apps in the system's virtual display and completing a task on
 the real phone, with the system consent dialog in front. First "it works on the phone" moment.
 
-### 6. Model host (v2, optional)
-Fill Android's empty `OnDeviceIntelligenceService` / sandboxed-inference socket: isolated process
-in the `isolated_compute_app` domain (needed for GPU), LiteRT / llama.cpp, STT (whisper), TTS
-(Piper), model download + verify. Do this only when one of its reasons applies: sharing one
-resident model across apps, OS-enforced "STT never leaves the device", or a home for GrapheneOS's
-planned open STT/TTS. Until then the app keeps its models.
-**You see:** the same assistant with no model in the app; model switch in Settings.
+### 6. Model host in the OS: dropped (7 Nov 2026)
+Ballistic is always an app; models stay in the app. The research notes on what an OS host would
+have needed are kept in SPEC §4.2.
 
-### 7. Policy service in the OS (v2, when needed)
-Move `core/policy` behind an AIDL in `system_server` so the app cannot bypass grants, prompt
-assembly or the broker; wrap its Computer Control and AppFunctions calls. Backend indicator chip in
-the status bar. Do this when v1 shows a concrete bypass the OS must close or upstream asks for it.
-**You see:** a bank app marked "notifications only, device-only" being refused below the app; the
-injection, data-injection and command-gate suites green on the device.
+### 7. Policy service in the OS: dropped (7 Nov 2026)
+Policy, prompt assembly, provenance, the judge and the confirmation broker live in core, inside
+the app. The injection, data-injection and command-gate suites run against the app on the device
+as part of step 8.
 
 ### 8. Any app: the capability suite
 ~20 apps across categories (AndroidWorld subset + ours: messaging, email, maps, shopping,
@@ -91,18 +91,19 @@ Personal only, public signed builds, or app-only on stock GrapheneOS if upstream
 
 Steps 1–3 need only the laptop and any Android phone and produce the complete v1 app. Step 4 is
 the first that needs the Pixel and a build box; it is development plumbing, not a release.
-Steps 6 and 7 are v2 and conditional.
+Steps 6 and 7 are dropped (app-only decision, 7 Nov 2026).
 
 ## Code classes
 
 - **A. OS patches meant for upstream** (small, generic, written as hardening deltas on AOSP, never
   replacements): Computer Control build flag + user allowlist + Settings page; AppFunctions caller
-  gate; user-selectable `OnDeviceIntelligenceService` provider; generic SELinux domains.
-- **B. OS-side code that stays in our build** (v2): policy service (`services/core/.../assistant/`),
-  AIDL, SystemUI indicator, device/vendor config (bundled models, Updater URL), Computer Control
-  limit patches, InputDispatcher rule only if window-side filtering proves insufficient.
-- **C. Apps** (bulk of the work): assistant app with policy library and models (v1), model host
-  (v2), system keyboard for typing, core library, confirmation window.
+  gate; generic SELinux domains.
+- **B. OS-side code that stays in our build** (small): device/vendor config (Updater URL),
+  Computer Control limit patches, InputDispatcher rule only if window-side filtering proves
+  insufficient. No policy service, no model host (dropped 7 Nov 2026).
+- **C. Apps** (bulk of the work): core library (shared brain, one implementation for Android, iOS
+  and the harness), assistant app with policy and models, system keyboard for typing, confirmation
+  window.
 - **D. Tooling**: harness, test suites, build/sign/OTA scripts, CI.
 
 ## Repo layout

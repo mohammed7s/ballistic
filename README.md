@@ -70,8 +70,9 @@ are vendor-controlled and cloud-first. Nobody has built the owner-controlled, lo
   and out, a biometric command gate, planner/reader split, per-app policy, confirmation window,
   skill record-and-replay, and on-device models (Gemma 4 E2B/E4B class via LiteRT-LM, picked by
   hardware). This is also exactly what would run on stock Android if Google opens the same gates.
-- **v2**, only if v1 shows the OS must enforce something the app cannot: a model host filling the
-  `OnDeviceIntelligenceService` socket, and the policy logic moved below the app.
+- There is no v2 in the OS: Ballistic is always an app (decision 7 Nov 2026). The agent's brain
+  (`core/`) is written once and shared by the Android app, the laptop test bench and a future iOS
+  app.
 
 ## What we would ask of GrapheneOS
 
@@ -92,11 +93,11 @@ land. The agent itself is not proposed for upstream.
 | Step | State |
 |---|---|
 | 1. Harness: emulator + [AndroidWorld](https://github.com/google-research/android_world) + local models, agent loop driving a phone | **Running.** First full task completed end to end (failed on quality, not plumbing). |
-| 2. Core library: planner/reader split, filtered UI tree, skills, routing, injection tests | next |
+| 2. Core library: filtered UI tree, planner/reader split with source tags, deny-only judge, skills, routing, injection tests | **Design agreed 7 Nov 2026** (`core/README.md`); language being chosen. |
 | 3. Assistant as an ordinary app (no privileges) on any Android phone | |
 | 4. Own GrapheneOS build, own keys, own OTA | |
 | 5. Computer Control gate; assistant runs through `ComputerControlSession` on a Pixel | |
-| 6–9. Policy and confirmation, capability suite, CI rebase bot, upstream proposal | |
+| 8–9. Capability suite, CI rebase bot, upstream proposal (6–7, OS-side model host and policy service, dropped: Ballistic is always an app) | |
 
 Full plan: [`docs/PLAN.md`](docs/PLAN.md). Specification: [`SPEC.md`](SPEC.md). Decisions, verified
 facts (checked against `android17-release` source) and open questions: [`docs/CONTEXT.md`](docs/CONTEXT.md).
@@ -113,10 +114,10 @@ Two repositories, no forks of AOSP until a pull request upstream needs one:
 ```
 ballistic/
   harness/     emulator + AndroidWorld + model setup and the task runner (works today)
-  core/        platform-independent agent logic (planner, reader, skills, routing)   [design under review: core/README.md]
-  apps/        assistant app, system keyboard                                        [planned]
-  tests/       capability suite, injection tests                                     [planned]
-  docs/        plan, context, archive of earlier design documents
+  core/        platform-independent agent logic (planner, reader, judge, skills, routing)   [design agreed: core/README.md]
+  apps/        assistant app (Android shell; iOS later), system keyboard                    [planned]
+  tests/       capability suite, injection tests                                            [planned]
+  docs/        plan, context, agent-security survey, archive of earlier design documents
   docs/guide/  plain-language HTML pages: how it works, the agent, trying it on the emulator
 ```
 

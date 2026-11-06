@@ -22,7 +22,7 @@ confirmation dialog.**
 | **Full OS control is required; an app is not enough** | Every capability we need (screen capture incl. FLAG_SECURE, input injection, hotword, persistence, policy enforced below the agent) is privileged. Every shipped agent (Gemini, Doubao) is privileged OEM software. |
 | **Build on Android 17's Computer Control + AppFunctions, don't rebuild them** | Verified present in AOSP `android17-release` (see §4). GrapheneOS already ships Android 17. |
 | **Confirmation = biometric-bound per-operation Keystore key in a window that drops injected events** (replaces Protected Confirmation, 6 Nov 2026) | Protected Confirmation's HAL was removed from Pixel 6/7/8 trees in Android 15 QPR1 and never shipped on Pixel 9 (§4b). Fingerprint matching happens in the TEE and injected touches cannot produce the auth token, so the property "agent can raise the dialog, never press it" is kept. |
-| **v1 = everything in the app; v2 = policy and models move below the app** (6 Nov 2026) | v1 needs only the gate patches, is what would run on stock Android if the DMA opens the same gates, and is demoable without a build box. OS-side policy/model host are built only when v1 shows a bypass the OS must close or upstream asks. |
+| ~~v1 = everything in the app; v2 = policy and models move below the app~~ **superseded 7 Nov 2026: Ballistic is always an app** | Owner decision. The app is the product on GrapheneOS with our gates, on stock Android if the DMA opens the same gates, and one day on iOS with the smaller action set that platform allows. The OS side is switches only (Computer Control on, owner-edited allowlist, confirmation window input filtering). No model host, no policy service in `system_server`; SPEC §4.2–4.3 and PLAN steps 6–7 marked dropped. |
 | **Gates are hardening deltas, never replacements** (6 Nov 2026) | If Android 18 ships DMA assistant plumbing in AOSP, a replacement gate conflicts on every rebase and nobody merges it; a delta (no remote config, default empty, user toggle) survives and is the shape GrapheneOS already accepts. |
 | **No stealth; parity-with-Gemini argument instead** (6 Nov 2026) | Computer Control's input devices are identifiable by any app in one call (§4b), so timing mimicry buys nothing and renaming devices is spoofing. Ballistic is as visible as Gemini on a Pixel; an app that blocks it blocks Gemini. "Human-like timing" removed from the spec. |
 | **Command gate: biometric/passkey before any command** (6 Nov 2026) | Closes "stranger or played audio commands the phone". Distinct from content injection, which the planner/reader split and data-injection rules cover. |
@@ -30,7 +30,7 @@ confirmation dialog.**
 | **Model choice open; must have a LiteRT build or acceptable CPU prefill** (6 Nov 2026) | LiteRT-LM GPU is the only fast prefill path on Tensor; llama.cpp Vulkan is broken on both Tensor GPUs; LFM2.5-8B-A1B has no LiteRT build and failed a real-phone agent test. |
 | **Home GPU parked** (6 Nov 2026) | Local-first is evaluated on its own first. |
 | **Model routing: device first; cloud opt-in off; home GPU parked** | Wake word and STT never leave the device. Indicator shows whenever a payload leaves the phone. |
-| **Planner/reader split** | Untrusted content only reaches a reader model with no tool access; the planner sees labels and structured observations. Enforced by the OS service assembling prompts, not by the app. |
+| **Planner/reader split** → **three layers against content injection** (7 Nov 2026) | Survey of CaMeL, Dual LLM, the six design patterns, Meta's Rule of Two, OpenAI Operator and the open Android agents (`docs/AGENT_SECURITY_SURVEY.md`): no model is un-injectable; guarantees come from code tracking data provenance plus a human. Layer 1, code: planner never reads content (list titles shown only when plain string matching finds them in the owner's request); reader returns typed fields in a shape core asked for, never prose into the planner; every value carries a source tag set by code; taint rule (tainted value → hard confirmation showing value and source); Rule of Two (read untrusted content and send/pay/delete never in one session without a confirmation). Layer 2, judge: deny-only model call before every state change; "allow" changes nothing, "block" halts, so a fooled judge only adds caution. Layer 3, owner: fingerprint window. Enforced in core inside the app. Owner agreed all four points (app-only, three layers, deny-only judge, typed reader). |
 | ~~Resident on-device model: LFM2.5-8B-A1B class~~ **superseded 6 Nov 2026**, see model-choice row | Memory fits; speed and runtime support do not yet. |
 | **Two tracks: fork now (track A), upstream the gates (track C)** | Fork = dev vehicle + fallback. Upstream candidates = user-controlled gates for Computer Control, AppFunctions, the OnDeviceIntelligence socket, hotword via assistant role. The agent itself will never be upstreamed. |
 | **Name: Ballistic, one brand, no sub-brands** | Electrons move through graphene ballistically: fast, straight, no scattering. Chosen 6 Nov 2026 (earlier working names Hex, Monolayer rejected). Never "Graphene" in the name (trademark, and would imply endorsement). |
@@ -42,7 +42,8 @@ confirmation dialog.**
 | **Build pipeline: first build is the pinned GrapheneOS tag unmodified; patches are added one at a time afterwards (6 Nov 2026)** | Proves the build/sign/flash/OTA chain before any of our code is in it; each later patch is then a single, bisectable change. Build machine: rented by the hour (Hetzner-class, 16 vCPU / 64 GB), source tree kept on a persistent volume so re-syncs are cheap. |
 | **Step 1 closed (6 Nov 2026)** | Its deliverable was a baseline, and it exists (13/20, §4). 20/20 on the stock agent is not a goal; the table is the yardstick for step 2. The two harness-side failures (empty Settings tree, app-name lookup) move into core's Screen/Hands port instead of being patched on T3A. |
 | **AndroidWorld: keep environment + benchmark, replace the agent (6 Nov 2026)** | Its env layer (android_env + a11y forwarder over gRPC, ADB actuation) becomes the harness's Screen/Hands port; its 116 tasks and `is_successful` checks stay as the scoreboard; T3A/M3A are replaced by `core/`. No agent framework (LangChain/LangGraph etc.): the loop is small, must port into an Android app, and the safety rules must live in our own testable code. |
-| **Core design proposed, awaiting owner review (6 Nov 2026)** | `core/README.md`: four ports (Screen, Hands, Models, Confirm), filtered tree, one planner call per step by element id, reader for content, verifier before `done`, policy + data-injection check, skills by resource id/label. Open: short item titles visible to the planner?; Python first then Kotlin port (proposed) vs Kotlin first; skill templates; screenshots deferred. No core code until agreed. |
+| **Core design agreed (7 Nov 2026)** | `core/README.md`: four ports (Screen, Hands, Models with roles planner/reader/judge/verifier, Confirm), filtered tree with match-only titles, one planner call per step by element id, typed reader, provenance + taint rule + Rule of Two, deny-only judge, verifier before `done`, policy with hard (fingerprint) and soft (one tap) confirmation, skills by resource id/label saved only after a pass or the owner's yes. Defaults in force: attacker = content inside trusted apps; OS text is label except shade/SSIDs/Bluetooth names; injection tests are gates, score second; measure Gemini and a local model; summaries show sources; no memory between requests in step 2; apps without a usable tree fail in step 2. Still open: language (below), skill templates, screenshots deferred. |
+| **Core language: not Android-only; Rust core with Kotlin/Swift shells proposed (7 Nov 2026)** | Owner requirement: the app must one day run on iOS. Python withdrawn (cannot ship in a phone app); Kotlin-only withdrawn (locks out iOS); React Native rejected for core (every hard part is native on both platforms, JS engine in a privileged app, UI too small to be worth sharing). Proposed: Rust library + UniFFI bindings, the `libsignal` pattern; harness drives it over JSON lines. Fallback: Kotlin Multiplatform. Awaiting the owner's pick. |
 | **User-facing docs as HTML in `docs/guide/` (6 Nov 2026, owner request)** | Plain-language pages: how it works, the agent, trying it on the emulator. Technical documents stay the source of truth; update the guide when they change. |
 
 ## 3. Things explicitly out of scope
@@ -317,6 +318,13 @@ DRM; a Linux-based phone; upstreaming the agent itself.
   the opposite: isolated process), manifest-declared tools, consent gate, SQLite audit;
   `docs/AAOSP_ARCHITECTURE.md` has build pitfalls. gos-ai (mx37): app-level GrapheneOS assistant.
   OpenDroid / DroidRun / MobileUse: app- or ADB-level agents.
+- **Agent injection defences** (survey 7 Nov 2026, `docs/AGENT_SECURITY_SURVEY.md`): CaMeL
+  (DeepMind, Mar 2025) is the only published design with provable results (0 injections on
+  AgentDojo, 77% vs 84% utility), through code-tracked provenance; OpenAI Operator's monitor model
+  was exploited within weeks; 2026 red-teaming finds indirect injection succeeds across models;
+  a Cloud Security Alliance note (Jul 2026) broke Mobile-Agent-v3 with 7 of 7 attacks and other
+  open Android agents with 6 of 7; none of the open Android agents separates what the model reads
+  from what it may do; no phone injection benchmark exists.
 
 ## 6. Open questions
 
@@ -335,7 +343,8 @@ DRM; a Linux-based phone; upstreaming the agent itself.
    `InputManager.verifyInputEvent()` alone, or is an InputDispatcher rule needed? Test with 1,000
    injected taps (SPEC §9).
 8. ~~Human-like timing~~ Decided 6 Nov: removed (see decisions).
-9. ~~Policy service location~~ Decided 6 Nov: app in v1, OS in v2.
+9. ~~Policy service location~~ Decided 7 Nov: always in the app; no OS policy service, no OS
+   model host (§2).
 10. v1 model: measure Gemma 4 E2B/E4B, Qwen3 1.7B/4B and a 4B UI agent (UI-Voyager/Holo class) on
     the Pixel 8 Pro with LiteRT-LM GPU and llama.cpp CPU; pick by step time on a 2k-token tree.
 11. Does GrapheneOS sepolicy let system_server create `/dev/uinput` devices for Computer Control?
@@ -343,6 +352,8 @@ DRM; a Linux-based phone; upstreaming the agent itself.
     `AllowlistManager` IDs 3–5?
 13. ~~Dev phone carrier-restricted?~~ Resolved 6 Nov: OEM unlocking became available; stock
     GrapheneOS installed on the Pixel 10 Pro (§4).
+14. Core language: Rust + UniFFI shells (proposed) or Kotlin Multiplatform? Must serve Android,
+    iOS and the laptop harness from one implementation (§2, `core/README.md` §15).
 
 ## 7. Questions to put to the GrapheneOS team
 

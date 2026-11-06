@@ -13,10 +13,11 @@ GrapheneOS Pixel with the powers Google gives Gemini. Android 17 already contain
 for Google. Ballistic turns those gates into user-controlled ones and adds nothing else to the OS
 that can live in an app.
 
-Two versions are specified. **v1** puts all policy logic, models and the confirmation flow inside
-the assistant app and needs only the gate patches from the OS. **v2** moves policy enforcement and
-model hosting below the app, into `system_server`, once v1 has proved what needs OS enforcement.
-v1 is also what would run on a stock Android phone if Google opens the same gates under the DMA.
+Ballistic is always an app (owner decision, 7 Nov 2026). All policy logic, models and the
+confirmation flow live inside the assistant app; the OS contributes only the gate patches. The
+same app would run on a stock Android phone if Google opens the same gates under the DMA, and one
+day on iOS with the smaller set of actions that platform allows. An earlier "v2" that moved policy
+and model hosting into `system_server` has been dropped (§4.2–4.3).
 
 Design rule: **the agent can touch anything on the phone except the confirmation dialog.**
 
@@ -55,15 +56,12 @@ described that way, not as a speed-up.
 │             v1: policy library (grants, prompt assembly, broker) · models    │
 │           System keyboard for typing                                         │
 ├──────────────────────────────────────────────────────────────────────────────┤
-│ ADDED     v1: Settings "Assistant" page (gate toggles) · confirmation window  │
-│           v2: Policy service in system_server (grants, prompt assembly,      │
-│               broker, router, log) · Model host on the OnDeviceIntelligence  │
-│               socket · status-bar backend chip                               │
+│ ADDED     Settings "Assistant" page (gate toggles) · confirmation window      │
+│           (that is all: no Ballistic logic in the OS; decision 7 Nov 2026)   │
 ├──────────────────────────────────────────────────────────────────────────────┤
 │ AOSP      Computer Control  ← build flag ON + user allowlist (was Google's)   │
 │ (gated    AppFunctions      ← user allowlist (fails open on AOSP today)       │
-│  by us)   OnDeviceIntelligence socket ← user-selectable provider (v2)        │
-│           Assistant role, hotword via role                                   │
+│  by us)   Assistant role, hotword via role                                   │
 │           BiometricPrompt + Keystore ← confirmation (Protected Confirmation   │
 │                                       is absent on Pixel 6–10)               │
 ├──────────────────────────────────────────────────────────────────────────────┤
@@ -82,36 +80,38 @@ execution (through the user gate), `POST_NOTIFICATIONS`, `USE_BIOMETRIC`, INTERN
 GrapheneOS's Network toggle). **Never** `INJECT_EVENTS`, screen capture, or accessibility-service
 status.
 
-**Models in v1 live in the app.** The core library (§4.5) has a backend interface; the app ships
+**Models live in the app.** The core library (§4.5) has a backend interface; the app ships
 LiteRT-LM and llama.cpp backends and loads whichever model the user picks for the hardware. This
-is the flexibility the design wants and needs no OS code. The model host (§4.2) is a later
-optimisation, not a prerequisite.
+is the flexibility the design wants and needs no OS code.
 
-### 4.2 Model host (`platform/modelhost`, v2)
-Implements `OnDeviceIntelligenceService` and `OnDeviceSandboxedInferenceService`. Reasons to build
-it, none of which apply to v1: one resident model shared by several apps instead of one copy per
-app; OS-enforced guarantee that STT and hotword never reach the network; a home for the open
-STT/TTS GrapheneOS has said it plans. Constraints found in research: the sandbox must run in the
-`isolated_compute_app` SELinux domain to reach the GPU; base-OS components cannot opt out of
-GrapheneOS hardening; dynamic code loading is blocked, so every runtime library ships in the image.
+**Ballistic is always an app** (owner decision, 7 Nov 2026), on GrapheneOS with our gates today
+and on stock Android whenever Google opens the same gates; one day on iOS with the smaller set of
+actions that platform allows. Nothing of Ballistic runs inside the OS.
 
-### 4.3 Policy: v1 library, v2 service
-The policy logic is the same in both versions; only where it runs differs.
+### 4.2 Model host: not planned
+An OS model host (`OnDeviceIntelligenceService` / `OnDeviceSandboxedInferenceService`) was
+considered and dropped with the app-only decision. For the record, the constraints found in
+research: the sandbox must run in the `isolated_compute_app` SELinux domain to reach the GPU;
+base-OS components cannot opt out of GrapheneOS hardening; dynamic code loading is blocked, so
+every runtime library would have to ship in the image.
+
+### 4.3 Policy: in the app (`core/policy`)
 - **Policy store**: per app and per profile: observe (none / notifications / node tree / node tree
   + screenshot), act (none / navigate / full), app-data read (off / on), route (default /
   device-only), confirmation (default list / always / never automate).
 - **Prompt assembly**: the planner receives structure and labels; raw text from other apps goes
-  only to the reader; reader output is tagged as untrusted when fed back to the planner.
+  only to the reader; the reader returns typed fields, each tagged with its source, never prose
+  into the planner (§7.2).
+- **Provenance**: every value carries a source tag set by code; tainted values cannot become
+  action arguments without a hard confirmation (§7.3).
+- **Judge**: a deny-only model call before every state-changing action (§7.2).
 - **Router**: backend per role (§6).
 - **Confirmation broker**: classifies a pending action (§7.1) and decides none / soft / hard.
 - **Action log**: append-only, encrypted, viewable in Settings.
 
-**v1** (`core/policy`, inside the app): enforcement is as strong as the app's own integrity. Good
-enough for the demo and for a stock-Android build.
-**v2** (`platform/services/assistant`, in `system_server`): same logic behind an AIDL
-(`observe`, `act`, `confirm`, `route`, `getPolicy`), wrapping the app's Computer Control and
-AppFunctions calls so the app cannot bypass it. Built only when v1 shows a concrete bypass the OS
-must close, or when upstream asks for it.
+Enforcement is as strong as the app's own integrity; the OS contributes only the gates (§4.4)
+and the confirmation window's input filtering (§7.1). An OS-side policy service was considered
+and dropped with the app-only decision (7 Nov 2026).
 
 ### 4.4 Gates (class A, upstream candidates)
 Written as **hardening deltas** on what AOSP ships, never as replacements: strip remote config,
@@ -124,24 +124,26 @@ in Android 18 and is the shape GrapheneOS already accepts for other features.
 | Computer Control, allowlists | DeviceConfig `computer_control` namespace (`allowed_session_owner_apps`, `allowed_automatable_apps`), fallback files under `/data/system/computercontrol/`, newer `AllowlistManager` IDs 3–5 | User store edited from Settings; default empty; `role_assistant_requirement` kept on. |
 | Computer Control, consent app | `packages/VirtualDeviceManager` only built in `trunk_staging` | Include it (`RELEASE_PACKAGE_COMPUTER_CONTROL`), or set app op `COMPUTER_CONTROL` from Settings. |
 | AppFunctions callers | Normal permission + `AllowlistManager` provider (empty on AOSP → fails open) + user approval | User-visible allowlist; verify the approval flags are checked on the execute path. |
-| OnDeviceIntelligence provider (v2) | `config_defaultOnDeviceIntelligenceService` empty | User-selectable provider, default none. |
 | Hotword | `CAPTURE_AUDIO_HOTWORD` via role | Unchanged; granted by holding the assistant role. |
 
 ### 4.5 Core library (`core/`)
-Platform-independent: planner, reader, tool schema, skills, policy (v1), backend interface,
-injection test suite. Used by the harness on the laptop, by the app on the phone, and later by the
-v2 service.
+Platform-independent: planner, reader, judge, verifier, action schema, provenance and policy,
+skills, backend interface, injection test suite. Used by the harness on the laptop, by the
+Android app, and by a future iOS app. One implementation shared by every host; proposed as a Rust
+library with Kotlin and Swift shells (`core/README.md` §15, open).
 
 Core talks to its host through four ports: **Screen** (the accessibility tree as a flat node
 list plus the installed-app list), **Hands** (tap, type, scroll, swipe, open app, back, home),
-**Models** (one completion call per role: planner, reader, verifier) and **Confirm** (show a
-canonical action description, return approved/denied). The harness implements them on
-AndroidWorld's environment; the app on Computer Control, intents, LiteRT-LM/llama.cpp and the
-confirmation window. The planner sees a filtered tree of labels and structure, makes one call per
-step, and emits one schema-validated action by element id; content goes only to the reader; a
-`done` is checked by a separate verifier call. Schema, prompts, skill format and test cases are
-data files shared by every implementation. Full design and open questions: `core/README.md`
-(proposal under review, 6 Nov 2026).
+**Models** (one completion call per role: planner, reader, judge, verifier) and **Confirm** (show
+a canonical action description with the source of every value, return approved/denied). The
+harness implements them on AndroidWorld's environment; the Android app on Computer Control,
+intents, LiteRT-LM/llama.cpp and the confirmation window. The planner sees a filtered tree of
+labels and structure, makes one call per step, and emits one schema-validated action by element
+id; content goes only to the reader, which answers in a typed shape; every value carries a source
+tag; a deny-only judge runs before every state change; a `done` is checked by a separate verifier
+call. Schema, prompts, skill format and test cases are data files shared by every host. Full
+design: `core/README.md` (agreed 7 Nov 2026); the survey behind it:
+`docs/AGENT_SECURITY_SURVEY.md`.
 
 ## 5. Capabilities
 
@@ -216,7 +218,18 @@ Mali corrupts numbers inside tool-call JSON; validate every tool call and fall b
    secure against capture and overlay. PIN fallback is disabled for hard confirmations. Low-stakes
    actions use the same window without the biometric. Protected Confirmation is not used: the HAL
    is absent on Pixel 6–10 (`docs/CONTEXT.md` §4b).
-2. **Planner/reader split**, enforced by prompt assembly (v1 in the app, v2 in the OS).
+2. **Three layers against content injection** (survey and reasoning:
+   `docs/AGENT_SECURITY_SURVEY.md`; agreed 7 Nov 2026). No model is un-injectable, so the
+   guarantee is about what a model's words may cause. *Layer 1, code:* the planner never reads
+   content (a list title is shown only if plain string matching finds it in the owner's request);
+   the reader returns typed fields in a shape core asked for, never prose into the planner; every
+   value carries a source tag set by code; a tainted value cannot become an action argument
+   without a hard confirmation (item 3); a session that read untrusted content cannot send, pay or
+   delete without a confirmation in between (Meta's Rule of Two). *Layer 2, judge:* a deny-only
+   model call before every state-changing action, which sees the request, the action in words and
+   the source tags, never content; "allow" changes nothing, "block" halts and tells the owner why,
+   so a fooled judge can only make the assistant more cautious. *Layer 3, owner:* item 1.
+   Enforced in core, inside the app.
 3. **Data injection, not just instruction injection.** Untrusted content can carry false facts
    ("Ali's new number is X") that a faithful reader will repeat and a planner will act on. Rules:
    contacts, numbers, addresses, payees and amounts used as action parameters are resolved from
