@@ -380,6 +380,52 @@ checklist: `ballistic-os/docs/patches.md`.
   not checked. Needs its own delta: a user allowlist consulted in the reader, and fail-closed when
   no provider is configured (`ballistic-os/docs/patches.md` §7).
 
+## 4d. Core/harness continuation (7 November 2026)
+
+Verified on the Latitude and ThinkPad, unless explicitly described as external research:
+
+- Previous Opus work stopped at its API limit. Harness edits were recovered; Rust had only
+  partial filter/action files, with `run` still unimplemented. Opus retry hit the same limit;
+  owner approved Codex subagents for the continuation.
+- Old interactive chat is stopped. One visible API 33 emulator was connected as emulator-5554;
+  no concurrent task runners were active. The earlier 20-task screen recorder had exited with
+  **zero screens**, not a benchmark result. Suite discovery now raises an error on no tasks.
+- Gemini key/endpoint verified working with `gemini-flash-lite-latest`: a fresh T3A
+  **ContactsAddContact PASS, 8 steps, 58 s** (rounded recorder elapsed time), goal Muhammad
+  Mohammed / +10891448553. Eight raw-screen fixtures are committed under
+  `core/tests/screens/ContactsAddContact/`. Remote log: `~/ballistic_runs/record_contact.log`.
+- Rust `run --request` now performs filtered observation, one planner call per valid step,
+  a bounded invalid-action retry, validated/resolved actions, confirmation hooks and a fresh
+  verifier call before accepting done. `read`/`answer` fail closed as unsupported. **17 tests
+  pass**, including no Hands call after denial, invalid actions, false/malformed verification,
+  hidden hostile content and scrolling-form field labels. This is an initial loop, **not the
+  completed three-layer security design**: typed reader, source propagation/taint enforcement,
+  Rule of Two, full policy, deny-only judge, config file and skill execution remain pending.
+- `chat.sh --agent core` accepts terminal prompt input and logs each run; `/agent` and `/confirm`
+  switch modes. Confirmation remains a benchmark approve/deny policy, not the phone biometric
+  gate. `replay_core.py` replays recorded port responses offline; this is debugging replay,
+  **not skill replay on a live device**. Scripts keep the API key in the environment.
+- Same-screen filter measurement (`python3 harness/measure_filter.py
+  core/tests/screens/ContactsAddContact`): T3A screen text **168,365 characters** total versus
+  core **9,290**, **94.5% smaller** across eight observations. These are characters, not model
+  tokens; rules, app list and history are excluded. Actual full-prompt tokens and core task
+  success must be measured on the live run. Form hints stay visible; arbitrary matching content
+  is revealed only if its entire string appears at word boundaries in the owner's request.
+- Deployment/live core Contacts test was attempted after pushes, but SSH timed out before
+  connecting and Tailscale showed the ThinkPad offline. **No live core benchmark or new 20-task
+  score exists yet.** Last verified deployed commit is `edfbf55`; local core commits `ebe14e9`
+  and `585ae30` are pushed. Reconnect, preserve the remote untracked recorded fixtures before
+  pulling their committed counterparts, pull/build/test, then run Contacts, prompt input,
+  and the suite sequentially. Do not run chat alongside the suite.
+- External research (not measured on our phone): `docs/PIXEL10PRO_MODELS.md` records the local
+  model shortlist and sources. It supersedes broad older claims that the Tensor SDK is only
+  EAP, G5 NPU only supports Gemma3-1B, or Vulkan is universally unusable. Tensor SDK Beta was
+  announced 19 May 2026; an E2B G5 NPU bundle exists; specific Vulkan workarounds were reported.
+  The reported LFM2 phone failure must not be treated as an LFM2.5 measurement. First phone
+  comparison: Gemma 4 E2B NPU/GPU/CPU, E4B GPU, Qwen3-4B control. No reliable pp2048 measurement
+  on Pixel 10 Pro was found. Verify NPU from the actual GrapheneOS app UID and measure sustained
+  correct output, full step latency and memory before choosing a default.
+
 ## 5. Reported facts (from docs/press; re-check before relying on them)
 
 - **Gemini screen automation** (Google): beta since Feb 2026 on Galaxy S26 / Pixel 10, Uber,
