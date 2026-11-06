@@ -98,6 +98,40 @@ DRM; a Linux-based phone; upstreaming the agent itself.
   is closed to new keys; `gemini-flash-lite-latest` worked for ~50 calls without a limit error.
   Key lives in `~/.ballistic_env` on laptop B, never in the repo. Emulator now runs with a window on
   laptop B's own desktop (`WINDOW=1`, GDM Xauthority), boots in 34 s with host GPU.
+- **Step 1 baseline (6 Nov 2026, 18:14–18:47, measured):** `harness/run_suite.sh`, 20 AndroidWorld
+  tasks, T3A (UI tree, no screenshots), `gemini-flash-lite-latest`, one emulator on laptop B.
+  **13 / 20 PASS.** Agent time 1,496 s total (median ~64 s/task); 281 model calls (T3A makes
+  ~2 per step: action + summary), 3.0 M prompt tokens, mean 10.7 k / call, max 43 k / call. No
+  quota (429) errors. Laptop A ↔ B Tailscale dropped twice during the run; 4 `Error calling LLM`
+  steps (EventsOnDate 1, MarkorDeleteNote 3) are network, not model. Table:
+  `~/ballistic_runs/suite_20261106-181401.tsv`, per-task JSON beside it.
+
+  | task | result | steps | s | prompt tok/call | cause of FAIL (from the JSON) |
+  |---|---|---|---|---|---|
+  | ContactsAddContact | PASS | 8 | 57 | 12.0 k | |
+  | ClockTimerEntry | FAIL | 10 | 64 | 8.6 k | model: lost track of the timer keypad's shift-left entry; hit 10-step limit |
+  | ClockStopWatchRunning | PASS | 4 | 21 | 5.8 k | |
+  | OpenAppTaskEval | PASS | 2 | 10 | 4.9 k | |
+  | SystemWifiTurnOff | PASS | 9 | 74 | 8.3 k | |
+  | SystemBluetoothTurnOn | FAIL | 10 | 102 | **1.4 k** | UI tree: Settings returned an (almost) empty tree on every open; model waited/reopened until out of steps |
+  | SystemBrightnessMax | FAIL | 7 | 70 | 5.9 k | model + action space: tapped the slider centre twice (T3A has no drag), then declared complete |
+  | TurnOnWifiAndOpenApp | PASS | 6 | 69 | 6.9 k | |
+  | SimpleSmsSend | PASS | 7 | 75 | 12.9 k | |
+  | SimpleSmsReplyMostRecent | PASS | 7 | 47 | 13.7 k | |
+  | SimpleCalendarAddOneEvent | FAIL | 14 | 90 | 12.7 k | model: date/time/title/description right, never set the 30-min end time, declared complete |
+  | SimpleCalendarEventsOnDate | FAIL | 10 | 172 | 18.2 k | model (browsed Oct/Nov 2025; device date is Oct 2023) + network (92 s first step, LLM error on step 10); re-run alone |
+  | MarkorCreateNote | FAIL | 7 | 48 | 15.2 k | model (inferred): typed the name without `.txt`, Markor defaults to `.md`; file not checked before next task's setup |
+  | MarkorDeleteNote | PASS | 8 | 191 | 9.0 k | (slow: 3 network errors, retried) |
+  | MarkorCreateFolder | PASS | 5 | 29 | 12.1 k | |
+  | ExpenseAddSingle | FAIL | 12 | 82 | 13.8 k | harness: `open_app("Expense")` errored twice (app is "pro expense"), 4 steps lost; budget ran out on the SAVE step |
+  | ExpenseDeleteSingle | PASS | 5 | 36 | 6.1 k | |
+  | RecipeAddSingleRecipe | PASS | 11 | 171 | 16.8 k | |
+  | FilesDeleteFile | PASS | 8 | 64 | 8.3 k | |
+  | CameraTakePhoto | PASS | 3 | 25 | 4.2 k | |
+
+  Failure split: 5 model (Timer, Brightness, CalendarAdd, CalendarOnDate, MarkorCreateNote),
+  2 harness (Bluetooth empty tree, Expense app name). Three of the model failures are false
+  "complete" claims, which argues for a verify step before `status: complete`.
 - **Hardware (6 Nov 2026):** the owner has a **Pixel 10 (non-Pro, 12 GB)**, their daily phone, not
   carrier-locked. GrapheneOS supports it (reported). It serves as the dev device for steps 3–5;
   flashing waits until our signed build exists so the daily phone is wiped once, not twice. OEM
