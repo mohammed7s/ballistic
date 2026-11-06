@@ -16,6 +16,8 @@ Flags:
                --base_url https://generativelanguage.googleapis.com/v1beta/openai/ --model gemini-3.8-flash
   --agent      t3a (text: UI tree only) or m3a (multimodal: screenshot + UI tree)
   --task       AndroidWorld task name; random if omitted
+  --goal       free-form instruction instead of a task ("open Chrome and search for weather in Berlin");
+               no success check, just the agent loop. --max_steps caps it (default 15)
   --perform_emulator_setup   one-time install of AndroidWorld's apps on a fresh AVD
 """
 
@@ -49,6 +51,8 @@ flags.DEFINE_string("model", os.environ.get("BALLISTIC_MODEL", "gemma3:4b"), "Mo
 flags.DEFINE_string("api_key", os.environ.get("BALLISTIC_API_KEY", "ollama"), "Bearer token (ignored by Ollama)")
 flags.DEFINE_enum("agent", "t3a", ["t3a", "m3a"], "t3a = text only (UI tree), m3a = screenshot + UI tree")
 flags.DEFINE_string("task", None, "AndroidWorld task name; random if omitted")
+flags.DEFINE_string("goal", None, "Free-form goal; skips AndroidWorld task setup and success check")
+flags.DEFINE_integer("max_steps", 15, "Step budget for --goal runs")
 flags.DEFINE_bool("list", False, "List task names and exit")
 flags.DEFINE_bool("perform_emulator_setup", False, "One-time: install AndroidWorld apps on the AVD")
 flags.DEFINE_integer("console_port", 5554, "Emulator console port")
@@ -129,26 +133,30 @@ def _main() -> None:
     )
     env.reset(go_home=True)
 
-    if FLAGS.task:
-        if FLAGS.task not in aw:
-            raise ValueError(f"Task {FLAGS.task} not found; use --list")
-        task_type: type[task_eval.TaskEval] = aw[FLAGS.task]
+    task = None
+    if FLAGS.goal:
+        name, goal, budget = "FreePrompt", FLAGS.goal, FLAGS.max_steps
     else:
-        task_type = random.choice(list(aw.values()))
-    task = task_type(task_type.generate_random_params())
-    task.initialize_task(env)
+        if FLAGS.task:
+            if FLAGS.task not in aw:
+                raise ValueError(f"Task {FLAGS.task} not found; use --list")
+            task_type: type[task_eval.TaskEval] = aw[FLAGS.task]
+        else:
+            task_type = random.choice(list(aw.values()))
+        task = task_type(task_type.generate_random_params())
+        task.initialize_task(env)
+        name, goal, budget = task_type.__name__, task.goal, int(task.complexity * 10)
 
     llm = OpenAICompatWrapper(FLAGS.base_url, FLAGS.model, FLAGS.api_key, FLAGS.temperature, FLAGS.max_tokens, FLAGS.timeout, FLAGS.no_think)
     agent = m3a.M3A(env, llm) if FLAGS.agent == "m3a" else t3a.T3A(env, llm)
 
-    budget = int(task.complexity * 10)
-    print(f"\nTask:  {task_type.__name__}\nGoal:  {task.goal}\nAgent: {FLAGS.agent}  Model: {FLAGS.model} @ {FLAGS.base_url}\nStep budget: {budget}\n")
+    print(f"\nTask:  {name}\nGoal:  {goal}\nAgent: {FLAGS.agent}  Model: {FLAGS.model} @ {FLAGS.base_url}\nStep budget: {budget}\n")
     steps: list[dict[str, Any]] = []
     done = False
     t_start = time.time()
     for i in range(budget):
         t0 = time.time()
-        resp = agent.step(task.goal)
+        resp = agent.step(goal)
         d = resp.data or {}
         action = d.get("action_output") or d.get("action") or ""
         summary = d.get("summary") or ""
@@ -160,15 +168,16 @@ def _main() -> None:
             done = True
             break
 
-    success = bool(done and task.is_successful(env) == 1)
+    success = bool(done and task.is_successful(env) == 1) if task else None
     total = round(time.time() - t_start, 1)
-    print(f"\n{'PASS' if success else 'FAIL'}  {task_type.__name__}  steps={len(steps)}  time={total}s  done_flag={done}")
+    verdict = "DONE" if task is None else ("PASS" if success else "FAIL")
+    print(f"\n{verdict}  {name}  steps={len(steps)}  time={total}s  done_flag={done}")
 
     os.makedirs(FLAGS.out_dir, exist_ok=True)
-    out = os.path.join(FLAGS.out_dir, f"{time.strftime('%Y%m%d-%H%M%S')}_{task_type.__name__}.json")
+    out = os.path.join(FLAGS.out_dir, f"{time.strftime('%Y%m%d-%H%M%S')}_{name}.json")
     with open(out, "w") as f:
         json.dump({
-            "task": task_type.__name__, "goal": task.goal, "agent": FLAGS.agent, "model": FLAGS.model,
+            "task": name, "goal": goal, "agent": FLAGS.agent, "model": FLAGS.model,
             "base_url": FLAGS.base_url, "success": success, "done": done, "steps": steps,
             "model_calls": llm.calls, "total_seconds": total,
         }, f, indent=2)

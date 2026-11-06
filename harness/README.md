@@ -33,9 +33,20 @@ bash harness/run_emulator.sh start        # status | stop
 ~/android_world/.venv/bin/python harness/run_task.py --task SimpleSmsSend   --agent m3a --model gemma3:4b
 ~/android_world/.venv/bin/python harness/run_task.py --list
 
+# your own instruction, no benchmark task (watch it with WINDOW=1 below)
+~/android_world/.venv/bin/python harness/run_task.py --goal "open Chrome and search for the weather in Berlin"
+
+# a cloud model for fast iteration (2-3 s per call). Key lives in ~/.ballistic_env, never in the repo.
+source ~/.ballistic_env
+~/android_world/.venv/bin/python harness/run_task.py --base_url https://generativelanguage.googleapis.com/v1beta/openai/ \
+    --model gemini-flash-lite-latest --api_key "$BALLISTIC_API_KEY" --max_tokens 2000 --task ContactsAddContact
+
 # planner on another machine: just change the endpoint
 ~/android_world/.venv/bin/python harness/run_task.py --base_url http://100.x.y.z:11434/v1 --model qwen3:4b --task ...
 ```
+
+To watch the emulator on the machine's own screen, start it with `WINDOW=1 bash harness/run_emulator.sh start`
+from a terminal on that desktop (stop the headless one first). The agent runs identically; you just see it.
 
 `run_task.py` prints each step and writes a JSON record to `~/ballistic_runs/`. `--agent t3a` is
 text-only (UI tree), `m3a` sends the screenshot too (needs a vision model such as `gemma3:4b`).
