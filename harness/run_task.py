@@ -12,7 +12,8 @@ Run with AndroidWorld's venv, emulator already booted with -grpc 8554:
 
 Flags:
   --base_url   OpenAI-compatible endpoint (default http://127.0.0.1:11434/v1, Ollama)
-  --model      model name at that endpoint (default gemma3:4b)
+  --model      model name at that endpoint (default gemma3:4b). Cloud example (Gemini):
+               --base_url https://generativelanguage.googleapis.com/v1beta/openai/ --model gemini-3.8-flash
   --agent      t3a (text: UI tree only) or m3a (multimodal: screenshot + UI tree)
   --task       AndroidWorld task name; random if omitted
   --perform_emulator_setup   one-time install of AndroidWorld's apps on a fresh AVD
@@ -97,6 +98,8 @@ class OpenAICompatWrapper(infer.LlmWrapper, infer.MultimodalLlmWrapper):
             try:
                 r = requests.post(self.url, headers=self.headers, json=payload, timeout=self.timeout)
                 data = r.json()
+                if isinstance(data, list):  # Gemini's OpenAI-compat endpoint wraps errors in a list
+                    data = data[0] if data else {}
                 if r.ok and "choices" in data:
                     text = data["choices"][0]["message"]["content"] or ""
                     usage = data.get("usage", {})
