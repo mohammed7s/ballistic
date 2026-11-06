@@ -1,6 +1,6 @@
 # Ballistic: context and conclusions (hand-off document)
 
-Last updated: 6 November 2026. Maintainer: @mohammed7s.
+Last updated: 7 November 2026. Maintainer: @mohammed7s.
 Purpose: let a person or an agent resume the design work without re-reading the sessions.
 The design began as a two-day conversation on 4–5 Nov 2026; its conclusions are below.
 
@@ -24,6 +24,7 @@ confirmation dialog.**
 | **Confirmation = biometric-bound per-operation Keystore key in a window that drops injected events** (replaces Protected Confirmation, 6 Nov 2026) | Protected Confirmation's HAL was removed from Pixel 6/7/8 trees in Android 15 QPR1 and never shipped on Pixel 9 (§4b). Fingerprint matching happens in the TEE and injected touches cannot produce the auth token, so the property "agent can raise the dialog, never press it" is kept. |
 | ~~v1 = everything in the app; v2 = policy and models move below the app~~ **superseded 7 Nov 2026: Ballistic is always an app** | Owner decision. The app is the product on GrapheneOS with our gates, on stock Android if the DMA opens the same gates, and one day on iOS with the smaller action set that platform allows. The OS side is switches only (Computer Control on, owner-edited allowlist, confirmation window input filtering). No model host, no policy service in `system_server`; SPEC §4.2–4.3 and PLAN steps 6–7 marked dropped. |
 | **Gates are hardening deltas, never replacements** (6 Nov 2026) | If Android 18 ships DMA assistant plumbing in AOSP, a replacement gate conflicts on every rebase and nobody merges it; a delta (no remote config, default empty, user toggle) survives and is the shape GrapheneOS already accepts. |
+| **Computer Control gate shape: two user lists + AOSP consent, Option A** (7 Nov 2026) | Owner confirmed. Per user, two lists edited only in Settings: agents ("Allow screen automation") and targets ("Allow screen automation of this app"), both empty by default, signer-bound, ORed with the DeviceConfig lists at the two existing checks; the assistant role and the AOSP per-target consent dialog stay. No master switch (AOSP has none); no GosPackageState (stay AOSP-shaped); own Settings strings file; per-action limits stay in the app (SPEC §4.3). Patches and design in `ballistic-os/patches/` and `ballistic-os/docs/patches.md` (§4c). |
 | **No stealth; parity-with-Gemini argument instead** (6 Nov 2026) | Computer Control's input devices are identifiable by any app in one call (§4b), so timing mimicry buys nothing and renaming devices is spoofing. Ballistic is as visible as Gemini on a Pixel; an app that blocks it blocks Gemini. "Human-like timing" removed from the spec. |
 | **Command gate: biometric/passkey before any command** (6 Nov 2026) | Closes "stranger or played audio commands the phone". Distinct from content injection, which the planner/reader split and data-injection rules cover. |
 | **Positioning: not faster than a hand** (6 Nov 2026) | Measured prefill on Tensor gives 4–25 s per agent step. Wins are hands-free, screen-off, long/repetitive tasks, skill replay, queues. |
@@ -206,7 +207,7 @@ DRM; a Linux-based phone; upstreaming the agent itself.
   `allowed_automatable_apps`, `blocked_automatable_apps` (`pkg:sha256` or `*`; `PREINSTALLED` matches
   system apps); fallback files under `/data/system/computercontrol/`. A newer `AllowlistManager`
   (`services/allowlist`) also defines IDs 3–5 for Computer Control; which path is live in cp2a must be
-  re-checked. Consent screen is the AOSP `packages/VirtualDeviceManager` app (platform-signed), only
+  re-checked (answered 7 Nov: DeviceConfig/files, §4c). Consent screen is the AOSP `packages/VirtualDeviceManager` app (platform-signed), only
   built when `RELEASE_PACKAGE_COMPUTER_CONTROL` is true (trunk_staging); a GrapheneOS forum user
   reports it appeared in build 2026092500. App op `COMPUTER_CONTROL` set to MODE_ALLOWED skips it.
 - Other preconditions: `POST_NOTIFICATIONS`, visible window, device unlocked, params version ≥ 17,
@@ -215,7 +216,7 @@ DRM; a Linux-based phone; upstreaming the agent itself.
   AOSP product makefile; the framework API is `@hide`.
 - Display/input: ordinary VirtualDevice with a `VirtualDisplay` (TRUSTED | ALWAYS_UNLOCKED), virtual
   touchscreen + dpad via `/dev/uinput`. No HAL dependency. Whether GrapheneOS sepolicy allows
-  system_server to use `/dev/uinput` is unchecked.
+  system_server to use `/dev/uinput` is unchecked (answered 7 Nov: it does, §4c).
 - **Open question 4 answered:** injected events do **not** carry `FLAG_IS_ACCESSIBILITY_EVENT`, but the
   virtual devices are trivially fingerprintable: name `"<agentPkg>:<session>-tscr"` / `-dpad`,
   vendor 0x0000, product 0xCC03 / 0xCC01, `BUS_VIRTUAL`, non-zero display id. Any app can read this via
@@ -286,6 +287,84 @@ DRM; a Linux-based phone; upstreaming the agent itself.
   A text-only UI-tree agent with Qwen3-4B passed 2/5 tasks on a real phone; LFM2-8B-A1B failed
   (multiple actions per turn).
 
+## 4c. Computer Control gate: source answers and patch set (7 Nov 2026)
+
+All **verified** at GrapheneOS tag `2026110200` (line numbers at the tag; frameworks/base unless
+stated). Inferences are labelled. The patch set built on these answers is in
+`ballistic-os/patches/` (five patches: build/release ×2, frameworks/base ×2, packages/apps/Settings
+×1), applied with `git am` to fresh clones; **not compiled or run yet**. Design and first-build
+checklist: `ballistic-os/docs/patches.md`.
+
+- **Flags (verified).** `core/java/android/companion/virtual/flags/flags.aconfig`:
+  `computer_control_access` :91, `computer_control_per_app_consent` :233,
+  `computer_control_role_assistant_requirement` :271, `computer_control_support_v5` :291; none
+  fixed-read-only. build/release: `release_configs/cur.textproto` inherits `aosp_current`;
+  `release_config_map.textproto` aliases `aosp_current` → `cp2a`; `cp2a` inherits
+  `mainline_2026_04` + `cp1a`, value set `aconfig/cp2a/*/Android.bp`. In
+  `aconfig/cp2a/android.companion.virtualdevice.flags/` there are files for
+  `activity_policy_strict, config_change_override, consent, managed_profiles,
+  role_assistant_requirement, user_restriction` (ENABLED/READ_ONLY); `typing` ENABLED in cp1a;
+  **none for `access`, `per_app_consent`, `support_v5` → DISABLED**, READ_ONLY via
+  `RELEASE_ACONFIG_FLAG_DEFAULT_PERMISSION` and `RELEASE_ACONFIG_REQUIRE_ALL_READ_ONLY`=true (bp1a).
+  Only `aconfig/trunk_staging/` enables them. `RELEASE_PACKAGE_COMPUTER_CONTROL`
+  (`flag_declarations/`) is true only in `flag_values/trunk_staging/`; build/make
+  `target/product/media_system.mk:48-49` adds `VirtualDeviceManager` when set. Consent app
+  `packages/VirtualDeviceManager`: platform cert, `ACTION_REQUEST_ACCESS`,
+  `RequestComputerControlAccessActivity.java:46` hides non-system overlays, `res/values/themes.xml:45,62`
+  `filterTouchesWhenObscured`. Permissions: `core/res/AndroidManifest.xml:9586`
+  `ACCESS_COMPUTER_CONTROL` internal|privileged, `:9592` `MANAGE_COMPUTER_CONTROL_CONSENT` signature,
+  both featureFlag-gated. `VirtualDeviceManagerService.java:590-592` throws when the flag is off.
+  GrapheneOS's own build-flag values are in `flag_values/cur/` (**inference:** GrapheneOS builds
+  release `cur`; to confirm on the first patched build).
+- **Open question 12 answered (verified): the live allowlist path is DeviceConfig/files, not
+  `AllowlistManager`.** `services/companion/.../computercontrol/ComputerControlAllowlistController.java`:
+  namespace `computer_control` :85, keys :87/:89/:91, read via `DeviceConfig.getString` :862,
+  fallback files :80-83 in `/data/system/computercontrol/`. Owner check
+  `isPackageApprovedToRunAutomation` :283 (match :296); target check
+  `isPackageInAutomatableAppList` :400 (match :424); called from
+  `ComputerControlSessionProcessor.java:249,275` (`validateRequest` :237) and
+  `ComputerControlSessionImpl.java:655` (`launchApplication`). `AllowlistManager.java` IDs 3–5
+  (:64, :69, :74) are used only by `services/allowlist/.../AllowlistShellCommand.java:206`; nothing
+  in `services/companion` references `AllowlistManager`.
+- **Open question 11 answered (verified): no sepolicy change needed.** GrapheneOS
+  `system/sepolicy/private/system_server.te:554` `allow system_server uhid_device:chr_file
+  rw_file_perms;` (includes ioctl, `public/global_macros:26-32`); `private/file_contexts:218`
+  labels `/dev/uinput` `uhid_device`; identical in AOSP `android17-release`. DAC: system/core
+  `rootdir/ueventd.rc:67` `/dev/uinput 0660 uhid uhid` (AID 3011), and system_server's groups
+  (`ZygoteInit.java:754`) include 3011. The open is in system_server
+  (`VirtualInputDeviceController.java:217` → `VirtualInputDevice.cpp:240`).
+- **Enforcement at the tag (verified).** `isPackageAllowedToCreateSession` :211: uid owns package
+  :222; super agents only on debuggable builds (:656, `config_computerControlKnownSuperAgents`
+  empty, config.xml:7593); `ACCESS_COMPUTER_CONTROL` + `POST_NOTIFICATIONS` :233-236; non-granted
+  uid must be testOnly :238-253; `ROLE_ASSISTANT` :255-273; then DeviceConfig owner list :275.
+  Per-app consent: `ComputerControlSessionProcessor.java:181` `noteOp(OP_COMPUTER_CONTROL)`,
+  IGNORED/ERRORED → deny :185; ALLOWED → per-agent-per-target store (:435,
+  `ComputerControlDataStore.java:50,64`, `/data/system_de/0/computercontrol/automatable_apps.xml`);
+  missing targets → consent dialog :216. Settings already ships the Screen automation pages
+  (`spa/app/specialaccess/ComputerControl*.kt`, `res/xml/special_access.xml:33`,
+  `AppInfoSettings.kt:207,215`), flag-gated.
+- **What the patches do.** (1) cp2a value files enabling `computer_control_access` and
+  `computer_control_per_app_consent` READ_ONLY; (2) `flag_values/cur/RELEASE_PACKAGE_COMPUTER_CONTROL`
+  = true; (3) `ComputerControlUserAllowlist`: per-user agent and target lists, default empty,
+  bound to signing-certificate digests (`hasAncestorOrSelfWithDigest`, so key rotation keeps an
+  entry and a different signer does not inherit it), `/data/system/computercontrol/user_allowlist.xml`,
+  corrupt file → empty, dropped on uninstall, shown in `dumpsys virtualdevice`, ORed in at :296 and
+  :424 (an approved agent is never a target; the DeviceConfig denylist still wins); (4) four
+  `IComputerControlConsentManager` methods behind `MANAGE_COMPUTER_CONTROL_CONSENT`
+  (+`INTERACT_ACROSS_USERS_FULL` cross-user), no-ops while the flag is off, revoking closes
+  dependent sessions; (5) Settings: agent page switch "Allow screen automation", App info switch
+  "Allow screen automation of this app", both off by default, strings in
+  `res/values/strings_computer_control_ext.xml`. Untouched: GrapheneOS hardening, GosPackageState,
+  keystore, verified boot, attestation, sepolicy.
+- **AppFunctions (verified; design only).** Does not fall out of the Computer Control store.
+  `CallerValidatorImpl.java:117-130` → `SystemAppFunctionAllowlistReader.java:126`
+  (`AllowlistManager` ID 2); :179-183 fails open on ERROR_PROVIDER/INVALID_REQUEST/NETWORK;
+  `config_allowlistProviderServicePackage` empty (config.xml:8039); `enable_app_function_permission_v2`
+  ENABLED in cp2a; `EXECUTE_APP_FUNCTIONS` normal when `app_function_access_api_enabled`
+  (`AndroidManifest.xml:9547-9549`) else internal|privileged (:9568-9570); that flag's cp2a value
+  not checked. Needs its own delta: a user allowlist consulted in the reader, and fail-closed when
+  no provider is configured (`ballistic-os/docs/patches.md` §7).
+
 ## 5. Reported facts (from docs/press; re-check before relying on them)
 
 - **Gemini screen automation** (Google): beta since Feb 2026 on Galaxy S26 / Pixel 10, Uber,
@@ -347,9 +426,10 @@ DRM; a Linux-based phone; upstreaming the agent itself.
    model host (§2).
 10. v1 model: measure Gemma 4 E2B/E4B, Qwen3 1.7B/4B and a 4B UI agent (UI-Voyager/Holo class) on
     the Pixel 8 Pro with LiteRT-LM GPU and llama.cpp CPU; pick by step time on a 2k-token tree.
-11. Does GrapheneOS sepolicy let system_server create `/dev/uinput` devices for Computer Control?
-12. Which allowlist path is live for Computer Control in `cp2a`: DeviceConfig/files or the newer
-    `AllowlistManager` IDs 3–5?
+11. ~~Does GrapheneOS sepolicy let system_server create `/dev/uinput` devices?~~ Answered 7 Nov:
+    yes, existing policy and DAC allow it; no sepolicy patch (§4c).
+12. ~~Which allowlist path is live for Computer Control in `cp2a`?~~ Answered 7 Nov:
+    DeviceConfig/files; `AllowlistManager` IDs 3–5 have no consumer in the service (§4c).
 13. ~~Dev phone carrier-restricted?~~ Resolved 6 Nov: OEM unlocking became available; stock
     GrapheneOS installed on the Pixel 10 Pro (§4).
 14. Core language: Rust + UniFFI shells (proposed) or Kotlin Multiplatform? Must serve Android,
@@ -360,8 +440,8 @@ DRM; a Linux-based phone; upstreaming the agent itself.
 - Timeline for open-source STT/TTS; would an `OnDeviceIntelligenceService` host be the right home?
 - Planned accessibility-service safeguards, and whether a privileged assistant path (CC) is
   preferable to them.
-- Would they accept replacing Computer Control's DeviceConfig allowlists with a user-controlled
-  per-app toggle, default off?
+- Would they accept a user-controlled per-app allowlist for Computer Control, default off,
+  consulted next to the DeviceConfig allowlists (the patch set in `ballistic-os/patches/`)?
 - How they intend to handle the Android 18 DMA assistant APIs if they land in AOSP.
 - Fork advice: hardening interactions with native inference libraries (MTE, exec restrictions),
   release cadence, signing.
