@@ -14,12 +14,28 @@ Every run is written to ~/ballistic_runs/<time>_Chat.json, same shape as run_tas
 
 from __future__ import annotations
 
+import functools
 import json
 import os
+import readline  # noqa: F401  (line editing and history for input())
+import subprocess
 import time
 from typing import Any
 
 from absl import app, flags
+
+# AndroidWorld's adb calls inherit our stdin and swallow typed lines; give children an empty stdin.
+_popen_init = subprocess.Popen.__init__
+
+
+@functools.wraps(_popen_init)
+def _popen_no_stdin(self, *args, **kwargs):
+    if kwargs.get("stdin") is None:
+        kwargs["stdin"] = subprocess.DEVNULL
+    _popen_init(self, *args, **kwargs)
+
+
+subprocess.Popen.__init__ = _popen_no_stdin
 
 import run_task  # noqa: F401  (defines the shared flags and the OpenAI-compatible wrapper)
 from android_world.agents import m3a, t3a

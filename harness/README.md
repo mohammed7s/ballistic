@@ -41,6 +41,9 @@ source ~/.ballistic_env
 ~/android_world/.venv/bin/python harness/run_task.py --base_url https://generativelanguage.googleapis.com/v1beta/openai/ \
     --model gemini-flash-lite-latest --api_key "$BALLISTIC_API_KEY" --max_tokens 2000 --task ContactsAddContact
 
+# interactive: type instructions one at a time and watch the emulator (Gemini, key from ~/.ballistic_env)
+bash harness/chat.sh          # at the prompt: an instruction, /home, /steps N, /quit
+
 # planner on another machine: just change the endpoint
 ~/android_world/.venv/bin/python harness/run_task.py --base_url http://100.x.y.z:11434/v1 --model qwen3:4b --task ...
 ```
