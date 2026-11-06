@@ -274,11 +274,26 @@ class ModelClient:
 
 
 def default_core_bin() -> str:
+    """core/target/{release,debug}/ballistic-core, honouring CARGO_TARGET_DIR and cargo's
+    config.toml `build.target-dir`; otherwise whatever `ballistic-core` is on PATH."""
     here = os.path.dirname(os.path.abspath(__file__))
-    for rel in ("../core/target/release/ballistic-core", "../core/target/debug/ballistic-core"):
-        p = os.path.normpath(os.path.join(here, rel))
-        if os.path.exists(p):
-            return p
+    core_dir = os.path.normpath(os.path.join(here, "..", "core"))
+    target_dirs = [os.path.join(core_dir, "target")]
+    if os.environ.get("CARGO_TARGET_DIR"):
+        target_dirs.insert(0, os.environ["CARGO_TARGET_DIR"])
+    for cfg in (os.path.join(core_dir, ".cargo", "config.toml"), os.path.expanduser("~/.cargo/config.toml")):
+        try:
+            with open(cfg) as f:
+                m = re.search(r'^\s*target-dir\s*=\s*"([^"]+)"', f.read(), re.M)
+            if m:
+                target_dirs.insert(0, os.path.expanduser(m.group(1)))
+        except OSError:
+            pass
+    for td in target_dirs:
+        for profile in ("release", "debug"):
+            p = os.path.join(td, profile, "ballistic-core")
+            if os.path.exists(p):
+                return p
     return "ballistic-core"
 
 
