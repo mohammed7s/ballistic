@@ -129,8 +129,9 @@ in Android 18 and is the shape GrapheneOS already accepts for other features.
 ### 4.5 Core library (`core/`)
 Platform-independent: planner, reader, judge, verifier, action schema, provenance and policy,
 skills, backend interface, injection test suite. Used by the harness on the laptop, by the
-Android app, and by a future iOS app. One implementation shared by every host; proposed as a Rust
-library with Kotlin and Swift shells (`core/README.md` §15, open).
+Android app, and by a future iOS app. One implementation shared by every host: a Rust library
+with Kotlin and Swift shells, driven by the Python harness over JSON lines (`core/README.md`
+§15, decided 7 Nov 2026).
 
 Core talks to its host through four ports: **Screen** (the accessibility tree as a flat node
 list plus the installed-app list), **Hands** (tap, type, scroll, swipe, open app, back, home),

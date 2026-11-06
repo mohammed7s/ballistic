@@ -125,8 +125,9 @@ the open Android agents) in <code>docs/AGENT_SECURITY_SURVEY.md</code>.</p>
 </table>
 <p>That is why the agent can be developed and measured on the emulator now and moved to the phone later without
 rewriting how it thinks. The same brain is meant to serve an iOS app one day, with the much shorter list of actions
-Apple allows; the core is therefore written once in a language both platforms can load (Rust proposed, decision
-pending), with thin Android and iOS shells around it.</p>
+Apple allows; the core is therefore written once in Rust, a language both platforms can load, with thin Android and
+iOS shells around it. On the laptop the Python test bench talks to it one line at a time, and every line is kept, so a
+problem can be replayed later without the emulator.</p>
 
 <h3>Skills</h3>
 <p>When a task succeeds, its steps are saved with a fingerprint of each screen. Next time the same request comes in, the

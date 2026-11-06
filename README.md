@@ -93,7 +93,7 @@ land. The agent itself is not proposed for upstream.
 | Step | State |
 |---|---|
 | 1. Harness: emulator + [AndroidWorld](https://github.com/google-research/android_world) + local models, agent loop driving a phone | **Running.** First full task completed end to end (failed on quality, not plumbing). |
-| 2. Core library: filtered UI tree, planner/reader split with source tags, deny-only judge, skills, routing, injection tests | **Design agreed 7 Nov 2026** (`core/README.md`); language being chosen. |
+| 2. Core library: filtered UI tree, planner/reader split with source tags, deny-only judge, skills, routing, injection tests | **Design agreed 7 Nov 2026** (`core/README.md`); Rust, being built. |
 | 3. Assistant as an ordinary app (no privileges) on any Android phone | |
 | 4. Own GrapheneOS build, own keys, own OTA | |
 | 5. Computer Control gate; assistant runs through `ComputerControlSession` on a Pixel | |

@@ -19,7 +19,7 @@ UI tree, one planner call per step, reader that returns typed fields, source tag
 with a taint rule and Rule of Two in code, deny-only judge, verifier before "done", policy and
 confirmation list, skill record/replay, backend routing (OpenAI-compatible client). Injection
 test suite. Used by the harness now, by the Android app in step 3 and by an iOS app later; one
-implementation shared by every host (Rust proposed).
+implementation shared by every host, written in Rust (decided 7 Nov 2026).
 **You see:** injection tests passing on the emulator (hostile message → summary, no action; a
 forged number stopped at a confirmation that names its source); a task replayed from a saved
 skill with zero model calls; backend switched by one config line; the 20-task score against the
