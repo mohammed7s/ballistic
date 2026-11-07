@@ -288,6 +288,14 @@ DRM; a Linux-based phone; upstreaming the agent itself.
   finalizes unsigned packages into `/home/build/gos/releases/2026110700/` and writes checksums.
   Soong regeneration observed running; compilation success and Android tests remain unverified.
   Owner requested a prompt to hand monitoring and subsequent build work back to the build agent.
+  **Build-track takeover (7 Nov, 00:41 UTC):** existing Supervisor process verified RUNNING,
+  41% through incremental tasks. Combined five-minute monitor covers patched build and baseline
+  download; it must not stop the instance while compilation/tests/signing/transfers are active.
+  No second build launched. Baseline download preserved 369,885,184 bytes after a network drop.
+  ThinkPad selected a disconnected Ethernet default route for the cloud IPv4 address; a temporary
+  host route (`154.42.3.225/32` via Wi-Fi gateway `10.32.141.239`, interface `wlp5s0`)
+  restored access and the existing resumable job continued. This route may need removal or update
+  if the Wi-Fi network changes. No global network or emulator changes were made.
 - **Hardware (6 Nov 2026, corrected same day):** the owner's phone is a **Pixel 10 Pro**
   (`blazer`, SKU GEHN3, serial 56181FDCH0070R, stock Android 17 `CP2A.260805.005`), not a Pixel 10.
   **It cannot be bootloader-unlocked, so it cannot run GrapheneOS or Ballistic as it stands.**
