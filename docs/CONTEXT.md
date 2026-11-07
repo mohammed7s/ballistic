@@ -15,6 +15,15 @@ confirmation dialog.**
 
 ## 2. Decisions taken (and why)
 
+**7 November 2026 — first APK plan:** `docs/ANDROID_APP.md` now details the native text-first
+Kotlin UI, run/Stop/approval/results, lifecycle and four implementation milestones. Verified:
+there is no Android project, Kotlin binding or APK yet; the Rust loop still takes the concrete
+stdio Bridge. Proposed integration: extract the in-process engine, build the native shell, test
+it using a debug-only host adapter on the API-33 emulator, then supply real device ports and
+production authentication. The development adapter is not Computer Control and does not validate
+the production approval boundary. The owner's terminal-only development preference remains;
+no browser UI is planned. Gemini stays the first integration backend; local-model testing follows.
+
 | Decision | Why |
 |---|---|
 | **Fork GrapheneOS, not AOSP, LineageOS or /e/OS; not a new OS brand** | Keeps hardening, verified boot, sandboxed Play, Pixel-only single target. A new OS or a LineageOS base means no hardening, worthless attestation, and a maintenance burden we can't carry. |

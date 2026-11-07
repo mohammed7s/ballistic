@@ -44,6 +44,9 @@ skill with zero model calls; backend switched by one config line; the 20-task sc
 13/20 baseline, on Gemini and on a local model, with prompt tokens per call.
 
 ### 3. Assistant as an ordinary app (no privileges)
+First-APK milestones, native screens, lifecycle and emulator/device boundaries are specified in
+[`ANDROID_APP.md`](ANDROID_APP.md). No Android project or APK exists as of 7 November 2026.
+
 Android app (Kotlin shell around the core library): voice in/out, command gate (biometric/passkey
 before any command), chat overlay, settings, action log. **Models in the app** behind the core library's backend interface
 (LiteRT-LM GPU and llama.cpp CPU), model picked per hardware. **Policy in the app** (`core/policy`:
