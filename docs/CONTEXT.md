@@ -15,6 +15,21 @@ confirmation dialog.**
 
 ## 2. Decisions taken (and why)
 
+### 7 November 2026 — bounded calendar observations integrated (verified offline)
+
+Integrated `ca4044f`: dedicated Calendar date/time fields expose bounded numeric observations
+with app/source-node tags, separately from labels and action authority. Missing years remain
+unknown; malformed, localized or structurally ambiguous values stay opaque. Original strings
+remain reader content. No model-supplied parsing, benchmark state access, external schema or
+UniFFI change. On the recorded event task, 24 form and 16 list values now appear; 14 unsupported
+row values remain hidden. These are repeated snapshot values, not 40 successful operations.
+
+Parent combined checks pass **128 Rust/UniFFI and 79 Python tests, no skips**. Neither live
+calendar success nor stronger semantic verification is established: a model can still cite a
+readable title without proving every requested field. See `docs/TYPED_VALUES_20261107.md`.
+Updated Android plan status to reflect the existing native APK and its measured Clock/Stop
+smoke; its other-app observation/GUI adapter and latest-core rebuild remain unfinished.
+
 ### 7 November 2026 — targeted caption results and creation controls (verified)
 
 The three-case run at `96d9c94` finished **2 PASS, 1 FAIL, 0 ERROR**, state **2/3**:

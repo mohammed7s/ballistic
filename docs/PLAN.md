@@ -45,7 +45,10 @@ skill with zero model calls; backend switched by one config line; the 20-task sc
 
 ### 3. Assistant as an ordinary app (no privileges)
 First-APK milestones, native screens, lifecycle and emulator/device boundaries are specified in
-[`ANDROID_APP.md`](ANDROID_APP.md). No Android project or APK exists as of 7 November 2026.
+[`ANDROID_APP.md`](ANDROID_APP.md). A native Kotlin/Compose shell and in-process Rust APK exist under `apps/assistant` as of
+7 November 2026. The installed debug APK launched Clock and passed a live Stop check, but lacks
+other-app screen observation/GUI input and predates the latest core. See the app README for
+measured evidence; the development bridge and production security validation remain unfinished.
 
 Android app (Kotlin shell around the core library): voice in/out, command gate (biometric/passkey
 before any command), chat overlay, settings, action log. **Models in the app** behind the core library's backend interface

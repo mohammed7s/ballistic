@@ -1,18 +1,30 @@
 # Android app: first APK
 
-Implementation plan, 7 November 2026. This refines PLAN step 3; it does not claim an app exists.
+Implementation plan and status, 7 November 2026. This refines PLAN step 3.
 
 ## Current state
 
-The Rust agent and Python emulator host run today. There is no Android Gradle project, Kotlin UI,
-UniFFI binding or APK. The agent loop currently accepts the concrete JSON-lines Bridge, so merely
-generating bindings would not make it usable inside an Android process. Reader/provenance, the
-deny-only judge and recorded workflow execution are still incomplete (see core/README.md).
+A Kotlin/Compose app exists under `apps/assistant`, with the Rust core running in-process through
+UniFFI. Its Ask, Activity and Settings screens, command gate, approval window and Stop control
+are implemented. A debug APK containing both native ABIs was built and installed on the visible
+ThinkPad emulator. With Gemini it launched Clock; a separate live Stop check prevented the next
+action. See [build and smoke evidence](../apps/assistant/README.md#native-model-and-stop-smoke-7-nov-2026).
+
+That tested APK predates the current core. It cannot observe other apps: NotificationScreen
+provides notifications, and IntentHands supports launches and waiting rather than GUI input.
+Clock launch was independently observed, but core could not confirm completion. The development
+Screen/Hands bridge proposed below is not built, and the APK is not a standalone general phone
+agent. The tested app used its configured HTTP client and securely stored key; the proposed
+host-proxied Models connection below is a separate future development option.
+
+Reader summaries/facts, provenance policy, deny-only judge and recorded workflows remain
+incomplete. The current core has element-selection reads and newer host readback, but they have
+not been validated in a rebuilt APK. Production biometric and injected-input approval protections
+still need device verification; emulator debug unlock is not that evidence.
 
 The owner wants the actual app UI, not a browser development UI. Keep the terminal for harness
-work. Build a text-first native Kotlin/Compose app under `apps/android/`; voice and an overlay
-remain later step-3 deliverables. Keep the existing Gemini backend for the first emulator test.
-On-device inference comes after this integration, with model selection based on measurements.
+work and the existing Gemini backend for the next native test. Voice and an overlay remain later
+deliverables. On-device inference follows this integration, with model choice based on measurements.
 
 ## Screens and behaviour
 
