@@ -15,6 +15,12 @@ confirmation dialog.**
 
 ## 2. Decisions taken (and why)
 
+### 2026-11-07 — Observation diagnosis separates unknown Camera cause from reproducible settling weakness
+
+Integrated the offline report/frozen extracts/reproduction in `docs/OBSERVATION_READINESS_DIAGNOSIS_20261107.md`. Parent independently ran it against original A/B records and archived host sources: hashes/extracts match; A's Shutter is absent before Rust filtering, and its8→9-node difference cannot pass the current slight-change tolerance. Original producer/acquisition sequence is unavailable; cause remains unknown. The lone A accessibility warning predates task setup. Missing Camera snapshots and unequal observations prevent equal-state claims.
+
+Separately reproduced six generic cases where changing one of ten nodes' button enabled/visible/clickable flags, text, label or bounds is accepted as settled after two acquisitions. This follows the current permissive rule, but is a weakness relative to its intended ticking-value tolerance. Parent reproduced all six, plus count/resource/small-tree rejection and ticking-text controls. No runtime/device/model changes or score claim in diagnosis. A separate offline implementation round will narrow tolerance to noninteractive text-only changes, preserving deadlines, acquisition limits, freshness checks and later-sample return. Compatibility/timeouts must be tested; this is not a proven Camera fix. Numeric-constraint prototype continues separately. Last full score8/20 combined,11/20 state.
+
 ### 2026-11-07 — Camera pair failed; history candidate parked
 
 Fresh A(aaf0e6c) then B(5ff7d5), one CameraTakePhoto each, both FAIL with independent state failed, no Done proposals and no verifier calls. A gave up at step2: its raw camera tree lacked Shutter. B tapped Shutter twice despite explicit same-control history, waited four times and gave up at step8; the visible new thumbnail was not inspected. Exact photo counts were not recorded. Unequal initial observations and missing normal AW Camera snapshots prevent paired causal attribution. The prior one-step repeat-to-Done response did not recur.
