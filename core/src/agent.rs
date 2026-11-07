@@ -146,7 +146,7 @@ pub(crate) fn drive<H: Host>(host: &mut H, request:&str, max_steps:u32) -> PortR
                     let filtered=screen_filter::filter(&fresh,&FilterContext{request,typed:&typed});
                     stop_if_cancelled!(step-1);
                     let check=host.complete(ModelRole::Verifier,&[
-                        message("system",r#"Assess completion from the current screen only. Return JSON {"status":"verified|failed|unknown","nodes":["e1"],"evidence_basis":"visible_ui","reason":"..."}. Check every requested field, value and constraint against current visible evidence, including exact names, dates and units. Verified requires all requested postconditions; failed requires a visible contradiction; otherwise use unknown. Cite distinct current eN ids with readable evidence. Hidden cN content, resource ids, an opened app, an acknowledged input or text merely typed in an editor do not prove a saved or sent result. A label identifies a control, not its hidden value. Do not infer missing values. This is a model assessment, never authoritative readback."#.into()),
+                        message("system",include_str!("../prompts/verifier.txt").into()),
                         message("user",format!("Request: {request}\nScreen {}:\n{}",fresh.package,screen_filter::render(&filtered)))],400)?;
                     stop_if_cancelled!(step-1);
                     verification::assess_with_feedback(&check.text,&filtered)
