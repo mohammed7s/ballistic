@@ -75,3 +75,26 @@ The ThinkPad clone has pre-existing tracked/untracked changes and cannot fast-fo
 those files were preserved. The APK was transferred separately for installation. This work
 does not establish full phone automation, physical sensitive-operation biometric approval,
 screen-off continuation reliability, resumable downloads, or production readiness.
+
+## Follow-up: compact progress and expandable history
+
+The owner requested log-like live updates, with past details hidden until expanded. Ask now
+shows the latest six single-line timestamped events during execution and time since the latest
+update during a long call. Events come from actual observation/model/dispatch callbacks and
+completed core steps; no simulated percentage or model reasoning is exposed. A completed Ask
+card collapses its details automatically. Activity groups action records by run and starts with
+each card collapsed. Its existing typed-content visibility switch remains available.
+
+Progress is bounded to the latest 250 entries per run in memory. The existing persisted action
+log remains unchanged; transient lifecycle events do not survive process restart. Six session
+tests pass, including added checks for progress ordering and isolation between runs. APK assembly
+passed. Updated APK installed successfully on the Pixel, preserving its managed model.
+
+Artifact: `ballistic_runs/phone_progress_20261108/Ballistic-progress-debug.apk`, 54,114,422 bytes;
+SHA-256 `c7d620d18c9da7a6abcf57d43d22164f59a5211cffbd37f2bdb13ed7a1ad9820`.
+
+Physical inspection confirmed Activity displayed separate collapsed run cards with step counts
+and Show details controls, including an in-progress run. Evidence:
+`ballistic_runs/phone_progress_20261108/activity-collapsed.txt`. Subsequent SSH connections to the
+ThinkPad timed out twice, so expansion and the live Ask feed were not physically verified in
+this follow-up. No phone sleep-setting override was applied for this update.

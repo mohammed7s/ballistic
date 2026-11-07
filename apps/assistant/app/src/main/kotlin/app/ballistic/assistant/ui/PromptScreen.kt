@@ -22,6 +22,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -35,6 +36,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.style.TextOverflow
 import app.ballistic.assistant.AppGraph
 import app.ballistic.assistant.core.ModelRole
 import app.ballistic.assistant.core.StepEvent
@@ -110,10 +112,9 @@ fun PromptScreen(graph: AppGraph, activity: Activity, onOpenLocalAi: () -> Unit 
                     }
                 }
             }
-            items(state.runs, key = { it.id }) { RunCard(it, graph.session) }
+            items(state.runs, key = { it.id }) { RunCard(it, graph.session, state.canStop && it.id == state.runs.lastOrNull()?.id) }
         }
 
-        state.activity?.let { Text("Now: $it", style = MaterialTheme.typography.bodySmall) }
         if (state.canStop) {
             val notificationsEnabled = activity.getSystemService(NotificationManager::class.java).areNotificationsEnabled()
             Text("You can leave the app. Force-stopping it ends the task.", style = MaterialTheme.typography.bodySmall)
@@ -143,7 +144,8 @@ fun PromptScreen(graph: AppGraph, activity: Activity, onOpenLocalAi: () -> Unit 
 }
 
 @Composable
-private fun RunCard(run: RunView, session: PromptSession) {
+private fun RunCard(run: RunView, session: PromptSession, active: Boolean) {
+    var expanded by rememberSaveable(run.id, active) { mutableStateOf(false) }
     var elapsed by remember(run.id) { mutableStateOf(session.elapsedMillis(run)) }
     LaunchedEffect(run.id, run.finishedElapsedMs) {
         do {
@@ -157,10 +159,27 @@ private fun RunCard(run: RunView, session: PromptSession) {
             Text(run.request, fontWeight = FontWeight.Bold)
             val seconds = elapsed / 1000
             Text("Elapsed: ${seconds / 60}:${(seconds % 60).toString().padStart(2, '0')}", style = MaterialTheme.typography.bodySmall)
-            for (step in run.steps) StepLine(step)
+            if (active) {
+                Text("Progress", style = MaterialTheme.typography.labelMedium)
+                for (line in run.progress.takeLast(6)) {
+                    Text("${elapsedLabel(line.elapsedMs)}  ${line.text}", style = MaterialTheme.typography.bodySmall,
+                        maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+                run.progress.lastOrNull()?.let {
+                    Text("Current update: ${elapsedLabel((elapsed - it.elapsedMs).coerceAtLeast(0))} ago",
+                        style = MaterialTheme.typography.labelSmall)
+                }
+            }
+            TextButton(onClick = { expanded = !expanded }) {
+                Text(if (expanded) "Hide details" else "Show details · ${run.steps.size} steps")
+            }
+            if (expanded) {
+                for (line in run.progress) Text("${elapsedLabel(line.elapsedMs)}  ${line.text}", style = MaterialTheme.typography.bodySmall)
+                for (step in run.steps) StepLine(step)
+            }
             run.result?.let { r ->
                 Text(resultLabel(r), fontWeight = FontWeight.Bold)
-                Text("Evidence: ${evidenceLabel(r)} · ${r.reason}", style = MaterialTheme.typography.bodySmall)
+                if (expanded) Text("Evidence: ${evidenceLabel(r)} · ${r.reason}", style = MaterialTheme.typography.bodySmall)
             }
             run.error?.let {
                 if (run.stopRequested) Text("Stopped. Any earlier actions remain.")
@@ -168,6 +187,11 @@ private fun RunCard(run: RunView, session: PromptSession) {
             }
         }
     }
+}
+
+internal fun elapsedLabel(milliseconds: Long): String {
+    val seconds = milliseconds / 1000
+    return "${seconds / 60}:${(seconds % 60).toString().padStart(2, '0')}"
 }
 
 @Composable

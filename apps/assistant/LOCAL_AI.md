@@ -61,6 +61,14 @@ a live elapsed timer, frozen at completion, and **Continue in background**. Forc
 app or process death interrupts work; no task is automatically resumed. Android may still block
 a background action that needs foreground UI. This service does not supply screen-control access.
 
+During an Ask run, timestamped progress lines show observed lifecycle events: reading available
+information, waiting for a model, receiving a reply, dispatching and recording actions. The last
+six lines stay visible, with time since the latest update during a long call. These are execution
+events, not streamed model reasoning or an estimated percentage. Previous runs on Ask start
+collapsed; **Show details** expands their history. Activity groups steps by request and also
+starts collapsed. In-process progress keeps the latest 250 events per run; after process restart,
+Activity retains the existing persisted action steps rather than the transient progress feed.
+
 Manual **Import GGUF** remains available. Ballistic copies a compatible chat/instruct file into
 private storage and leaves the source untouched. Imported files are validated by native load;
 only catalogue downloads receive the expected publisher-artifact digest check.

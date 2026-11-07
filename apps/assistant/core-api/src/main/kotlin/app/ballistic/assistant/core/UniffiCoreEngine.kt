@@ -43,13 +43,13 @@ class UniffiCoreEngine private constructor(val version: String) : CoreEngine {
         private val cancel: CancelToken,
     ) : FfiHostPorts {
         override fun observe(): String = port {
-            listener.onActivity("observing")
+            listener.onActivity("Reading available screen information")
             CoreJson.encodeToString(ScreenState.serializer(), ports.screen.observe())
         }
 
         override fun act(opJson: String): String = port {
             val op = CoreJson.decodeFromString(HandsOp.serializer(), opJson)
-            listener.onActivity("acting")
+            listener.onActivity("Dispatching an action")
             CoreJson.encodeToString(HandsResult.serializer(), ports.hands.act(op))
         }
 
@@ -57,8 +57,10 @@ class UniffiCoreEngine private constructor(val version: String) : CoreEngine {
             val modelRole = ModelRole.entries.firstOrNull { it.name.equals(role, ignoreCase = true) }
                 ?: throw PortException.Malformed("unknown model role $role")
             val messages = CoreJson.decodeFromString(ListSerializer(ChatMessage.serializer()), messagesJson)
-            listener.onActivity(if (modelRole == ModelRole.Planner) "planning" else "asking the ${role} model")
-            CoreJson.encodeToString(Completion.serializer(), ports.models.complete(modelRole, messages, maxTokens.toInt()))
+            listener.onActivity("Waiting for ${modelRole.name.lowercase()} model")
+            val completion = ports.models.complete(modelRole, messages, maxTokens.toInt())
+            listener.onActivity("${modelRole.name} reply received; checking response")
+            CoreJson.encodeToString(Completion.serializer(), completion)
         }
 
         override fun confirm(requestJson: String): String = port {

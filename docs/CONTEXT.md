@@ -1410,3 +1410,13 @@ while backgrounded. Clock visibly opened but repeated because the adapter cannot
 foreground app. Final installed APK's notification Stop ended the task, froze elapsed at 2:19,
 removed its foreground service and released its CPU wake lock. Six session tests passed.
 Model download is complete; normal phone sleep was restored after testing.
+
+## Compact run progress — 8 November 2026
+
+The owner requested live one-line updates and collapsed past activity. Ask now shows the latest
+six timestamped lifecycle/action events while running, plus elapsed time since the latest event.
+Completed runs show summaries with expandable details; Activity groups each run into a collapsed
+card. Model requests expose waiting/reply-received events, not raw model reasoning. Progress is
+bounded to 250 in-process entries per run; existing persisted action logs remain unchanged.
+The updated APK is installed and six session tests pass. Collapsed Activity cards were observed
+on the Pixel; connection timeouts interrupted the remaining expansion/live-feed device checks.

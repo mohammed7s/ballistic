@@ -33,11 +33,14 @@ interface CommandGateState {
 
 enum class Phase { Idle, NeedsUnlock, Running, AwaitingApproval, Finished }
 
+data class ProgressLine(val elapsedMs: Long, val text: String)
+
 /** One request and what happened to it. */
 data class RunView(
     val id: String,
     val request: String,
     val steps: List<StepEvent> = emptyList(),
+    val progress: List<ProgressLine> = emptyList(),
     val result: RunResult? = null,
     val error: String? = null,
     /** Monotonic clock values, valid for this process only. Authentication wait is excluded. */
@@ -110,6 +113,9 @@ class PromptSession(
 
     fun stop() {
         stopRequested = true
+        _state.value.runs.lastOrNull()?.takeIf { _state.value.canStop }?.let {
+            appendProgress(it.id, "Stop requested; waiting for current work to end")
+        }
         core.stop()
         modelLifecycle?.cancelRun()
     }
@@ -122,7 +128,8 @@ class PromptSession(
     private fun start(request: String) {
         stopRequested = false
         modelLifecycle?.beginRun()
-        val run = RunView(id = UUID.randomUUID().toString(), request = request, startedElapsedMs = elapsedClock())
+        val run = RunView(id = UUID.randomUUID().toString(), request = request, startedElapsedMs = elapsedClock(),
+            progress = listOf(ProgressLine(0, "Starting request")))
         _state.update {
             it.copy(phase = Phase.Running, engine = core.description, pendingRequest = null, activity = "starting", runs = it.runs + run)
         }
@@ -131,9 +138,11 @@ class PromptSession(
                 override fun onStep(event: StepEvent) {
                     log?.append(LogLine(run.id, clock(), request, core.description, event))
                     updateRun(run.id) { it.copy(steps = it.steps + event) }
+                    appendProgress(run.id, "Step ${event.step}: ${actionLabel(event.action, redact = true)} → ${event.outcome}")
                 }
 
                 override fun onActivity(activity: String) {
+                    appendProgress(run.id, activity)
                     _state.update { s -> if (s.phase == Phase.Running) s.copy(activity = activity) else s }
                 }
             }
@@ -148,9 +157,24 @@ class PromptSession(
                 null to (e.message ?: e::class.simpleName ?: "error")
             }
             modelLifecycle?.endRun()
+            appendProgress(run.id, when {
+                stopRequested -> "Stopped; earlier actions remain"
+                error != null -> "Run ended with an error"
+                result != null -> resultLabel(result)
+                else -> "Run ended"
+            })
             val finished = elapsedClock()
             updateRun(run.id) { it.copy(result = result, error = error, finishedElapsedMs = finished, stopRequested = stopRequested) }
             _state.update { it.copy(phase = Phase.Finished, activity = null) }
+        }
+    }
+
+    private fun appendProgress(id: String, text: String) {
+        val now = elapsedClock()
+        updateRun(id) { run ->
+            if (run.progress.lastOrNull()?.text == text) run else run.copy(
+                progress = (run.progress + ProgressLine((now - run.startedElapsedMs).coerceAtLeast(0), text)).takeLast(250),
+            )
         }
     }
 

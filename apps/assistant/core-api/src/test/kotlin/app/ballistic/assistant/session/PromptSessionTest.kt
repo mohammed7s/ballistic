@@ -121,6 +121,14 @@ class PromptSessionTest {
         assertEquals(3, state.runs.single().steps.size)
         assertEquals("verification", state.runs.single().result!!.failureCategory, "guarded tap ends unverified")
         assertEquals(3, acted.size)
+        val first = state.runs.single()
+        assertEquals("Starting request", first.progress.first().text)
+        assertEquals(3, first.progress.count { it.text.startsWith("Step ") })
+        assertTrue(first.progress.zipWithNext().all { (a, b) -> a.elapsedMs <= b.elapsedMs })
+        session.submit("another run")
+        assertEquals(listOf("Starting request"), session.state.value.runs.last().progress.map { it.text })
+        assertEquals(first.progress, session.state.value.runs.first().progress)
+        testScheduler.advanceUntilIdle()
     }
 
     @Test
