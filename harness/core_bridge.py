@@ -159,7 +159,11 @@ def _foreground_nodes(forest: Any, package: str) -> Optional[list[dict[str, Any]
     # tree look new. Normalize per-observation IDs after removing other nodes.
     nodes = [n for n in nodes if n.get("package") == package]
     ids = {n["id"]: i for i, n in enumerate(nodes)}
-    return [{**n, "id": ids[n["id"]], "parent": ids.get(n["parent"])} for n in nodes]
+    # A removed ancestor is not a root. Keep an invalid comparison-only parent so
+    # slight-change tolerance cannot miss a caption folded through that wrapper.
+    # observe still returns the original full forest, never this sentinel.
+    return [{**n, "id": ids[n["id"]],
+             "parent": None if n["parent"] is None else ids.get(n["parent"], -1)} for n in nodes]
 
 
 def _signature(nodes: Optional[list[dict[str, Any]]]) -> Optional[str]:
@@ -173,19 +177,59 @@ def _foreground_signature(forest: Any, package: str) -> Optional[str]:
     return _signature(_foreground_nodes(forest, package))
 
 
-_SKELETON_KEYS = ("parent", "role", "class_name", "resource_id", "package")
+_PASSIVE_ROLES = ("text", "image", "container")
+_INTERACTION_FLAGS = ("clickable", "long_clickable", "editable", "scrollable",
+                      "checkable", "checked", "selected", "focused")
+_SETTLING_FLAGS = frozenset((*_INTERACTION_FLAGS, "enabled", "visible"))
 
 
 def slightly_different(old: list[dict[str, Any]], new: list[dict[str, Any]]) -> bool:
-    """Same skeleton (count, parents, roles, classes, resource ids) and at most a tenth of the
-    nodes changed in text, label, bounds or flags: an animation or a ticking value, not another
-    screen. A one-node tree tolerates no change."""
+    """Only text may vary, on at most a tenth of the nodes, outside control ancestry.
+
+    All other fields (including IDs, labels, bounds and flags) must match. Roles and
+    flags both restrict tolerance: a caption can fold through pruned wrappers into
+    an actionable row, and a control need not advertise a clickable flag. Unknown
+    roles/flags and malformed ancestry cannot establish passive text. This is still
+    a heuristic: noninteractive text may be material, and repeated stale/incomplete
+    trees remain indistinguishable from stable ones.
+    """
     if len(old) != len(new) or not old:
         return False
-    if any(tuple(a.get(k) for k in _SKELETON_KEYS) != tuple(b.get(k) for k in _SKELETON_KEYS)
-           for a, b in zip(old, new)):
-        return False
-    return sum(a != b for a, b in zip(old, new)) <= len(old) // 10
+    # Normalization emits parents before children. Requiring that order rejects
+    # dangling/forward/cyclic edges without recursion or repeated ancestor walks.
+    # One boolean per ID carries the entire ancestry: O(n) time and O(n) space
+    # for fixed-size node metadata, plus comparison of the supplied field values.
+    passive: dict[int, bool] = {}
+    changed = 0
+    for a, b in zip(old, new):
+        if not isinstance(a, dict) or not isinstance(b, dict):
+            return False
+        if a.keys() != b.keys() or any(a[k] != b[k] for k in a if k != "text"):
+            return False
+        uid, parent = a.get("id"), a.get("parent")
+        if (type(uid) is not int or type(b.get("id")) is not int
+                or uid < 0 or uid in passive or "parent" not in a
+                or (b.get("parent") is not None and type(b["parent"]) is not int)
+                or (parent is not None and (type(parent) is not int or parent not in passive))):
+            return False
+        flags = a.get("flags")
+        if (not isinstance(flags, dict) or flags.keys() != _SETTLING_FLAGS
+                or not isinstance(b.get("flags"), dict)
+                or any(type(flags[k]) is not bool or type(b["flags"][k]) is not bool
+                       for k in _SETTLING_FLAGS)):
+            return False
+        passive[uid] = (a.get("role") in _PASSIVE_ROLES
+                        and not any(flags[k] for k in _INTERACTION_FLAGS)
+                        and (parent is None or passive[parent]))
+        if a.get("text") != b.get("text"):
+            if (a.get("role") != "text" or not passive[uid]
+                    or any(v is not None and not isinstance(v, str)
+                           for v in (a.get("text"), b.get("text")))):
+                return False
+            changed += 1
+            if changed > len(old) // 10:
+                return False
+    return True
 
 
 SOFT_DEADLINE_SECONDS = 30.0
@@ -229,8 +273,10 @@ class CoreHost:
 
         Two consecutive samples with the same foreground and size settle the
         screen when their trees match, or when they differ only slightly (same
-        skeleton, at most a tenth of the nodes changed: an animation or ticking
-        value); the later sample is returned. Unsettled samples are spaced 0.3 s,
+        skeleton and metadata, text-only changes on at most a tenth of nodes,
+        outside interactive roles/flags and their ancestry); the later sample is
+        returned. This does not establish that changing text is harmless.
+        Unsettled samples are spaced 0.3 s,
         then doubling. Six acquisitions and a 30-second soft deadline bound our
         retries; a blocking environment/ADB call still depends on its own
         transport timeout.

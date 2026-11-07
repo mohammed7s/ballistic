@@ -195,9 +195,15 @@ Provider text and tool arguments are never copied into diagnostics. These additi
 not broaden retries: only an eligible empty reply with existing `stop`/missing finish reason can
 receive one recovery attempt within the same total ceiling. Historical `other` cannot be decoded
 retrospectively. Observation settles on two consecutive samples with the same foreground and size whose
-trees match, or differ only slightly (same skeleton, at most a tenth of the nodes changed); the
-later sample is returned. Unsettled samples are spaced 0.3 s, doubling; six acquisitions and a
-30-second soft deadline bound the wait.
+trees match, or differ only in text on at most a tenth of the nodes. Tolerated text nodes must be
+noninteractive and outside interactive ancestry; all other fields, including flags, bounds and
+labels, must match. Unknown or incomplete ancestry prevents tolerance. The later sample is
+returned. Unsettled samples are spaced 0.3 s, doubling; six acquisitions and a 30-second soft
+deadline bound the wait (blocking transport calls still depend on their own timeouts).
+Formerly tolerated control animations may now require extra samples or time out. This cannot
+identify repeated stale/incomplete trees or establish that changing noninteractive text is harmless.
+Offline checks, baseline-specific reproduction commands and limits are in
+[the settling report](../docs/OBSERVATION_SETTLING_20261107.md); live impact is unknown.
 
 ### Text-only model transport
 
