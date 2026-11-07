@@ -64,7 +64,7 @@ SharedPreferences `secrets`, which holds only ciphertext. Backup and device tran
 | Confirmation window | Real: FLAG_SECURE, overlays hidden, input filter, Back denies, a hard request needs a biometric bound to a per-operation key that signs the exact request. **Untested on a device.** |
 | Policy settings | Real table. Edits need the gate unlocked. A file that does not parse falls back to the defaults. |
 | Action log | Real. Typed text is hidden until the owner asks to see it. |
-| NotificationScreen | Real adapter. Needs notification access. Bounds are a synthetic layout (see the file). |
+| NotificationScreen | Real adapter. Needs notification access. Bounds are synthetic. It cannot observe another app's screen or identify the foreground activity. |
 | IntentHands | `open_app` and `wait` are real. Every coordinate op, back and home returns `not_executed: needs Computer Control`. Reply, dial and alarm exist but core cannot call them yet. |
 | ModelsHttp | Real client (tested against a local HTTP server). The planner endpoint is set in Settings. Each call writes one logcat line (tag `Ballistic`: role, outcome, tokens, seconds; never content or key). |
 | Command gate fallback | Debug builds only: with no strong biometric available, a test PIN (`2580`) opens the command gate. Never used for operation approval. Release builds have no fallback. |
@@ -137,13 +137,46 @@ The Latitude still needs no Android SDK for `:core-api:test`.
   UniFFI** also pass. These host tests establish binding compatibility with the merged core.
 - The APK still predates Core4. The host checks do **not** establish that newer core features
   work in an Android APK. Rebuild both native ABIs and the APK before claiming that.
-- Native live-model smoke is **unfinished**. The resumed emulator session confirmed the stored
-  API key and notification grant, then imported the Gemini `gemini-flash-lite-latest` endpoint
-  configuration. The ThinkPad went offline at 03:30 UTC before a request was submitted.
-  There is no native live-model call, independently observed Clock launch, or UI Stop-during-call
-  evidence from this attempt. The JVM Stop test above is separate evidence.
 - No physical phone was used. The emulator's debug command-gate PIN is not evidence of
   production biometric authentication or operation approval.
+
+### Native model and Stop smoke (7 Nov 2026)
+
+The existing pass-2 APK ran `open the Clock app` with `gemini-flash-lite-latest` through the
+real in-process Rust core. The stored key was reused; only the non-secret model configuration
+was imported. Notification access was already granted.
+
+- **Clock launched independently:** Android's activity manager reported
+  `com.google.android.deskclock/com.android.deskclock.DeskClock` as `topResumedActivity`.
+  Evidence: `05_clock_activity.txt` and `05_clock.png`.
+- **Core completion remained unconfirmed:** 15 planner calls plus one verifier call succeeded.
+  The 15 step records contain 14 `opened_ui` outcomes and one rejected completion claim.
+  The UI ended with "Opened the app; the task itself is not confirmed" and
+  "Evidence: no evidence · step budget exhausted". `NotificationScreen` cannot observe Clock,
+  so this APK repeatedly requests a launch without acquiring foreground evidence. The external
+  activity check above is test evidence, not a capability supplied to core.
+- **Stop during a real planner call prevented dispatch:** the second request's screenshot shows
+  `Now: planning`; the Stop marker is at 03:56:56.568 UTC, before planner call 18 returned at
+  03:56:57.481 (1.5 seconds, 2,089 prompt / 29 completion tokens). The final UI says
+  "Stopped; nothing was done", Ballistic remains the resumed activity, and the action log is
+  byte-identical before and after the stopped run. Stop prevents the next dispatch; it does not
+  cancel the already-running HTTP request.
+- **Reader remains unavailable in this APK.** Its pre-Core4 `read`/`answer` paths are unsupported;
+  this smoke does not establish notification-summary or newer readback support.
+
+Evidence is under local ignored `ballistic_runs/app_pass2/` and remote
+`~/ballistic_runs/app_pass2/`: `06_stop_models.log` contains all model calls and test markers;
+`05_actions.jsonl` / `06_actions.jsonl` contain the step records; `06_before_stop.png`,
+`06_stop_result.xml`, `06_stop_result.png` and `06_stop_activity.txt` cover Stop. JVM XML reports
+are saved locally in `test-results/` alongside these artifacts.
+
+The first native attempt failed with `SSLHandshakeException` while the benchmark emulator was
+dated October 2023. Temporarily using host UTC allowed the successful TLS/model calls above;
+no TLS checks were bypassed. Each bounded helper restored the benchmark clock in `finally`.
+The last helper recorded restoration to `2023-10-15T16:29:19.614003+00:00`, `RELEASED`, and a
+separate check confirmed no emulator lock. The benchmark accessibility forwarder's crash dialog
+was dismissed during setup. SSH interruptions and that dialog are environment issues, not
+evidence of a Ballistic crash.
 
 ## Decisions taken here that the design docs leave open
 

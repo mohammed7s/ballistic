@@ -15,6 +15,24 @@ confirmation dialog.**
 
 ## 2. Decisions taken (and why)
 
+**7 November 2026 — native APK Clock and Stop smoke verified:** the existing pre-Core4 APK
+opened Clock from the exact prompt `open the Clock app`, using in-process Rust and Gemini
+flash-lite. An independent activity-manager read confirmed DeskClock in the foreground.
+Core did not verify completion: 15 planner calls and one verifier call produced 14 `opened_ui`
+outcomes and one rejected done claim, then exhausted the step budget. The notification-only
+Screen adapter cannot observe the foreground app; repeated launches demonstrate an observation
+and completion gap, not a successful end-to-end completion report.
+
+A separate native Stop test requested Stop while the planner was running, before its response
+returned. The UI ended `Stopped; nothing was done`, Ballistic remained foreground, and the
+action log was byte-identical before/after. This proves no subsequent action dispatch in this
+case; it does not cancel the in-flight HTTP request. The initial TLS failure occurred with the
+emulator dated October 2023; temporary host UTC allowed model calls without bypassing TLS checks.
+The helpers restored benchmark time (last `2023-10-15T16:29:19.614003+00:00`) and released the
+emulator lock; a separate check confirmed its absence. No physical phone was used. Evidence:
+local ignored `ballistic_runs/app_pass2/`; details in `apps/assistant/README.md`.
+The installed APK remains pre-Core4; these results do not change the 4/20 benchmark score.
+
 **7 November 2026 — Kohaku wallet feature removed (owner decision):** removed the standalone
 adapter, vendored transport, dependencies, planner action, balance result rendering, host adapter
 and dedicated integration docs/tests. Ballistic has no wallet capability or planned wallet work.
