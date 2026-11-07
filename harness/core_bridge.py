@@ -424,9 +424,9 @@ class ModelResponseError(RuntimeError):
 class ModelClient:
     """One OpenAI-compatible endpoint per role.
 
-    Only transient transport/502/503/504 failures are retried. Telemetry records
-    response shape, allowlisted finish reasons and quota categories, never raw
-    error bodies (which can echo request content or credentials).
+    Transient transport/502/503/504 failures and at most one empty textual
+    generation are retried within the same total attempt budget. Telemetry
+    records safe response metadata, never raw error bodies or discarded output.
     """
 
     RETRY_STATUSES = (502, 503, 504)
@@ -497,6 +497,18 @@ class ModelClient:
         return {name: value for name in ("prompt_tokens", "completion_tokens")
                 if type(value := usage.get(name)) is int and value >= 0}
 
+    @staticmethod
+    def _retryable_empty(body: Any, diagnostics: dict[str, Any]) -> bool:
+        # Only a single, otherwise valid textual completion can be regenerated.
+        # A refusal, tool call or exhausted output budget needs a different response,
+        # not repeated requests. Never reinterpret one as an action or a success.
+        if (diagnostics.get("choice_count") != 1
+                or diagnostics.get("response_shape") not in {"missing_content", "null_content", "empty_content"}
+                or diagnostics.get("finish_reason") not in {"stop", "missing"}):
+            return False
+        message = body["choices"][0]["message"]
+        return not any(message.get(field) for field in ("refusal", "tool_calls", "function_call"))
+
     def complete(self, role: str, messages: list[dict[str, str]], max_tokens: int) -> dict[str, Any]:
         import requests  # here, so replay_core.py runs without it
 
@@ -504,6 +516,7 @@ class ModelClient:
         body = {"model": model, "messages": messages, "temperature": self.temperature, "max_tokens": max_tokens}
         t0 = time.time()
         retried: list[dict[str, Any]] = []
+        retried_empty = False
         for attempt in range(self.retries + 1):
             r = None
             diagnostics: dict[str, Any] = {}
@@ -522,6 +535,13 @@ class ModelClient:
                     raise ModelResponseError("invalid_json") from None
                 diagnostics = {**self._response_metadata(j), **self._usage(j)}
                 if diagnostics["response_shape"] != "text_content":
+                    if (not retried_empty and attempt < self.retries
+                            and self._retryable_empty(j, diagnostics)):
+                        retried_empty = True
+                        retried.append({"http_status": r.status_code, "error_type": "ModelResponseError",
+                                        **diagnostics})
+                        time.sleep(self.backoff_seconds * 2 ** attempt)
+                        continue
                     raise ModelResponseError(diagnostics["response_shape"])
                 usage = self._usage(j)
                 # The bridge's Usage struct requires both counters. Unknown usage stays

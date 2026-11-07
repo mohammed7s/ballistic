@@ -135,14 +135,20 @@ pub(crate) fn drive<H: Host>(host: &mut H, request:&str, max_steps:u32) -> PortR
                 let filtered=screen_filter::filter(&fresh,&FilterContext{request,typed:&typed});
                 stop_if_cancelled!(step-1);
                 let check=host.complete(ModelRole::Verifier,&[
-                    message("system",r#"Assess completion from the current screen only. Return JSON {"status":"verified|failed|unknown","nodes":["e1"],"evidence_basis":"visible_ui","reason":"..."}. Verified or failed requires current visible node evidence for the requested postcondition. Opening an app or a successful input alone does not prove a task completed. Use unknown if the result is not observable. This is a model assessment, never authoritative readback."#.into()),
+                    message("system",r#"Assess completion from the current screen only. Return JSON {"status":"verified|failed|unknown","nodes":["e1"],"evidence_basis":"visible_ui","reason":"..."}. Check every requested field, value and constraint against current visible evidence, including exact names, dates and units. Verified requires all requested postconditions; failed requires a visible contradiction; otherwise use unknown. Cite distinct current eN ids with readable evidence. Hidden cN content, resource ids, an opened app, an acknowledged input or text merely typed in an editor do not prove a saved or sent result. A label identifies a control, not its hidden value. Do not infer missing values. This is a model assessment, never authoritative readback."#.into()),
                     message("user",format!("Request: {request}\nScreen {}:\n{}",fresh.package,screen_filter::render(&filtered)))],400)?;
-                verification=verification::assess(&check.text,&filtered);
+                stop_if_cancelled!(step-1);
+                let assessment=verification::assess_with_feedback(&check.text,&filtered);
+                verification=assessment.verification;
                 done=verification.status == VerificationStatus::Verified;
                 terminal=done;
                 if done {task_status="completed";}
-                outcome=if done {"model assessed complete"} else {"completion not verified on current screen"}.into();
-                if !done { failure_category=Some("verification"); }
+                outcome=assessment.feedback.into();
+                if !done {
+                    failure_category=Some("verification");
+                    // The next plan should inspect the same fresh evidence that was checked.
+                    next_screen=Some(fresh);
+                }
             },
             Action::GiveUp{..}=> {outcome="planner gave up".into();task_status="failed";failure_category=Some("planning");terminal=true;},
             Action::Read{targets,question,shape:ReadShape::Element}=> {
