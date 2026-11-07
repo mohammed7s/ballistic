@@ -15,6 +15,14 @@ confirmation dialog.**
 
 ## 2. Decisions taken (and why)
 
+### 2026-11-07 — Reader operation feedback integrated; three-task validation predeclared
+
+Integrated `77bc36b` (candidate c2deeac) on top of observation settling29dbd73. Reader-selected long-press identity rejections now explain tap-only authority only when the current pick is long-clickable and passes the existing Tap validator. Independently identified long presses remain allowed; missing/stale/disabled/nonactionable/field/slider/shade cases retain existing checks. No new admitted actions, grants, confirmation, step/correction/read caps or general-prompt growth. Eligible correction adds10characters; source and limitations in `docs/READER_AUTHORITY_FEEDBACK_20261107.md`.
+
+Parent reran26scripted comparisons with identical17dispatches/call counts/caps and only specified feedback differences; original supplied-reply replays still fail at the read cap. Fresh combined main validation:296Rust/UniFFI and118Python passes, zero failures/ignored/skips. Root logs `/tmp/ballistic-combined-reader-{tests,build,python}.log`; ignored replay `ballistic_runs/reader_feedback_parent_review/`. Live decision quality remains unknown; synthetic injection ERROR/lock stdout is test output, not a live result.
+
+Predeclare separate targeted run at exact runtime commit77bc36b (resolve/freeze full SHA): fixed order **MarkorDeleteNote, ClockStopWatchRunning, SystemWifiTurnOff**, seed0, once each, no outcome-driven repeats. First tests reader feedback; latter two are compatibility checks for changing time/switch observations. Preserve normal task budgets,800/64/400role caps, production retries, five-second pacing, original key/Gemini flash-lite/native-tools-disabled, ordinary independent checker and confirmation policy. Fresh remote296Rust/118Python gates and manifest freeze precede exclusive visible-emulator lock. Stop all roles on429/400 or actual environment/transport outage; no probes/key rotation. Record done/state/combined independently, changed-feedback exposure, observation errors, timings/calls/tokens and preservation/release evidence. No candidate-specific oracle or setup workaround. A successful tiny round is not13/20; last complete result remains8/20 combined,11/20state. History/numeric prototypes stay excluded.
+
 ### 2026-11-07 — Narrow observation settling integrated; live compatibility pending
 
 Reviewed and integrated candidate `d24a8df`: slight-change tolerance now permits only text variation on noninteractive text with passive ancestry, keeping the existing10%cap and rejecting changes to labels/bounds/flags/control captions. Comparison-only excluded-parent marker prevents ancestry loss; returned observation schema is unchanged. Exact matching, foreground bracketing, freshness guards, six acquisitions/30ssoft deadline and backoff remain. No action/model/core policy changes; parked history/numeric code stays excluded.
