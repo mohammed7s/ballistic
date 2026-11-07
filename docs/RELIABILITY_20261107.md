@@ -19,11 +19,12 @@ by this work. Existing evidence under the main checkout is read only.
    ambiguous send receipts remain unresolved. No benchmark-specific route or success rule is
    introduced, and an emptied editor never becomes proof of delivery.
 
-## Frozen held-out cases (before implementation)
+## Frozen regression cases (before implementation)
 
-These are synthetic cases independent of the recorded task labels/layouts/values. Keep the
-expectations fixed when implementation is evaluated. Baseline reproduction and final results
-will be appended below; failures must be reported, not tuned out of this list.
+These synthetic cases vary the recorded task labels/layouts/values. They were written before
+production changes, but guided implementation: they are regression cases, not an independent
+held-out evaluation. Their expectations were fixed before coding. An independent held-out
+workflow evaluation is still required; passing these cases does not establish generalization.
 
 Protocol:
 

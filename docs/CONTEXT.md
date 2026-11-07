@@ -15,6 +15,19 @@ confirmation dialog.**
 
 ## 2. Decisions taken (and why)
 
+**7 November 2026 — reliability changes integrated, offline validation only:** `ed4bbdd`
+adds one retry for eligible missing/null/blank model replies within the existing attempt ceiling;
+429, refusal, filtering, length-limit and tool-call responses are excluded. Retry usage is kept
+in nested telemetry and must be included in cost analysis. Completion checks reject opaque,
+duplicate and noncanonical citations, return fixed feedback, reuse the fresh verifier screen,
+and check cancellation after verification. These checks preserve model-assessment status;
+they do not prove semantic coverage, delivery or persistence. The native HTTP client is unchanged.
+After integration with the wallet removal, **86 Rust tests with UniFFI and 71 Python tests pass**.
+The eight completion regression cases improved from 4/8 to 8/8; they guided implementation and
+are not independent held-out evidence. Scripted protocol tests retain exactly one guarded action
+dispatch during empty-verifier-response recovery or exhaustion. No live improvement is measured;
+the last suite remains 4/20 combined, 9/20 independent state. See `docs/RELIABILITY_20261107.md`.
+
 **7 November 2026 — native APK Clock and Stop smoke verified:** the existing pre-Core4 APK
 opened Clock from the exact prompt `open the Clock app`, using in-process Rust and Gemini
 flash-lite. An independent activity-manager read confirmed DeskClock in the foreground.
