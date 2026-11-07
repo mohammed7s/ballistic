@@ -3,17 +3,31 @@ name = "ballistic_core"
 version = "0.1.0"
 edition = "2021"
 description = "Ballistic's agent: reads a screen, decides one action, checks it against the owner's rules. Hosts supply Screen, Hands, Models and Confirm."
-license = "MIT"
+license = "Apache-2.0"
 
 [lib]
 name = "ballistic_core"
 path = "src/lib.rs"
+# rlib for the harness binary and tests; cdylib is libballistic_core.so for the Android app.
+crate-type = ["rlib", "cdylib"]
 
 [[bin]]
 name = "ballistic-core"
 path = "src/bin/ballistic_core.rs"
 
+# Generates the Kotlin (and later Swift) bindings from a built library (core/README.md §15).
+[[bin]]
+name = "uniffi-bindgen"
+path = "src/bin/uniffi_bindgen.rs"
+required-features = ["uniffi-cli"]
+
+[features]
+# The in-process binding for the app shells (src/ffi.rs). Off for the harness build.
+uniffi = ["dep:uniffi"]
+uniffi-cli = ["uniffi", "uniffi/cli"]
+
 [dependencies]
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "2"
+uniffi = { version = "0.32", optional = true }

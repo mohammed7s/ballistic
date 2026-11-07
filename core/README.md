@@ -433,7 +433,7 @@ Android-only; and the owner does not want to debug across three languages.
    model, on either laptop. Most debugging happens there.
 5. Unit tests run on recorded screens with `cargo test`.
 6. The Kotlin and Swift shells are plumbing: UniFFI generates the bridge; the shell calls
-   `core.step()` and shows what core returns.
+   `run()` (not a `step()`: core owns sequencing) and shows what core returns.
 
 **Data files: who writes what.** Files describe behaviour; code enforces it; models never write
 files. A file can make the agent more careful, never less.
@@ -464,16 +464,80 @@ core/
     policy.rs
     skills.rs
     backend.rs              OpenAI-compatible client, config parsing
-    agent.rs                the loop
+    agent.rs                the loop (`drive`, over any `run::Host`); `run` for the Bridge
+    run.rs                  library entry point: the loop over four separate ports + log + Stop
+    ffi.rs                  UniFFI binding (feature `uniffi`): HostPorts callback interface, run()
     log.rs
-    bin/ballistic-core.rs   JSON-lines process the harness drives
-  bindings/                 UniFFI definitions → Kotlin, Swift
+    bin/ballistic_core.rs   JSON-lines process the harness drives
+    bin/uniffi_bindgen.rs   binding generator (feature `uniffi-cli`)
+  uniffi.toml               binding settings (Kotlin package app.ballistic.assistant.core.ffi)
   tests/                    unit tests + recorded screens
 harness/
   core_bridge.py            Screen/Hands/Confirm over JSON lines, on top of AndroidWorld's env
   run_task.py, chat.py      gain --agent core
 tests/injection/            emulator injection cases
 ```
+
+### Library entry point and the UniFFI binding (built 7 Nov 2026)
+
+One loop, two ways in. `agent::drive` runs over anything implementing `run::Host` (the four
+ports, a log sink, a cancel check):
+
+- **Harness**: `agent::run(&mut Bridge, request, max_steps)`, the JSON-lines pipe, unchanged on
+  the wire. The Bridge never reports a stop.
+- **In-process**: `run::run(request, max_steps, screen, hands, models, confirm, log, cancelled)`
+  with four separate `&mut dyn` ports, `log: &mut dyn FnMut(&Value)` and
+  `cancelled: &dyn Fn() -> bool`. Returns the same report `Value`.
+
+Step events are the same objects in both (`{"step","action","why","outcome","task_status",...}`).
+Stop is checked before every observation, model call and confirmation, and immediately before
+every dispatch. A stop returns `{"done":false,"reason":"stopped by owner","stopped":true,...}`
+with the execution status of what already ran. A call in flight is not interrupted.
+
+**UniFFI** (`src/ffi.rs`, feature `uniffi`, proc-macros, `uniffi` 0.32): the boundary is JSON
+strings in the serde forms of `types.rs`, as on the pipe. The shells keep their own mirror
+classes (Kotlin: `apps/assistant/core-api/.../core/Types.kt`).
+
+```
+callback interface HostPorts {          // shell implements; called on the run() thread
+  observe() -> ScreenState json                       throws HostError
+  act(op_json: HandsOp) -> HandsResult json           throws HostError
+  complete(role: "planner"|"reader"|"judge"|"verifier", messages_json: [ChatMessage],
+           max_tokens: u32) -> Completion json        throws HostError
+  confirm(request_json: ConfirmRequest) -> ConfirmResult json, i.e. "approved" or "denied"
+                                                      (quoted)   throws HostError
+  log(event_json)                                     the step event
+  is_cancelled() -> bool
+}
+error HostError { Disconnected{reason}, Malformed{reason}, Host{reason} }   // = PortError
+fn run(request, max_steps: u32, host: HostPorts) -> String
+   // {"finished":true,"report":{...}} or {"finished":true,"error":"..."}: the harness's last line
+fn core_version() -> String
+```
+
+Build (Linux host; `apps/assistant/scripts/build_core.sh` runs all three steps):
+
+```
+# Android libraries -> apps/assistant/app/src/main/jniLibs/{arm64-v8a,x86_64}/ (git-ignored)
+#   needs: rustup target add aarch64-linux-android x86_64-linux-android; cargo install cargo-ndk;
+#          an NDK under $ANDROID_HOME/ndk (r27d, 27.3.13750724, used here)
+cargo ndk -t arm64-v8a -t x86_64 -P 33 -o ../apps/assistant/app/src/main/jniLibs \
+    build --release --features uniffi --lib
+# host library, for the binding generator and :core-api:test
+cargo build --release --features uniffi --lib
+# Kotlin binding -> apps/assistant/core-api/src/main/kotlin/app/ballistic/assistant/core/ffi/ballistic_core.kt
+cargo run --release --features uniffi-cli --bin uniffi-bindgen -- generate \
+    --library target/release/libballistic_core.so --language kotlin --no-format \
+    --out-dir ../apps/assistant/core-api/src/main/kotlin
+```
+
+The generated file is committed and must be regenerated whenever `ffi.rs` changes. It checks a
+checksum of every exported function against the loaded library, so a stale binding fails at load.
+The harness build (`cargo build`, no feature) contains none of this.
+
+**What remains in core for the app**: the reader (`read`/`answer` still end the run as
+`unsupported`), policy and routing moving into core from the shell's `ConfirmFloor`, core
+contracts for notification reply, dial and alarm, and checking the hard-approval signature.
 
 ## 16. Order of work
 

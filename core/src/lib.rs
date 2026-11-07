@@ -11,6 +11,12 @@ pub mod types;
 pub mod actions;
 pub mod screen_filter;
 pub mod agent;
+pub mod run;
 
 pub mod capabilities;
 pub mod verification;
+
+#[cfg(feature = "uniffi")]
+pub mod ffi;
+#[cfg(feature = "uniffi")]
+uniffi::setup_scaffolding!();

@@ -1,0 +1,5 @@
+# UniFFI binding settings (src/ffi.rs). The Kotlin package keeps the generated file apart from
+# the hand-written mirror classes in app.ballistic.assistant.core.
+[bindings.kotlin]
+package_name = "app.ballistic.assistant.core.ffi"
+cdylib_name = "ballistic_core"
