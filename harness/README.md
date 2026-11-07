@@ -148,7 +148,13 @@ unknown/error, not model failures. Free prompts have no benchmark checker. Core'
 `verification.evidence_basis=model_assessment` is weaker than AndroidWorld's state check.
 
 The suite TSV adds independent state outcome, agent completion, failure category, call/token
-counts and the JSON path. Full task logs are preserved. `SEED=0` is the new default; the original
+counts and the JSON path. Token totals include recorded retries and count only known numeric
+usage; `unknown_prompt_attempts` / `unknown_completion_attempts` report missing usage rather
+than treating it as measured zero. `model_calls` counts logical completions; `http_attempts`
+counts client request attempts, including retries and connection failures, not proof that the
+provider received each request. `retry_attempts`, completion tokens, total pacing and checker
+seconds are separate columns. Older records without retry telemetry cannot recover that cost.
+Full task logs are preserved. `SEED=0` is the new default; the original
 baseline was unseeded, so comparisons with it are descriptive rather than matched-input trials.
 `TASK_TIMEOUT` bounds a task process (default 900 seconds). HTTP/checker/process errors are
 reported separately. The harness advertises only its actual input operations and test app scopes;

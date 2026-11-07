@@ -26,7 +26,7 @@ TASKS="${TASKS:-ContactsAddContact ClockTimerEntry ClockStopWatchRunning OpenApp
 OUT=~/ballistic_runs/suite_${AGENT}_$(date +%Y%m%d-%H%M%S).tsv
 mkdir -p ~/ballistic_runs
 printf "# agent=%s model=%s base_url=%s seed=%s commit=%s core_model_min_interval=%s\n" "$AGENT" "$MODEL" "$BASE_URL" "${SEED:-0}" "$(git rev-parse --short HEAD 2>/dev/null || echo "${BALLISTIC_COMMIT:-unknown}")" "${CORE_MODEL_MIN_INTERVAL:-0}" > "$OUT"
-printf "task\tresult\tsteps\tseconds\texit\tbenchmark\tagent_done\tfailure_category\tmodel_calls\tprompt_tokens\trun_json\n" >> "$OUT"
+"$PY" -c 'from harness.suite_row import COLUMNS; print("\t".join(COLUMNS))' >> "$OUT"
 attempted=0
 quota_stop=0
 for t in $TASKS; do

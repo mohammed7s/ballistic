@@ -95,8 +95,10 @@ not seven planning failures, and there is no evidence here of an emulator crash 
 Nine non-error failures comprise five planning/budget/give-up outcomes and four verification
 outcomes (the three false dones and MarkorCreateFolder).
 
-Model telemetry: **197 attempts = 154 planner + 29 reader + 14 verifier**; 190 usage-bearing
-successes, seven errors. Recorded usage is **410,050 prompt + 6,691 completion tokens**, mean
+Model telemetry: **197 logical calls = 154 planner + 29 reader + 14 verifier**; 190 usage-bearing
+successes, seven final errors. Reinspection on 7 November found one recorded HTTP 503 retry in
+RecipeAddSingleRecipe, so the client made **198 recorded attempts**, with eight attempts lacking
+usage counters (the retry plus seven final errors). No token usage can be inferred for those. Recorded usage is **410,050 prompt + 6,691 completion tokens**, mean
 **2,158 prompt tokens** per usage-bearing call. Four harness confirmations were automatically
 approved; this does not test the app's biometric gate.
 

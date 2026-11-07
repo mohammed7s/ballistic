@@ -2,10 +2,35 @@ import json
 import io
 import unittest
 from unittest.mock import patch
-from suite_row import main, summarize
+from suite_row import main, summarize, model_usage
 
 
 class SuiteRowTests(unittest.TestCase):
+    def test_retry_costs_and_unknown_usage_are_preserved(self):
+        calls = [
+            {'http_status': 200, 'prompt_tokens': 100, 'completion_tokens': 20,
+             'pacing_seconds': 4.5, 'retried': [
+                 {'http_status': 503},
+                 {'http_status': 200, 'prompt_tokens': 80, 'completion_tokens': 0}]},
+            {'http_status': 429, 'pacing_seconds': 1.25},
+        ]
+        self.assertEqual(model_usage(calls), {
+            'http_attempts': 4, 'retry_attempts': 2, 'prompt_tokens': 180,
+            'completion_tokens': 20, 'unknown_prompt_attempts': 2,
+            'unknown_completion_attempts': 2, 'pacing_seconds': 5.75, 'quota_limited': True})
+
+    def test_invalid_usage_is_unknown_and_zero_is_known(self):
+        result = model_usage([
+            {'prompt_tokens': 0, 'completion_tokens': 0},
+            {'prompt_tokens': True, 'completion_tokens': -1},
+            {'prompt_tokens': None, 'completion_tokens': '4'},
+        ])
+        self.assertEqual(result['prompt_tokens'], 0)
+        self.assertEqual(result['completion_tokens'], 0)
+        self.assertEqual(result['unknown_prompt_attempts'], 2)
+        self.assertEqual(result['unknown_completion_attempts'], 2)
+        self.assertEqual(model_usage([])['http_attempts'], 0)
+
     def row(self, record):
         with patch('suite_row.Path.read_text', side_effect=['written /runs/task.json\n', json.dumps(record)]):
             return summarize('Task', '/runs/task.log', 0)
