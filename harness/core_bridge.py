@@ -450,15 +450,20 @@ class ModelClient:
     }
 
     def __init__(self, routes: dict[str, tuple[str, str, str]], temperature: float = 0.0, timeout: int = 120,
-                 retries: int = 3, backoff_seconds: float = 2.0, min_interval_seconds: float = 0.0):
+                 retries: int = 3, backoff_seconds: float = 2.0, min_interval_seconds: float = 0.0,
+                 disable_native_tools: bool = False):
         if not 0 <= min_interval_seconds <= 60:
             raise ValueError("model minimum interval must be between 0 and 60 seconds")
+        if type(disable_native_tools) is not bool:
+            raise ValueError("disable_native_tools must be a boolean")
         self.routes = routes
         self.temperature = temperature
         self.timeout = timeout
         self.retries = retries
         self.backoff_seconds = backoff_seconds
         self.min_interval_seconds = min_interval_seconds
+        # Opt-in: compatible endpoints differ on accepting tool_choice without tools.
+        self.disable_native_tools = disable_native_tools
         self._last_attempt_started: float | None = None
         self.calls: list[dict[str, Any]] = []
 
@@ -572,9 +577,8 @@ class ModelClient:
             shape = "empty_content"
         else:
             shape = "text_content"
-        if shape != "text_content":
-            for field in ("refusal", "tool_calls", "function_call"):
-                metadata[field + "_present"] = bool(message.get(field))
+        for field in ("refusal", "tool_calls", "function_call"):
+            metadata[field + "_present"] = bool(message.get(field))
         return {**metadata, "response_shape": shape}
 
     @staticmethod
@@ -602,6 +606,8 @@ class ModelClient:
 
         base_url, model, api_key = self.routes.get(role) or self.routes["planner"]
         body = {"model": model, "messages": messages, "temperature": self.temperature, "max_tokens": max_tokens}
+        if self.disable_native_tools:
+            body["tool_choice"] = "none"
         t0 = time.time()
         retried: list[dict[str, Any]] = []
         retried_empty = False
@@ -624,6 +630,13 @@ class ModelClient:
                     diagnostics["response_shape"] = "invalid_json"
                     raise ModelResponseError("invalid_json") from None
                 diagnostics = {**self._response_metadata(j), **self._usage(j)}
+                # Native calls are never Ballistic actions. Even accompanying text must
+                # not reach the planner/reader/verifier when the envelope is non-textual.
+                # Keep missing/null diagnostics unchanged for existing observations.
+                if diagnostics["response_shape"] == "text_content" and (
+                        any(diagnostics.get(field + "_present") for field in ("refusal", "tool_calls", "function_call"))
+                        or diagnostics.get("finish_reason") in {"tool_calls", "function_call", "content_filter"}):
+                    raise ModelResponseError("non_text_completion")
                 if diagnostics["response_shape"] != "text_content":
                     if (not retried_empty and attempt < self.retries
                             and self._retryable_empty(j, diagnostics)):

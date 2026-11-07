@@ -66,6 +66,7 @@ flags.DEFINE_string("reader_model", None, "core: model for the reader role, same
 flags.DEFINE_string("judge_model", None, "core: model for the judge role, same base_url (default --model)")
 flags.DEFINE_string("verifier_model", None, "core: model for the verifier role, same base_url (default --model)")
 flags.DEFINE_float("core_model_min_interval", 0.0, "core: minimum seconds between HTTP attempts across roles (0 disables pacing)")
+flags.DEFINE_bool("core_disable_native_tools", False, "core: opt in to tool_choice=none for every model role; endpoint must support it without tools")
 flags.DEFINE_integer("seed", None, "Seed for task generation; original baseline was unseeded")
 flags.DEFINE_string("task", None, "AndroidWorld task name; random if omitted")
 flags.DEFINE_string("goal", None, "Free-form goal; skips AndroidWorld task setup and success check")
@@ -246,7 +247,8 @@ def core_models() -> core_bridge.ModelClient:
     for role, model in (("reader", FLAGS.reader_model), ("judge", FLAGS.judge_model), ("verifier", FLAGS.verifier_model)):
         routes[role] = (FLAGS.base_url, model or FLAGS.model, key)
     return core_bridge.ModelClient(routes, FLAGS.temperature, FLAGS.timeout,
-                                   min_interval_seconds=FLAGS.core_model_min_interval)
+                                   min_interval_seconds=FLAGS.core_model_min_interval,
+                                   disable_native_tools=FLAGS.core_disable_native_tools)
 
 
 def serve_core(host: core_bridge.CoreHost, args: list[str]) -> dict[str, Any]:
@@ -293,6 +295,7 @@ def write_core_record(name: str, goal: str, core_mode: str, args: list[str], hos
             "task": name, "goal": goal, "seed": FLAGS.seed, "agent": "core", "core_mode": core_mode, "core_args": args,
             "model": FLAGS.model, "roles": {r: m for r, (_, m, _) in host.models.routes.items()},
             "core_model_min_interval": host.models.min_interval_seconds,
+            "core_disable_native_tools": host.models.disable_native_tools,
             "base_url": FLAGS.base_url, "confirm": host.confirm_policy, "success": success, "done": run["done"],
             "steps": [e for e in host.events if "step" in e], "finished": run["finished"],
             "model_calls": host.models.calls, "confirmations": host.confirmations,

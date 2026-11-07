@@ -90,6 +90,31 @@ fails at load, and the app falls back to the fake engine.
 binding with scripted ports. It needs the host library at `core/target/release/libballistic_core.so`
 (or `BALLISTIC_HOST_CORE=<path>`). Without it, those tests are reported as skipped.
 
+### Text-only model endpoint contract
+
+`ModelsHttp` accepts textual completions for all roles. A native tool call, legacy function
+call, refusal payload or tool/filter finish signal is a terminal port error, including when
+text accompanies it. Native calls never become Hands actions. HTTP failures report status,
+without provider error-body excerpts; unknown metadata, refusal text and tool arguments are
+not included in error prose. The key store and Stop/confirmation policies are unchanged.
+
+Each endpoint in app-private `models.json` may opt in with `"disable_native_tools": true`:
+
+```json
+{"planner":{"base_url":"http://127.0.0.1:8080/v1","model":"your-existing-model","disable_native_tools":true}}
+```
+
+The default is false, preserving the previous request fields. When true, the client adds
+only `"tool_choice":"none"`, without declaring tools. The setting follows the endpoint's
+existing role fallback rules; an explicitly configured reader can leave it off. No response
+format is forced on reader element IDs or other textual outputs. Token budgets and all other
+generation parameters remain unchanged. There is no automatic probe, fallback or retry.
+
+Only opt in for an endpoint accepting this request shape. Acceptance and ability to prevent
+the observed Gemini tool-call response have not been measured. In particular, the reviewed
+Gemini `v1beta/openai` docs do not establish `none` without `tools`. See
+[the transport report](../../docs/MODEL_TEXT_TRANSPORT_20261107.md) for primary sources and tests.
+
 ### Setting up an emulator for a real run (debug build)
 
 The key never goes on a command line or into the repository. On the host that holds it:

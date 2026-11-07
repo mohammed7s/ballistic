@@ -26,12 +26,20 @@ import java.net.URI
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
+import kotlinx.serialization.EncodeDefault
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 
 @Serializable
 data class Endpoint(
     /** e.g. `https://generativelanguage.googleapis.com/v1beta/openai/` or `http://127.0.0.1:8080/v1`. */
     @SerialName("base_url") val baseUrl: String,
     val model: String,
+    /** Opt in only for endpoints accepting tool_choice=none without a tools declaration. */
+    @SerialName("disable_native_tools") val disableNativeTools: Boolean = false,
 )
 
 /**
@@ -75,15 +83,34 @@ fun Endpoint.leavesDevice(): Boolean {
 }
 
 @Serializable
-private data class ChatRequest(val model: String, val messages: List<ChatMessage>, @SerialName("max_tokens") val maxTokens: Int)
+private data class ChatRequest(
+    val model: String,
+    val messages: List<ChatMessage>,
+    @SerialName("max_tokens") val maxTokens: Int,
+    @EncodeDefault(EncodeDefault.Mode.NEVER)
+    @SerialName("tool_choice") val toolChoice: String? = null,
+)
 
 @Serializable
 private data class ChatResponse(val choices: List<Choice> = emptyList(), val usage: Usage? = null) {
     @Serializable
-    data class Choice(val message: Message? = null)
+    data class Choice(val message: Message? = null, @SerialName("finish_reason") val finishReason: String? = null)
 
     @Serializable
-    data class Message(val content: String? = null)
+    data class Message(
+        val content: String? = null,
+        val refusal: JsonElement? = null,
+        @SerialName("tool_calls") val toolCalls: JsonElement? = null,
+        @SerialName("function_call") val functionCall: JsonElement? = null,
+    )
+}
+
+/** Inspect presence only; native payloads never become actions, logs or error prose. */
+private fun JsonElement?.hasPayload(): Boolean = when (this) {
+    null, JsonNull -> false
+    is JsonArray -> isNotEmpty()
+    is JsonObject -> isNotEmpty()
+    is JsonPrimitive -> content.isNotEmpty()
 }
 
 class ModelsHttp(
@@ -99,7 +126,8 @@ class ModelsHttp(
         } catch (e: Exception) {
             throw PortException.Host("invalid base_url for ${role.name.lowercase()}")
         }
-        val body = CoreJson.encodeToString(ChatRequest.serializer(), ChatRequest(endpoint.model, messages, maxTokens))
+        val body = CoreJson.encodeToString(ChatRequest.serializer(), ChatRequest(
+            endpoint.model, messages, maxTokens, if (endpoint.disableNativeTools) "none" else null))
         val connection = try {
             url.openConnection() as HttpURLConnection
         } catch (e: IOException) {
@@ -117,14 +145,20 @@ class ModelsHttp(
             val text = (if (status in 200..299) connection.inputStream else connection.errorStream)
                 ?.use { it.readBytes().toString(Charsets.UTF_8) }.orEmpty()
             if (status !in 200..299) {
-                throw PortException.Host("${url.host} returned HTTP $status: ${scrub(text, key).take(200)}")
+                throw PortException.Host("${url.host} returned HTTP $status")
             }
             val response = try {
                 RecordJson.decodeFromString(ChatResponse.serializer(), text)
             } catch (e: SerializationException) {
                 throw PortException.Malformed("${url.host} returned a body that is not a chat completion")
             }
-            val content = response.choices.firstOrNull()?.message?.content
+            val choice = response.choices.firstOrNull()
+            val message = choice?.message
+            if (message?.toolCalls.hasPayload() || message?.functionCall.hasPayload() || message?.refusal.hasPayload()
+                || choice?.finishReason in setOf("tool_calls", "function_call", "content_filter")) {
+                throw PortException.Malformed("non_text_completion")
+            }
+            val content = message?.content
                 ?: throw PortException.Malformed("${url.host} returned no message content")
             return Completion(content, response.usage ?: Usage())
         } catch (e: IOException) {
@@ -133,8 +167,4 @@ class ModelsHttp(
             connection.disconnect()
         }
     }
-
-    /** Removes the key from text that came back from the server, in case it echoes headers. */
-    private fun scrub(text: String, key: String?): String =
-        if (key.isNullOrEmpty()) text else text.replace(key, "[key]")
 }

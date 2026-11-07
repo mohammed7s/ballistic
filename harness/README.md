@@ -89,6 +89,7 @@ Core asks and the harness answers, one JSON line each way (`core/src/bridge.rs`)
 | `--core_bin` | path to `ballistic-core`; default `$BALLISTIC_CORE_BIN`, else the cargo target dirs |
 | `--core_mode observe` | observe once and report counts (pipe smoke test) |
 | `--core_model_min_interval N` | minimum seconds between core HTTP attempts across roles/retries, 0–60; default 0 disables pacing |
+| `--core_disable_native_tools` | opt in to `tool_choice: "none"` for all core model roles; default false; endpoint must accept it without `tools` |
 
 A core run's JSON has the same fields as before plus `core_args`, `roles`, `confirm`,
 `finished` (core's last event), `confirmations`, `exit_code`, `stderr`, and `lines`: every bridge
@@ -188,7 +189,7 @@ also retains bounded numeric retry guidance (`retry_after_seconds`) and allowlis
 types/values (`quota_limits`), excluding provider messages, project IDs and quota dimensions.
 These fields report provider guidance, not an automatic retry decision. Malformed successful
 responses produce `ModelResponseError` with response-shape and allowlisted finish-reason fields,
-instead of a missing-content `KeyError`. Empty replies also record boolean refusal/tool-call/
+instead of a missing-content `KeyError`. Replies also record boolean refusal/tool-call/
 function-call presence and fixed documented Gemini finish enums; unknown values remain `other`.
 Provider text and tool arguments are never copied into diagnostics. These additional enums do
 not broaden retries: only an eligible empty reply with existing `stop`/missing finish reason can
@@ -197,3 +198,23 @@ retrospectively. Observation settles on two consecutive samples with the same fo
 trees match, or differ only slightly (same skeleton, at most a tenth of the nodes changed); the
 later sample is returned. Unsettled samples are spaced 0.3 s, doubling; six acquisitions and a
 30-second soft deadline bound the wait.
+
+### Text-only model transport
+
+Every core model role returns text, which still passes through the existing core validators.
+Native `tool_calls`, legacy `function_call`, refusal payloads and their tool/filter finish
+signals are terminal even when accompanied by nonempty text. They are never translated into
+Hands actions or retried. Diagnostics retain only presence flags and allowlisted finish
+reasons, including for mixed responses; unknown metadata and native arguments are excluded.
+
+`--core_disable_native_tools` (`ModelClient(..., disable_native_tools=True)` for direct callers)
+adds only `tool_choice: "none"`. It is a boolean opt-in, default false, recorded in ordinary
+core run JSON as `core_disable_native_tools`. There are no tools declarations, format/schema
+changes, probes, fallback requests or new retries. Reader element responses remain plain
+`eN`/`none`; this does not constrain future reader summary text to an element response.
+Models, temperature, thinking and token/step/attempt budgets are unchanged.
+
+Endpoint compatibility and effectiveness are unmeasured. Google documents tool control, but
+the reviewed Gemini `v1beta/openai` material does not establish acceptance of `none` without
+`tools`; a rejection such as HTTP 400 stays terminal. See the primary-source assessment and
+offline test evidence in [the transport report](../docs/MODEL_TEXT_TRANSPORT_20261107.md).
