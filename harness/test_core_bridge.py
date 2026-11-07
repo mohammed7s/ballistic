@@ -73,7 +73,9 @@ class FakeEnv:
         return after
 
     def get_state(self, *, wait_to_stabilize):
-        assert wait_to_stabilize is True
+        # Do not nest AndroidWorld's whole-screen settling timeout inside the
+        # host's foreground settling loop (it timed out on the real launcher).
+        assert wait_to_stabilize is False
         assert self.activity_reads % 2 == 1
         self.state_reads += 1
         return SimpleNamespace(forest=self.samples[min(self.index, len(self.samples) - 1)][1])
@@ -100,7 +102,8 @@ class ObservationTest(unittest.TestCase):
         self.assertEqual(first['nodes'][0]['text'], 'Screen A')
         self.assertEqual(host.env.state_reads, 4)
         self.assertEqual(host.env.activity_reads, 8)  # No third metadata read.
-        self.sleep.assert_not_called()
+        self.assertEqual(self.sleep.call_count, 2)
+        self.sleep.assert_called_with(0.3)
 
     def test_activity_transition_during_acquisition_retries(self):
         host = self.host(sample(self.old, after='app/B'), sample(self.old, 'app/B'),
@@ -128,7 +131,7 @@ class ObservationTest(unittest.TestCase):
         with self.assertRaisesRegex(ObservationError, 'unchanged_tree_after_activity_change'):
             host.observe()
         self.assertEqual(host.env.state_reads, 8)  # 2 accepted + 6 rejected.
-        self.assertEqual(self.sleep.call_count, 5)  # Never sleep after last try.
+        self.assertEqual(self.sleep.call_count, 6)  # One settle + five rejected; none after last try.
         # Failure must not bless the mixed sample as the baseline for a retry.
         with self.assertRaisesRegex(ObservationError, 'unchanged_tree_after_activity_change'):
             host.observe()

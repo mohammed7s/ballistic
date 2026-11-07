@@ -185,9 +185,10 @@ class CoreHost:
     def observe(self) -> dict[str, Any]:
         """Bounded consistency checks, not a guarantee of post-action freshness.
 
-        AndroidWorld's stable-state check compares ui_elements and can return an
-        unchanged old forest (or a changing state at its timeout). Require two
-        consecutive ready foreground samples as well. Reject unchanged app trees
+        AndroidWorld's stable-state check compares all ui_elements and can return
+        an unchanged old forest, or spend its whole timeout on changing chrome.
+        Use raw acquisitions with our own foreground-only settling check. Require two
+        consecutive ready foreground samples. Reject unchanged app trees
         across observed activity transitions, even when they look stable. This
         deliberately may reject legitimate identical screens in distinct activities.
         Same-activity stale trees, and transitions wholly between activity reads,
@@ -205,7 +206,7 @@ class CoreHost:
             if time.monotonic() >= deadline:
                 break
             before = self.env.foreground_activity_name or ""
-            state = self.env.get_state(wait_to_stabilize=True)
+            state = self.env.get_state(wait_to_stabilize=False)
             w, h = self.env.logical_screen_size
             foreground = self.env.foreground_activity_name or ""
             package, _, activity = foreground.partition("/")
@@ -237,8 +238,12 @@ class CoreHost:
                 # any accepted observation (e.g. at startup).
                 baselines.append((foreground, signature))
                 reason = "foreground_not_settled"
-                # get_state(True) already polls with a settling interval. No
-                # unconditional post-action sleep or delay on a ready sample.
+                # Space stability samples without nesting AndroidWorld's separate
+                # six-second whole-screen wait inside our own retry deadline.
+                # This is a settling heuristic, not proof of capture freshness.
+                remaining = deadline - time.monotonic()
+                if attempt < 5 and remaining > 0:
+                    time.sleep(min(0.3, remaining))
                 continue
             previous_candidate = None
             remaining = deadline - time.monotonic()
