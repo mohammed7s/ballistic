@@ -15,6 +15,14 @@ confirmation dialog.**
 
 ## 2. Decisions taken (and why)
 
+### 2026-11-07 — History prototype remains isolated pending independent review
+
+Astra candidate `5bb0b9f399ff9e91e26f150ec4882866d761145f` exists in isolated worktree `/home/wakeel/.t3/worktrees/ballistic/t3-670518a3`; **not cherry-picked, pushed or live-tested**. Child reports296Rust/100Python passes, no skips; JVM not run. Parent independently verified both replay binary hashes and reran the recorded-port comparison: all54 planner calls preserve dispatches/logs/budgets/reports with supplied recorded replies. This is plumbing evidence, not new model decisions or task success.
+
+Conservative matching correlates Camera6/8 adjacent target transitions (including Shutter e2→e3), Calendar2/32 and Timer0/8. It adds mean399.94/max457 prompt characters across54 calls, with no token/latency claim. It removes type/open-app/read arguments from history as well as replacing target IDs, which may lose useful context when matching is unavailable. Actual indistinguishable object replacement remains unobservable; handles grant no authority or completion evidence.
+
+Decision: hold the candidate outside master for a separate Astra review of context loss, matching/freshness correctness and bounded CPU/allocation cost before even a small controlled model comparison. No full-suite rerun or emulator/model work is currently active. Parent reproduction output is ignored `ballistic_runs/grounded_history_parent_review/replay/`. Last complete score remains Core6 8/20 combined,11/20 state; latest Core7 targeted0/6 combined,2/6 state.
+
 ### 2026-11-07 — Core7 targeted round finished without demonstrated improvement
 
 Exact `4de7ade` ran six frozen tasks once: **0 PASS / 5 FAIL / 1 ERROR, state 2/6, zero accepted Done**, versus the selected Core6 cases' 1 PASS / 5 FAIL and state 3/6. Last full20 remains Core6 **8 combined / 11 state**; >=13 not achieved. Parent independently verified 51 original +23 derived file hashes and recomputed raw totals: 83 calls/85 attempts, two503 retries, no429/400, 194,327 prompt +3,014 output tokens with two unknown-usage attempts; 445.6 s agent +12.677 s checker (168.980 s pacing already included).
