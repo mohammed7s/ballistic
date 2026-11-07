@@ -213,6 +213,14 @@ identity; SSIDs and device names stay content. Every entry was seen in a recorde
 no substring or caption heuristic. Keyboard text other than exact `key_pos_*` keys (the
 suggestion strip shows the clipboard) is content.
 
+**Dedicated typed values** (7 Nov 2026, `typed_value.rs`): exact calendar form controls and
+explicit event-list items can carry bounded numeric date/time observations. These are untrusted
+app data, separate from labels, matched titles and typed history; raw strings remain with the
+reader. Missing years remain unknown, interval endpoints do not imply a date or duration, and
+numbers alone cannot identify a target or establish completion. Unknown grammar/envelopes stay
+content. Exact calendar title/description resources also stay content through button-row folding.
+Source grammar, frozen cases, offline comparison and limits: [`TYPED_VALUES_20261107.md`](../docs/TYPED_VALUES_20261107.md).
+
 Everything else the planner needs from content (the newest thread, the message from the dentist)
 it gets through `read` (§6) as a typed answer.
 

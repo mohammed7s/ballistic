@@ -17,6 +17,7 @@
 use std::collections::HashSet;
 
 use crate::types::*;
+pub use crate::typed_value::{ClockTime, ObservedValue, ValueObservation};
 
 /// Match-only strings longer than this stay references even when they match the request (they
 /// are bodies, not titles). The ref is then marked `matches request` so the planner knows to read it.
@@ -50,6 +51,8 @@ pub struct Element {
     pub label: Option<String>,
     /// Observed row kind only; never a control label, item identity or completion evidence.
     pub file_kind: Option<FileKind>,
+    /// Source-tagged numeric data only; never target identity or completion authority.
+    pub observed_values: Vec<ValueObservation>,
     pub resource_id: Option<String>,
     /// Content strings shown because they matched the request.
     pub shown_content: Vec<String>,
@@ -305,6 +308,10 @@ enum PieceKind {
     Text,
     /// Exact file-row resource: content even if this piece folds into another node.
     FileCaption,
+    /// Original bytes from a dedicated value slot, always retained for reader freshness.
+    ValueContent,
+    /// Calendar item strings remain content if the host reports a row as a button.
+    ItemContent,
 }
 
 #[derive(Debug, Clone)]
@@ -398,6 +405,7 @@ struct Work {
     role: Role,
     flags: Flags,
     pieces: Vec<Piece>,
+    observed_values: Vec<ValueObservation>,
     /// Index of the list item this node is, or sits inside.
     item_root: Option<usize>,
 }
@@ -413,25 +421,30 @@ pub fn filter(screen: &ScreenState, ctx: &FilterContext) -> FilteredScreen {
     for (i, n) in nodes.iter().enumerate() {
         let visible = n.flags.visible && n.bounds.area() > 0 && on_screen(&n.bounds, screen.width, screen.height);
         let mut pieces = Vec::new();
-        // Preserve file-row captions byte-for-byte, including the grammar's final separator.
-        let label = if n.resource_id.as_deref() == Some(MARKOR_ROW) {
+        // Preserve captions and dedicated value slots byte-for-byte for reader identity.
+        let value_slot = crate::typed_value::is_value_slot(n);
+        let item_content = crate::typed_value::is_item_content(n);
+        let label = if value_slot || item_content {
+            n.label.as_deref()
+        } else if n.resource_id.as_deref() == Some(MARKOR_ROW) {
             n.label.as_deref().filter(|s| !s.trim().is_empty())
         } else { non_empty(&n.label) };
         if let Some(l) = label {
-            let kind = if n.resource_id.as_deref() == Some(MARKOR_ROW) {
+            let kind = if value_slot { PieceKind::ValueContent } else if item_content { PieceKind::ItemContent } else if n.resource_id.as_deref() == Some(MARKOR_ROW) {
                 PieceKind::FileCaption
             } else { PieceKind::Label };
             pieces.push(Piece { text: l.to_string(), kind });
         }
-        if let Some(t) = non_empty(&n.text) {
+        if let Some(t) = if value_slot || item_content { n.text.as_deref() } else { non_empty(&n.text) } {
             // An empty edit field reports its hint as its text; that is the label, not content.
-            if pieces.iter().all(|p| p.text != t) {
-                pieces.push(Piece { text: t.to_string(), kind: PieceKind::Text });
+            if value_slot || item_content || pieces.iter().all(|p| p.text != t) {
+                pieces.push(Piece { text: t.to_string(), kind: if value_slot { PieceKind::ValueContent } else if item_content { PieceKind::ItemContent } else { PieceKind::Text } });
             }
         }
         if n.flags.checkable {
             // Switch captions "ON"/"OFF" repeat the state the [on]/[off] flag shows.
-            pieces.retain(|p| !matches!(p.text.to_lowercase().as_str(), "on" | "off"));
+            pieces.retain(|p| matches!(p.kind, PieceKind::ValueContent | PieceKind::ItemContent)
+                || !matches!(p.text.to_lowercase().as_str(), "on" | "off"));
         }
         let pure_container = pieces.is_empty() && !useful_flags(&n.flags);
         let parent = match raw_parent(i) {
@@ -449,6 +462,7 @@ pub fn filter(screen: &ScreenState, ctx: &FilterContext) -> FilteredScreen {
             role: n.role,
             flags: n.flags,
             pieces,
+            observed_values: crate::typed_value::observe(screen, i).into_iter().collect(),
             item_root,
         });
     }
@@ -472,6 +486,8 @@ pub fn filter(screen: &ScreenState, ctx: &FilterContext) -> FilteredScreen {
         if same_package && work[p].flags.clickable && !work[p].flags.editable && !big {
             let moved = std::mem::take(&mut work[i].pieces);
             work[p].pieces.extend(moved);
+            let values = std::mem::take(&mut work[i].observed_values);
+            work[p].observed_values.extend(values);
             work[i].absorbed_into = Some(p);
         }
     }
@@ -544,10 +560,14 @@ pub fn filter(screen: &ScreenState, ctx: &FilterContext) -> FilteredScreen {
         let keyboard_text = IME_PACKAGES.contains(&package.as_str())
             && !is_keyboard_key(&package, n.resource_id.as_deref());
         let mut labels: Vec<String> = static_label.iter().cloned().collect();
-        let mut content: Vec<String> = Vec::new();
+        let mut content: Vec<(String, bool)> = Vec::new();
         let mut typed: Vec<String> = Vec::new();
         for p in &w.pieces {
-            let is_label = if file_row || p.kind == PieceKind::FileCaption || static_label.is_some() || settings_device_text {
+            if p.kind == PieceKind::ValueContent {
+                content.push((p.text.clone(), true));
+                continue;
+            }
+            let is_label = if file_row || matches!(p.kind, PieceKind::FileCaption | PieceKind::ItemContent) || static_label.is_some() || settings_device_text {
                 false // File captions and displayed strings on code-owned controls stay content.
             } else if w.flags.editable && p.kind == PieceKind::Text {
                 false
@@ -561,7 +581,7 @@ pub fn filter(screen: &ScreenState, ctx: &FilterContext) -> FilteredScreen {
                 false
             } else {
                 match p.kind {
-                    PieceKind::FileCaption => false,
+                    PieceKind::FileCaption | PieceKind::ValueContent | PieceKind::ItemContent => false,
                     PieceKind::Label => true,
                     PieceKind::Text => {
                         is_toggle_role(w.role)
@@ -574,17 +594,21 @@ pub fn filter(screen: &ScreenState, ctx: &FilterContext) -> FilteredScreen {
                 if !labels.iter().any(|l| l.eq_ignore_ascii_case(&p.text)) {
                     labels.push(p.text.clone());
                 }
-            } else if !file_row && p.kind != PieceKind::FileCaption && ctx.typed.iter().any(|t| t == &p.text) {
+            } else if !file_row && !matches!(p.kind, PieceKind::FileCaption | PieceKind::ItemContent) && ctx.typed.iter().any(|t| t == &p.text) {
                 typed.push(p.text.clone());
             } else {
-                content.push(p.text.clone());
+                content.push((p.text.clone(), false));
             }
         }
 
         let mut shown = Vec::new();
         let mut withheld = Vec::new();
         let mut long_match = false;
-        for c in content {
+        for (c, preserve_raw) in content {
+            if preserve_raw {
+                withheld.push(c);
+                continue;
+            }
             let candidate = caption.map(|(_, title)| title).unwrap_or(&c);
             let m = matches_request(ctx.request, candidate);
             if m && candidate.chars().count() <= MATCH_SHOW_MAX_CHARS {
@@ -621,6 +645,7 @@ pub fn filter(screen: &ScreenState, ctx: &FilterContext) -> FilteredScreen {
             flags: w.flags,
             label,
             file_kind: caption.map(|(kind, _)| kind),
+            observed_values: w.observed_values.iter().filter(|v| v.owner_node == n.id).cloned().collect(),
             resource_id: non_empty(&n.resource_id).map(str::to_string),
             shown_content: shown,
             typed,
@@ -662,6 +687,9 @@ fn render_line(e: &Element, content: Option<&ContentRef>) -> String {
     if let Some(l) = &e.label {
         s.push(' ');
         s.push_str(&quote(l));
+    }
+    for value in &e.observed_values {
+        s.push_str(&value.render());
     }
     for c in &e.shown_content {
         s.push(' ');
