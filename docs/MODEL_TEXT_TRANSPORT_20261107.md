@@ -40,7 +40,7 @@ Sources consulted on 7 November 2026:
 No forum workaround claims are used as evidence. Endpoint acceptance without `tools` remains
 uncertain, so forcing the parameter onto every existing compatible endpoint is unwarranted.
 There is no claim that the optional field prevents the observed provider response or improves
-task completion. Either requires a separately authorized, controlled live comparison.
+task completion. Either requires a separately recorded, controlled live comparison.
 
 ## Implementation
 
@@ -107,3 +107,12 @@ No SSH, ADB, emulator/device, live model, key, OS repository or buildserver acce
 merge. Public primary-doc retrieval was the only external investigation. The frozen benchmark
 and its run parameters remain unchanged. Known compatibility risk: an opted-in endpoint may
 reject or ignore `tool_choice: "none"` without declarations. No live uplift is claimed.
+
+
+## Parent integration (7 November 2026)
+
+Integrated as `a26f7c0` on top of reviewed owner excerpts. Parent checks pass **94 Python and
+51 JVM tests, zero failures/skips**, using the freshly rebuilt current core binary/library.
+Rust source is unchanged by this transport patch; that current core passed 206 Rust/UniFFI
+tests immediately before integration. Native tool disabling remains opt-in and was not enabled
+in the ongoing frozen Core 5 suite. No live acceptance/effectiveness result is available yet.
