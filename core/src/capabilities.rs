@@ -59,7 +59,7 @@ mod tests {
             let mut host=Host{calls:0};
             let req=ConfirmRequest{operation:HandsOp::Tap{x:1,y:2},app:"notes".into(),verb:"tap".into(),target:"delete".into(),values:vec![],hard:true,reason:"delete".into()};
             let approval=authorize(&mut host,&req).unwrap();
-            let grants=HostCapabilities{operations:vec!["tap".into()],app_grants:vec!["notes".into(),"messages".into()]};
+            let grants=HostCapabilities{operations:vec!["tap".into()],app_grants:vec!["notes".into(),"messages".into()],tool_grants:vec![]};
             assert!(dispatch(&mut host,&op,app,Some(&grants),true,approval).is_err());
             assert_eq!(host.calls,0);
         }

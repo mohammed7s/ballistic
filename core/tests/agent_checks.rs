@@ -102,7 +102,7 @@ fn timeout_after_submit_never_duplicates_input() {
 }
 #[test]
 fn absent_grant_blocks_before_confirmation_and_hands() {
-    let mut s=screen(); s.capabilities=Some(HostCapabilities{operations:vec!["tap".into()],app_grants:vec![]});
+    let mut s=screen(); s.capabilities=Some(HostCapabilities{operations:vec!["tap".into()],app_grants:vec![],tool_grants:vec![]});
     let (result,calls)=run(vec![json!(s),completion(r#"{"action":"tap","target":"e1"}"#)],1);
     assert_eq!(result["failure_category"],"permission");
     assert!(!calls.iter().any(|c|c["ask"]=="act" || c["ask"]=="confirm"));

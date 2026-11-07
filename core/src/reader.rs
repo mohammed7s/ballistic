@@ -107,6 +107,7 @@ pub fn source_tag(source: &Source) -> String {
         Source::Sms(s) => format!("sms:{s}"),
         Source::Note(n) => format!("note:{n}"),
         Source::Web(h) => format!("web:{h}"),
+        Source::Rpc { source, transport } => format!("rpc:{source} via {transport}"),
     }
 }
 

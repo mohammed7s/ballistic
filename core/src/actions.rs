@@ -18,7 +18,7 @@ pub const ACTIONS_SCHEMA: &str = include_str!("../schema/actions.json");
 /// Every action name the planner may emit, in the order of §6.
 pub const ACTION_NAMES: &[&str] = &[
     "open_app", "tap", "long_press", "type", "scroll", "swipe", "back", "home", "wait", "read",
-    "answer", "done", "give_up",
+    "tool", "answer", "done", "give_up",
 ];
 
 /// How long `wait` waits.
@@ -227,6 +227,9 @@ pub fn validate(action: &Action, view: &FilteredScreen) -> Result<(), ActionErro
                 None => Ok(()),
             }
         }
+        Action::Tool { tool, args } => crate::tools::check(tool, args)
+            .map(|_| ())
+            .map_err(|detail| ActionError::BadArguments { action: "tool".into(), detail }),
         _ => Ok(()),
     }
 }
@@ -245,7 +248,7 @@ fn clip(b: Bounds, screen: &ScreenState) -> Bounds {
 }
 
 /// Turn a validated action into what Hands executes. `None` for actions Hands never sees
-/// (`read`, `answer`, `done`, `give_up`).
+/// (`read`, `tool`, `answer`, `done`, `give_up`).
 pub fn resolve(
     action: &Action,
     view: &FilteredScreen,
@@ -285,7 +288,7 @@ pub fn resolve(
         Action::Back => HandsOp::Back,
         Action::Home => HandsOp::Home,
         Action::Wait => HandsOp::Wait { millis: WAIT_MILLIS },
-        Action::Read { .. } | Action::Answer { .. } | Action::Done { .. } | Action::GiveUp { .. } => {
+        Action::Read { .. } | Action::Tool { .. } | Action::Answer { .. } | Action::Done { .. } | Action::GiveUp { .. } => {
             return Ok(None)
         }
     }))
@@ -406,6 +409,7 @@ pub fn describe(action: &Action) -> String {
             let ts: Vec<String> = targets.iter().map(|c| format!("c{c}")).collect();
             format!("read {} {question:?}", ts.join(","))
         }
+        Action::Tool { tool, .. } => format!("tool {tool}"),
         Action::Answer { .. } => "answer".into(),
         Action::Done { .. } => "done".into(),
         Action::GiveUp { reason } => format!("give_up {reason:?}"),

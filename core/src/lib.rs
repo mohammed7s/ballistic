@@ -16,6 +16,7 @@ pub mod reader;
 pub mod readback;
 
 pub mod capabilities;
+pub mod tools;
 pub mod verification;
 
 #[cfg(feature = "uniffi")]

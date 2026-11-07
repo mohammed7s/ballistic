@@ -149,6 +149,8 @@ pub enum Action {
         question: String,
         shape: ReadShape,
     },
+    /// A read-only query through the Tools port; checked against `tools::ALLOWLIST`.
+    Tool { tool: String, args: serde_json::Value },
     Answer { text: String },
     Done { evidence: String },
     GiveUp { reason: String },
@@ -178,6 +180,8 @@ pub enum Source {
     Sms(String),
     Note(String),
     Web(String),
+    /// A JSON-RPC endpoint's report, via the Tools port: endpoint host and transport.
+    Rpc { source: String, transport: String },
 }
 
 impl Source {
@@ -288,6 +292,9 @@ pub enum ConfirmResult {
 pub struct HostCapabilities {
     pub operations: Vec<String>,
     pub app_grants: Vec<String>,
+    /// Owner grants for read-only tools (`tools.rs`). Absent: no tool may be called.
+    #[serde(default)]
+    pub tool_grants: Vec<crate::tools::ToolGrant>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

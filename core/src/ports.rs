@@ -2,6 +2,7 @@
 //! platform directly. The harness implements them over a JSON-lines pipe (`bridge.rs`); the
 //! Android and iOS shells implement them in-process through UniFFI.
 
+use crate::tools::{ToolRequest, ToolResult};
 use crate::types::*;
 
 #[derive(Debug, thiserror::Error)]
@@ -39,4 +40,10 @@ pub trait Models {
 /// Asks the owner. The harness answers from a script; the app shows the confirmation window.
 pub trait Confirm {
     fn ask(&mut self, request: &ConfirmRequest) -> PortResult<ConfirmResult>;
+}
+
+/// Read-only queries outside the screen (a wallet balance). The host resolves the request with
+/// trusted configuration; core has already checked the allowlist and the owner's grant.
+pub trait Tools {
+    fn call(&mut self, request: &ToolRequest) -> PortResult<ToolResult>;
 }

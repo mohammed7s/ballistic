@@ -6,6 +6,7 @@
 //!                           {"id": 8, "ask": "act", "op": {...HandsOp...}}
 //!                           {"id": 9, "ask": "complete", "role": "planner", "messages": [...], "max_tokens": 800}
 //!                           {"id": 10, "ask": "confirm", "request": {...ConfirmRequest...}}
+//!                           {"id": 11, "ask": "tool", "request": {...ToolRequest...}}
 //!                           {"id": 0, "ask": "log", "event": {...}}            (no answer expected)
 //! Host → core (one line):   {"id": 7, "ok": true, "data": {...}}
 //!                           {"id": 7, "ok": false, "error": "text"}
@@ -16,6 +17,7 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::ports::*;
+use crate::tools::{ToolRequest, ToolResult};
 use crate::types::*;
 
 #[derive(Serialize)]
@@ -54,6 +56,11 @@ struct CompleteBody<'a> {
 #[derive(Serialize)]
 struct ConfirmBody<'a> {
     request: &'a ConfirmRequest,
+}
+
+#[derive(Serialize)]
+struct ToolBody<'a> {
+    request: &'a ToolRequest,
 }
 
 #[derive(Serialize)]
@@ -148,6 +155,12 @@ impl<R: BufRead, W: Write> Models for Bridge<R, W> {
 impl<R: BufRead, W: Write> Confirm for Bridge<R, W> {
     fn ask(&mut self, request: &ConfirmRequest) -> PortResult<ConfirmResult> {
         Bridge::ask(self, "confirm", ConfirmBody { request })
+    }
+}
+
+impl<R: BufRead, W: Write> Tools for Bridge<R, W> {
+    fn call(&mut self, request: &ToolRequest) -> PortResult<ToolResult> {
+        self.ask("tool", ToolBody { request })
     }
 }
 

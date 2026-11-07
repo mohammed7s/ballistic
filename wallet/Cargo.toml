@@ -1,0 +1,39 @@
+[package]
+name = "ballistic_wallet"
+version = "0.1.0"
+edition = "2021"
+description = "Ballistic's read-only wallet adapter: native ETH balance of a configured public address over Tor or HTTPS. No keys, no signing, no cache."
+license = "MIT"
+
+[lib]
+name = "ballistic_wallet"
+path = "src/lib.rs"
+# rlib for the CLI and tests; cdylib (libballistic_wallet.so) for the Android app, C ABI in
+# src/ffi.rs.
+crate-type = ["rlib", "cdylib"]
+
+[[bin]]
+name = "ballistic-wallet"
+path = "src/bin/ballistic_wallet.rs"
+
+[features]
+default = ["https"]
+# Direct HTTPS (tests, desktop development). Never used when `tor` was requested.
+https = ["dep:reqwest"]
+# Kohaku's HTTP-over-Arti transport: vendor/kohaku-tor-rpc, upstream revision 21e3cd9 (reviewed in
+# docs/KOHAKU_WALLET_RESEARCH.md) plus a caller-chosen Arti config and Alloy made optional, so
+# the build needs no OpenSSL (vendor/kohaku-tor-rpc/Cargo.toml).
+tor = ["dep:kohaku-tor-rpc", "dep:arti-client"]
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "time", "net", "io-util", "signal"] }
+url = "2"
+reqwest = { version = "0.12", optional = true, default-features = false, features = ["rustls-tls"] }
+kohaku-tor-rpc = { path = "vendor/kohaku-tor-rpc", default-features = false, optional = true }
+# Only for `TorClientConfigBuilder` (state and cache directories); the version Kohaku uses.
+arti-client = { version = "0.32", default-features = false, optional = true }
+
+[profile.release]
+strip = true
