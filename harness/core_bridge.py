@@ -433,13 +433,28 @@ class ModelClient:
     FINISH_REASONS = {"stop", "length", "tool_calls", "function_call", "content_filter"}
 
     def __init__(self, routes: dict[str, tuple[str, str, str]], temperature: float = 0.0, timeout: int = 120,
-                 retries: int = 3, backoff_seconds: float = 2.0):
+                 retries: int = 3, backoff_seconds: float = 2.0, min_interval_seconds: float = 0.0):
+        if not 0 <= min_interval_seconds <= 60:
+            raise ValueError("model minimum interval must be between 0 and 60 seconds")
         self.routes = routes
         self.temperature = temperature
         self.timeout = timeout
         self.retries = retries
         self.backoff_seconds = backoff_seconds
+        self.min_interval_seconds = min_interval_seconds
+        self._last_attempt_started: float | None = None
         self.calls: list[dict[str, Any]] = []
+
+    def _pace(self) -> float:
+        """Space HTTP starts across roles/retries of this serial client, using a monotonic clock."""
+        if not self.min_interval_seconds:
+            return 0.0
+        delay = 0.0 if self._last_attempt_started is None else max(
+            0.0, self._last_attempt_started + self.min_interval_seconds - time.monotonic())
+        if delay:
+            time.sleep(delay)
+        self._last_attempt_started = time.monotonic()
+        return delay
 
     @staticmethod
     def _quota_metadata(r: Any) -> dict[str, Any]:
@@ -568,10 +583,12 @@ class ModelClient:
         t0 = time.time()
         retried: list[dict[str, Any]] = []
         retried_empty = False
+        pacing_seconds = 0.0
         for attempt in range(self.retries + 1):
             r = None
             diagnostics: dict[str, Any] = {}
             try:
+                pacing_seconds += self._pace()
                 r = requests.post(base_url.rstrip("/") + "/chat/completions", json=body, timeout=self.timeout,
                                   headers={"Authorization": f"Bearer {api_key}"})
                 if r.status_code in self.RETRY_STATUSES and attempt < self.retries:
@@ -602,6 +619,8 @@ class ModelClient:
                     "completion_tokens": usage.get("completion_tokens", 0)}}
                 entry = {"role": role, "model": model, "seconds": round(time.time() - t0, 2),
                          "http_status": r.status_code, **diagnostics}
+                if self.min_interval_seconds:
+                    entry["pacing_seconds"] = round(pacing_seconds, 3)
                 if retried:
                     entry["retried"] = retried
                 self.calls.append(entry)
@@ -611,19 +630,21 @@ class ModelClient:
                     retried.append({"error_type": type(exc).__name__})
                     time.sleep(self.backoff_seconds * 2 ** attempt)
                     continue
-                self._failed(role, model, t0, exc, r, retried, diagnostics)
+                self._failed(role, model, t0, exc, r, retried, diagnostics, pacing_seconds)
                 raise
             except Exception as exc:
-                self._failed(role, model, t0, exc, r, retried, diagnostics)
+                self._failed(role, model, t0, exc, r, retried, diagnostics, pacing_seconds)
                 raise
         raise AssertionError("unreachable: the last attempt returns or raises")
 
     def _failed(self, role: str, model: str, t0: float, exc: Exception, r: Any,
-                retried: list[dict[str, Any]], diagnostics: dict[str, Any]) -> None:
+                retried: list[dict[str, Any]], diagnostics: dict[str, Any], pacing_seconds: float) -> None:
         entry = {"role": role, "model": model, "seconds": round(time.time() - t0, 2),
                  "error_type": type(exc).__name__,
                  "http_status": r.status_code if r is not None else None,
                  **diagnostics, **self._quota_metadata(r)}
+        if self.min_interval_seconds:
+            entry["pacing_seconds"] = round(pacing_seconds, 3)
         if retried:
             entry["retried"] = retried
         self.calls.append(entry)

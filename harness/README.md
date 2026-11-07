@@ -88,6 +88,7 @@ Core asks and the harness answers, one JSON line each way (`core/src/bridge.rs`)
 | `--reader_model`, `--judge_model`, `--verifier_model` | model name for that role on the same `--base_url`; default `--model` (the planner's) |
 | `--core_bin` | path to `ballistic-core`; default `$BALLISTIC_CORE_BIN`, else the cargo target dirs |
 | `--core_mode observe` | observe once and report counts (pipe smoke test) |
+| `--core_model_min_interval N` | minimum seconds between core HTTP attempts across roles/retries, 0–60; default 0 disables pacing |
 
 A core run's JSON has the same fields as before plus `core_args`, `roles`, `confirm`,
 `finished` (core's last event), `confirmations`, `exit_code`, `stderr`, and `lines`: every bridge
@@ -157,6 +158,14 @@ The suite stops after the first recorded HTTP 429 and exits 75. That task is an 
 ERROR even if the independent state check passed; subsequent tasks are not run. Summary
 denominators show attempted and requested tasks separately. Inspect the quota telemetry before
 starting another run; the runner does not rotate keys, sleep until reset or retry a 429.
+
+For a paced core suite, set `CORE_MODEL_MIN_INTERVAL=5` when invoking `run_suite.sh`, or pass
+`--core_model_min_interval 5` to `run_task.py`/`chat.sh`. This is a configurable precaution,
+not a claimed provider limit. One serial model client shares the interval across all roles and
+retry attempts; separate processes do not share a limiter. The interval is recorded in the suite
+header and core run JSON, and each call records `pacing_seconds` when enabled. Total elapsed time
+includes these waits, so compare timing only with pacing accounted for. Model, token caps and
+attempt budgets are unchanged. The option has no effect on T3A/M3A.
 
 Core binds guarded approvals to one exact resolved operation and app. A host error after dispatch
 is ambiguous: core stops instead of retrying a possible send/delete. `not_executed` is reserved

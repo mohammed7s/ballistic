@@ -15,6 +15,25 @@ confirmation dialog.**
 
 ## 2. Decisions taken (and why)
 
+**7 November 2026 — exact file captions integrated, request pacing added:** `6d2bebb`
+recognizes the exact English Markor browser-row envelope verified against versionCode 146 source.
+It separates file/folder kind from the full untrusted title; only whole owner-matched titles are
+shown, while unmatched raw captions retain their reader identity. Kind alone grants neither
+an action nor completion evidence. Unknown structures and ambiguous descriptions remain hidden.
+Parent validation: **97 Rust tests with UniFFI pass**. The frozen development cases improved
+3/10 to 10/10, plus one folding regression; they are not held-out evaluation. Offline recorded
+CreateFolder screens expose the same requested folder in ten observations (previously zero);
+related DeleteNote and CreateNote names remain hidden. No live score change is established.
+See `docs/OBSERVATION_CAPTIONS_20261107.md` for the grammar and limits.
+
+The core harness now optionally spaces HTTP starts across roles and retry attempts using
+`--core_model_min_interval` (suite: `CORE_MODEL_MIN_INTERVAL`); default zero preserves existing
+behavior. Interval and added wait are recorded. A five-second interval is planned as a cautious
+next-run setting after observed rate quota, not a measured provider limit; separate processes
+are not coordinated by this limiter. It changes elapsed time, not model/token/attempt budgets,
+and 429 remains terminal. **79 Python tests pass without skips**, including fake-clock pacing,
+retry and quota tests. Full-suite comparison must report the pacing setting explicitly.
+
 **7 November 2026 — targeted reliability validation stopped on rate quota:** at `215733e`,
 the first of six preselected cases (`OpenAppTaskEval`, seed 0) opened the requested app and passed
 the independent checker, but core rejected seven done claims citing unreadable elements. The
