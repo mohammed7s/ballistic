@@ -15,6 +15,7 @@ core seed 0; the T3A baseline was unseeded. Goals therefore differ. Run artefact
 | Core 3 | 7 Nov 2026 01:41–01:59 | core | `1331cde` (core code of `deeb3b0`) | 3 / 13 / 4 | 558.9 s | 19.5 s | 113 | 2,345 |
 | **Core 4** | **7 Nov 2026 02:32–03:02** | **core** | **`8098265`** | **4 / 9 / 7** | **1,039.5 s** | **53.9 s** | **197** | **2,158** |
 | Core 5 (incomplete) | 7 Nov 2026 05:23–05:37 | core | `7a9238e` | **4 / 5 / 2; 9 NOT RUN** | 553.8 s (11 attempts) | — | 113 | 2,427 (112 known-usage attempts) |
+| **Core 6** | **7 Nov 2026 08:35–09:04** | **core** | **`05ab6eb`** | **8 / 10 / 2** | **1,258.3 s** | **52.75 s** | **223** | **2,651** |
 
 Core 3 was run on a second API key after the first key's daily quota was used up.
 This records the historical run; daily-quota exhaustion must stop a run, without automatic key rotation.
@@ -24,6 +25,82 @@ setup and checker. Core 3 adds 15.93 s checker time; Core 4 adds 17.40 s. Suite 
 setup and gaps and is not the sum in this table. Errors and early failed stops reduce recorded
 time. These runs do **not** establish a speedup or a controlled latency comparison.
 Prompt means include only usage-bearing calls; failed-call usage is unknown.
+
+## Core 6 complete — 7 November 2026
+
+**8 PASS / 10 FAIL / 2 ERROR, all 20 attempted. Independent state: 11/20 passed.**
+Eight accepted done reports, all supported by the benchmark; **zero false-done acceptance**.
+This improves on the previous complete Core 4 result of 4 combined / 9 state, but still falls
+short of the original T3A 13/20 and the current minimum target. Core 5 remains an incomplete
+round and must not be treated as a full-suite denominator.
+
+Exact pin `05ab6eb57408fbf3951ed6b2906eaab21c010534`, tree
+`4a21951b720cae8d53f9783672274d51a83e9eed`, release binary SHA-256
+`93085276fa070dae414e441ce0eb3f72a60820c158e14050aa82ec61e2e6a5ae`.
+Remote build gates reproduced **270 Rust/UniFFI and 94 Python passes, zero skips**.
+Original task order, seed 0, complexity-based step budgets, same Gemini model, temperature 0,
+role caps 800/64/400 and five-second pacing were frozen throughout. Confirmations were approved
+by the benchmark harness. The original key was used after a separately recorded availability
+check; no key rotation, extra probes, outcome reruns, source patches or billing changes.
+
+The optional `core_disable_native_tools=true` request was enabled and recorded. All **223 HTTP
+attempts returned 200**; the endpoint accepted requests with `tool_choice: none` and no tools
+declaration in this round. That establishes request acceptance here, not causal proof of a score
+gain or universal endpoint compatibility. Two terminal non-text replies still failed:
+`missing_content`, `finish_reason=other`, no reported tool/function call, zero completion tokens.
+The original unrecognized provider reasons were not retained; do not invent their cause or
+classify them as retry-eligible. Both errors continued to later tasks as configured.
+
+| Task | Combined | State | Agent s | Checker s | Calls | Finding |
+|---|---|---|---:|---:|---:|---|
+| ContactsAddContact | PASS | passed | 40.6 | 1.116 | 8 | Agent completion and independent state agree. |
+| ClockTimerEntry | FAIL | failed | 47.4 | 0.142 | 10 | Wrong digit/backspace sequence exhausted ten steps; timer value incorrect. |
+| ClockStopWatchRunning | PASS | passed | 33.9 | 0.114 | 7 | Agent completion and independent state agree. |
+| OpenAppTaskEval | PASS | passed | 12.2 | 0.035 | 3 | Agent completion and independent state agree. |
+| SystemWifiTurnOff | PASS | passed | 52.2 | 0.027 | 11 | Agent completion and independent state agree. |
+| SystemBluetoothTurnOn | PASS | passed | 56.3 | 0.028 | 11 | Agent completion and independent state agree. |
+| SystemBrightnessMax | FAIL | failed | 53.3 | 0.037 | 7 | Repeated reader queries on homepage; stopped before Display/slider. |
+| TurnOnWifiAndOpenApp | PASS | passed | 101.8 | 0.106 | 14 | Agent completion and independent state agree. |
+| SimpleSmsSend | FAIL | passed | 62.6 | 6.304 | 13 | Sent state passed; three verifier rejections confused disabled Send/composer with visible message body. |
+| SimpleSmsReplyMostRecent | FAIL | passed | 80.5 | 6.253 | 16 | Sent state passed; further keyboard/Send attempts hit guarded-repeat stop. |
+| SimpleCalendarAddOneEvent | FAIL | failed | 189.1 | 0.184 | 34 | Both start/end remained 13:15; requested 13:00–13:15. No Save before budget exhaustion. |
+| SimpleCalendarEventsOnDate | FAIL | failed | 38.5 | 0.0 | 8 | Date selection failed; requested reader summary unsupported for this owner query; no answer. |
+| MarkorCreateNote | FAIL | failed | 71.5 | 0.041 | 14 | Created document, then rejected done and malformed back target:null. Exact persisted-file mismatch unproven. |
+| MarkorDeleteNote | FAIL | failed | 52.1 | 0.038 | 10 | Reader picked requested row, but planner kept reading; no-progress stop before Delete. |
+| MarkorCreateFolder | PASS | passed | 72.2 | 0.034 | 6 | Agent completion and independent state agree. |
+| ExpenseAddSingle | ERROR | failed | 68.0 | 0.085 | 10 | HTTP 200 missing_content/finish_reason=other after unsuccessful category reads; provider cause unknown. |
+| ExpenseDeleteSingle | ERROR | passed | 42.0 | 0.089 | 6 | Deletion state passed, then HTTP 200 missing_content/finish_reason=other; no accepted done. |
+| RecipeAddSingleRecipe | PASS | passed | 108.5 | 0.097 | 20 | Agent completion and independent state agree. |
+| FilesDeleteFile | FAIL | failed | 23.7 | 0.032 | 5 | Repeated storage-row reader query; no-progress stop before deletion. |
+| CameraTakePhoto | FAIL | failed | 51.9 | 0.051 | 10 | Six repeated Shutter taps with unchanged-screen feedback; checker failed; exact photo count unknown. |
+
+Totals: **223 logical calls / 223 HTTP attempts / zero retries**; 189 planner, 19 reader,
+15 verifier, no judge. **591,176 prompt + 8,658 completion tokens**, no unknown usage.
+Agent **1,258.3 s**, checker **14.813 s**, task-process wall sum **1,740.560 s**;
+**341.924 s** pacing is included in agent time. Median agent task time **52.75 s**.
+The pre-run original-key probe (one call, 5 prompt + 2 completion tokens, 0.977 s) is excluded.
+Baseline's 1,495.7 s includes checkers, while core timing excludes setup/checker; differing
+failure rates, pacing and task generation prevent a controlled speedup claim. Even seed 0 does
+not fix MarkorCreateFolder's wall-clock-generated folder name.
+
+Parent independently verified all **70 original and 12 derived artifact hashes**, then
+recomputed scores, state results, false-done count, calls, HTTP statuses, times and tokens from
+all 20 raw records in ignored `ballistic_runs/core6_05ab6eb/`. Frozen manifest SHA-256:
+`8bf55082d414576d4f8410df42010e9c8529136e1e5dd41c12ed56984a2ce82d`.
+Supervisor 689783 released its lock at **09:04:55.844067 UTC**; independent release evidence at
+**09:07:08.491053 UTC** confirms no supervisor/driver/lock, original visible emulator 305875,
+clean validation tree, unchanged binary, and preserved dirty main/AndroidWorld inventories.
+Credential scans passed before download. No APK build/install or physical phone access.
+
+Zero false-done acceptance and the SMS/deletion state passes do not establish absence of
+duplicate actions, unrelated side effects or prompt-injection resistance. Raw logs retain
+those limits: SMS reply retried guarded inputs, and Camera issued six Shutter taps.
+
+Next isolated offline work targets repeated-reader correction within the existing two-planner-
+attempt allowance, verifier confusion between readonly items and editors, and whether a safe
+structured observation can expose the Markor extension value without exposing arbitrary text.
+Timer/calendar arithmetic, content-answer support, camera effect receipts and unrecognized
+empty model replies remain open. No further live rerun has begun at this entry.
 
 ## Core 5 stopped on daily quota — 7 November 2026
 
