@@ -1,0 +1,371 @@
+{
+ "source": "20261107-014637_SystemBrightnessMax.json",
+ "observation": 5,
+ "goal": "Turn brightness to the max value.",
+ "selection": "Full recorded screen; installed_apps omitted",
+ "screen": {
+  "package": "com.android.systemui",
+  "activity": "com.android.systemui.settings.brightness.BrightnessDialog",
+  "width": 1080,
+  "height": 2400,
+  "nodes": [
+   {
+    "id": 1,
+    "parent": null,
+    "role": "container",
+    "class_name": "android.widget.FrameLayout",
+    "label": null,
+    "text": null,
+    "resource_id": null,
+    "package": "com.android.systemui",
+    "bounds": {
+     "x1": 0,
+     "y1": 128,
+     "x2": 1080,
+     "y2": 296
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 2,
+    "parent": 1,
+    "role": "slider",
+    "class_name": "android.widget.SeekBar",
+    "label": null,
+    "text": "Display brightness",
+    "resource_id": "com.android.systemui:id/slider",
+    "package": "com.android.systemui",
+    "bounds": {
+     "x1": 42,
+     "y1": 149,
+     "x2": 1038,
+     "y2": 275
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 3,
+    "parent": null,
+    "role": "container",
+    "class_name": "android.widget.FrameLayout",
+    "label": null,
+    "text": null,
+    "resource_id": null,
+    "package": "com.android.systemui",
+    "bounds": {
+     "x1": 0,
+     "y1": 0,
+     "x2": 1080,
+     "y2": 128
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 4,
+    "parent": 3,
+    "role": "container",
+    "class_name": "android.widget.FrameLayout",
+    "label": null,
+    "text": null,
+    "resource_id": "com.android.systemui:id/status_bar",
+    "package": "com.android.systemui",
+    "bounds": {
+     "x1": 0,
+     "y1": 0,
+     "x2": 1080,
+     "y2": 128
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 5,
+    "parent": 4,
+    "role": "text",
+    "class_name": "android.widget.TextView",
+    "label": "16:34",
+    "text": "15:34",
+    "resource_id": "com.android.systemui:id/clock",
+    "package": "com.android.systemui",
+    "bounds": {
+     "x1": 50,
+     "y1": 1,
+     "x2": 148,
+     "y2": 128
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 6,
+    "parent": 4,
+    "role": "image",
+    "class_name": "android.widget.ImageView",
+    "label": "SMS Messenger notification: ",
+    "text": null,
+    "resource_id": null,
+    "package": "com.android.systemui",
+    "bounds": {
+     "x1": 148,
+     "y1": 1,
+     "x2": 206,
+     "y2": 128
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 7,
+    "parent": 4,
+    "role": "image",
+    "class_name": "android.widget.ImageView",
+    "label": "Android System notification: Serial console enabled",
+    "text": null,
+    "resource_id": null,
+    "package": "com.android.systemui",
+    "bounds": {
+     "x1": 206,
+     "y1": 1,
+     "x2": 264,
+     "y2": 128
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 8,
+    "parent": 4,
+    "role": "image",
+    "class_name": "android.widget.ImageView",
+    "label": "Do Not Disturb",
+    "text": null,
+    "resource_id": null,
+    "package": "com.android.systemui",
+    "bounds": {
+     "x1": 809,
+     "y1": 35,
+     "x2": 866,
+     "y2": 93
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 9,
+    "parent": 4,
+    "role": "container",
+    "class_name": "android.widget.FrameLayout",
+    "label": "Phone signal full.",
+    "text": null,
+    "resource_id": "com.android.systemui:id/mobile_combo",
+    "package": "com.android.systemui",
+    "bounds": {
+     "x1": 866,
+     "y1": 35,
+     "x2": 970,
+     "y2": 93
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 10,
+    "parent": 9,
+    "role": "image",
+    "class_name": "android.widget.ImageView",
+    "label": "No internet",
+    "text": null,
+    "resource_id": "com.android.systemui:id/mobile_type",
+    "package": "com.android.systemui",
+    "bounds": {
+     "x1": 866,
+     "y1": 43,
+     "x2": 931,
+     "y2": 85
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 11,
+    "parent": 4,
+    "role": "container",
+    "class_name": "android.widget.LinearLayout",
+    "label": "Battery 100 percent.",
+    "text": null,
+    "resource_id": "com.android.systemui:id/battery",
+    "package": "com.android.systemui",
+    "bounds": {
+     "x1": 986,
+     "y1": 1,
+     "x2": 1006,
+     "y2": 128
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   }
+  ],
+  "capabilities": {
+   "operations": [
+    "open_app",
+    "tap",
+    "long_press",
+    "type",
+    "scroll",
+    "swipe",
+    "back",
+    "home",
+    "wait"
+   ],
+   "app_grants": [
+    "ca.zgrs.clipper",
+    "code.name.monkey.retromusic",
+    "com.android.camera2",
+    "com.android.chrome",
+    "com.android.settings",
+    "com.android.systemui",
+    "com.android.vending",
+    "com.arduia.expense",
+    "com.dimowner.audiorecorder",
+    "com.example.androidworld",
+    "com.flauschcode.broccoli",
+    "com.google.android.apps.docs",
+    "com.google.android.apps.maps",
+    "com.google.android.apps.messaging",
+    "com.google.android.apps.photos",
+    "com.google.android.calendar",
+    "com.google.android.contacts",
+    "com.google.android.deskclock",
+    "com.google.android.dialer",
+    "com.google.android.documentsui",
+    "com.google.android.gm",
+    "com.google.android.googlequicksearchbox",
+    "com.google.android.youtube",
+    "com.google.androidenv.miniwob",
+    "com.simplemobiletools.calendar.pro",
+    "com.simplemobiletools.draw.pro",
+    "com.simplemobiletools.gallery.pro",
+    "com.simplemobiletools.smsmessenger",
+    "de.dennisguse.opentracks",
+    "net.cozic.joplin",
+    "net.gsantner.markor",
+    "net.osmand",
+    "org.tasks",
+    "org.videolan.vlc"
+   ]
+  }
+ }
+}

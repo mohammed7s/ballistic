@@ -139,8 +139,8 @@ def foreground_tree_ready(nodes: list[dict[str, Any]], package: str) -> bool:
     )
 
 
-def _foreground_signature(forest: Any, package: str) -> Optional[str]:
-    """Fingerprint meaningful foreground windows, excluding background chrome/IME.
+def _foreground_nodes(forest: Any, package: str) -> Optional[list[dict[str, Any]]]:
+    """Meaningful foreground windows' nodes for `package`, excluding background chrome/IME.
 
     AndroidEnv's forest has no capture time or generation. Window/node IDs are
     identities, not freshness markers. Focus/active flags only describe the
@@ -158,8 +158,36 @@ def _foreground_signature(forest: Any, package: str) -> Optional[str]:
     # tree look new. Normalize per-observation IDs after removing other nodes.
     nodes = [n for n in nodes if n.get("package") == package]
     ids = {n["id"]: i for i, n in enumerate(nodes)}
-    canonical = [{**n, "id": ids[n["id"]], "parent": ids.get(n["parent"])} for n in nodes]
-    return hashlib.sha256(json.dumps(canonical, sort_keys=True).encode()).hexdigest()
+    return [{**n, "id": ids[n["id"]], "parent": ids.get(n["parent"])} for n in nodes]
+
+
+def _signature(nodes: Optional[list[dict[str, Any]]]) -> Optional[str]:
+    if nodes is None:
+        return None
+    return hashlib.sha256(json.dumps(nodes, sort_keys=True).encode()).hexdigest()
+
+
+def _foreground_signature(forest: Any, package: str) -> Optional[str]:
+    """Fingerprint of `_foreground_nodes`."""
+    return _signature(_foreground_nodes(forest, package))
+
+
+_SKELETON_KEYS = ("parent", "role", "class_name", "resource_id", "package")
+
+
+def slightly_different(old: list[dict[str, Any]], new: list[dict[str, Any]]) -> bool:
+    """Same skeleton (count, parents, roles, classes, resource ids) and at most a tenth of the
+    nodes changed in text, label, bounds or flags: an animation or a ticking value, not another
+    screen. A one-node tree tolerates no change."""
+    if len(old) != len(new) or not old:
+        return False
+    if any(tuple(a.get(k) for k in _SKELETON_KEYS) != tuple(b.get(k) for k in _SKELETON_KEYS)
+           for a, b in zip(old, new)):
+        return False
+    return sum(a != b for a, b in zip(old, new)) <= len(old) // 10
+
+
+SOFT_DEADLINE_SECONDS = 30.0
 
 
 class ObservationError(RuntimeError):
@@ -195,11 +223,18 @@ class CoreHost:
         remain undetectable without a source capture generation. Never mutate the
         environment's private state or use benchmark state as a readiness oracle.
 
-        Six acquisitions and a 15-second soft deadline bound our retries; a
-        blocking environment/ADB call still depends on its own transport timeout.
+        Two consecutive samples with the same foreground and size settle the
+        screen when their trees match, or when they differ only slightly (same
+        skeleton, at most a tenth of the nodes changed: an animation or ticking
+        value); the later sample is returned. Unsettled samples are spaced 0.3 s,
+        then doubling. Six acquisitions and a 30-second soft deadline bound our
+        retries; a blocking environment/ADB call still depends on its own
+        transport timeout.
         """
-        deadline = time.monotonic() + 15.0
+        deadline = time.monotonic() + SOFT_DEADLINE_SECONDS
         previous_candidate = None
+        previous_nodes: Optional[list[dict[str, Any]]] = None
+        unsettled = 0
         baselines = [self._last_observation] if self._last_observation else []
         reason = "no_ready_foreground"
         for attempt in range(6):
@@ -210,7 +245,8 @@ class CoreHost:
             w, h = self.env.logical_screen_size
             foreground = self.env.foreground_activity_name or ""
             package, _, activity = foreground.partition("/")
-            signature = _foreground_signature(state.forest, package)
+            foreground_nodes = _foreground_nodes(state.forest, package)
+            signature = _signature(foreground_nodes)
             if time.monotonic() >= deadline:
                 reason = "acquisition_deadline"
                 break
@@ -230,10 +266,14 @@ class CoreHost:
                 reason = "unchanged_tree_after_activity_change"
             else:
                 candidate = (foreground, signature, w, h)
-                if candidate == previous_candidate:
+                if candidate == previous_candidate or (
+                        previous_candidate is not None and previous_candidate[0] == foreground
+                        and previous_candidate[2:] == (w, h) and previous_nodes is not None
+                        and slightly_different(previous_nodes, foreground_nodes)):
                     nodes = forest_to_nodes(state.forest)
                     break
                 previous_candidate = candidate
+                previous_nodes = foreground_nodes
                 # Also catch transitions between acquisitions before there is
                 # any accepted observation (e.g. at startup).
                 baselines.append((foreground, signature))
@@ -243,9 +283,11 @@ class CoreHost:
                 # This is a settling heuristic, not proof of capture freshness.
                 remaining = deadline - time.monotonic()
                 if attempt < 5 and remaining > 0:
-                    time.sleep(min(0.3, remaining))
+                    time.sleep(min(0.3 * 2 ** unsettled, remaining))
+                unsettled += 1
                 continue
             previous_candidate = None
+            previous_nodes = None
             remaining = deadline - time.monotonic()
             if attempt < 5 and remaining > 0:
                 time.sleep(min(0.7 * (attempt + 1), remaining))
@@ -366,14 +408,85 @@ class CoreHost:
             return {"id": ask.get("id", 0), "ok": False, "error": f"{type(e).__name__}: {e}"}
 
 
-class ModelClient:
-    """One OpenAI-compatible endpoint per role. `routes` maps role -> (base_url, model, api_key)."""
+class ModelResponseError(RuntimeError):
+    """A malformed model response, described by a code-owned reason only."""
 
-    def __init__(self, routes: dict[str, tuple[str, str, str]], temperature: float = 0.0, timeout: int = 120):
+
+class ModelClient:
+    """One OpenAI-compatible endpoint per role.
+
+    Only transient transport/502/503/504 failures are retried. Telemetry records
+    response shape, allowlisted finish reasons and quota categories, never raw
+    error bodies (which can echo request content or credentials).
+    """
+
+    RETRY_STATUSES = (502, 503, 504)
+    FINISH_REASONS = {"stop", "length", "tool_calls", "function_call", "content_filter"}
+
+    def __init__(self, routes: dict[str, tuple[str, str, str]], temperature: float = 0.0, timeout: int = 120,
+                 retries: int = 3, backoff_seconds: float = 2.0):
         self.routes = routes
         self.temperature = temperature
         self.timeout = timeout
+        self.retries = retries
+        self.backoff_seconds = backoff_seconds
         self.calls: list[dict[str, Any]] = []
+
+    @staticmethod
+    def _quota_metadata(r: Any) -> dict[str, Any]:
+        if r is None or r.status_code != 429:
+            return {}
+        # Inspect the full response: Google's useful quota metric can occur well
+        # beyond the old 300-character excerpt. Emit only fixed categories; quota
+        # ids, dimensions, messages, keys and URLs never enter telemetry.
+        try:
+            body = (r.text or "").lower()
+        except Exception:  # noqa: BLE001
+            body = ""
+        daily = bool(re.search(r"per[ _-]?day|daily|requests/day|tokens/day", body))
+        rate = bool(re.search(r"per[ _-]?(?:minute|second)|requests/minute|tokens/minute", body))
+        category = "mixed" if daily and rate else "daily" if daily else "rate" if rate else "unknown"
+        return {"quota_category": category}
+
+    @classmethod
+    def _response_metadata(cls, body: Any) -> dict[str, Any]:
+        """Safe diagnostics even when choices/message/content has the wrong shape."""
+        if not isinstance(body, dict):
+            return {"response_shape": "not_object"}
+        choices = body.get("choices")
+        if not isinstance(choices, list):
+            return {"response_shape": "missing_or_invalid_choices"}
+        metadata: dict[str, Any] = {"choice_count": len(choices)}
+        if not choices:
+            return {**metadata, "response_shape": "empty_choices"}
+        choice = choices[0]
+        if not isinstance(choice, dict):
+            return {**metadata, "response_shape": "invalid_choice"}
+        finish = choice.get("finish_reason")
+        metadata["finish_reason"] = finish if isinstance(finish, str) and finish in cls.FINISH_REASONS else (
+            "missing" if finish is None else "other")
+        message = choice.get("message")
+        if not isinstance(message, dict):
+            return {**metadata, "response_shape": "missing_or_invalid_message"}
+        if "content" not in message:
+            shape = "missing_content"
+        elif message["content"] is None:
+            shape = "null_content"
+        elif not isinstance(message["content"], str):
+            shape = "non_string_content"
+        elif not message["content"].strip():
+            shape = "empty_content"
+        else:
+            shape = "text_content"
+        return {**metadata, "response_shape": shape}
+
+    @staticmethod
+    def _usage(body: Any) -> dict[str, int]:
+        usage = body.get("usage") if isinstance(body, dict) else None
+        if not isinstance(usage, dict):
+            return {}
+        return {name: value for name in ("prompt_tokens", "completion_tokens")
+                if type(value := usage.get(name)) is int and value >= 0}
 
     def complete(self, role: str, messages: list[dict[str, str]], max_tokens: int) -> dict[str, Any]:
         import requests  # here, so replay_core.py runs without it
@@ -381,30 +494,68 @@ class ModelClient:
         base_url, model, api_key = self.routes.get(role) or self.routes["planner"]
         body = {"model": model, "messages": messages, "temperature": self.temperature, "max_tokens": max_tokens}
         t0 = time.time()
-        r = None
-        try:
-            r = requests.post(base_url.rstrip("/") + "/chat/completions", json=body, timeout=self.timeout,
-                              headers={"Authorization": f"Bearer {api_key}"})
-            r.raise_for_status()
-            j = r.json()
-            text = j["choices"][0]["message"]["content"] or ""
-            usage = j.get("usage") or {}
-            out = {"text": text, "usage": {"prompt_tokens": usage.get("prompt_tokens", 0),
-                                           "completion_tokens": usage.get("completion_tokens", 0)}}
-            self.calls.append({"role": role, "model": model, "seconds": round(time.time() - t0, 2), **out["usage"]})
-            return out
-        except Exception as exc:
-            # Store transport category/status without headers, key or response content.
-            self.calls.append({"role": role, "model": model, "seconds": round(time.time() - t0, 2),
-                               "error_type": type(exc).__name__,
-                               "http_status": r.status_code if r is not None else None})
-            raise
+        retried: list[dict[str, Any]] = []
+        for attempt in range(self.retries + 1):
+            r = None
+            diagnostics: dict[str, Any] = {}
+            try:
+                r = requests.post(base_url.rstrip("/") + "/chat/completions", json=body, timeout=self.timeout,
+                                  headers={"Authorization": f"Bearer {api_key}"})
+                if r.status_code in self.RETRY_STATUSES and attempt < self.retries:
+                    retried.append({"http_status": r.status_code})
+                    time.sleep(self.backoff_seconds * 2 ** attempt)
+                    continue
+                r.raise_for_status()
+                try:
+                    j = r.json()
+                except ValueError:
+                    diagnostics["response_shape"] = "invalid_json"
+                    raise ModelResponseError("invalid_json") from None
+                diagnostics = {**self._response_metadata(j), **self._usage(j)}
+                if diagnostics["response_shape"] != "text_content":
+                    raise ModelResponseError(diagnostics["response_shape"])
+                usage = self._usage(j)
+                # The bridge's Usage struct requires both counters. Unknown usage stays
+                # absent from call telemetry; zero defaults here are protocol compatibility.
+                out = {"text": j["choices"][0]["message"]["content"], "usage": {
+                    "prompt_tokens": usage.get("prompt_tokens", 0),
+                    "completion_tokens": usage.get("completion_tokens", 0)}}
+                entry = {"role": role, "model": model, "seconds": round(time.time() - t0, 2),
+                         "http_status": r.status_code, **diagnostics}
+                if retried:
+                    entry["retried"] = retried
+                self.calls.append(entry)
+                return out
+            except requests.exceptions.ConnectionError as exc:
+                if attempt < self.retries:
+                    retried.append({"error_type": type(exc).__name__})
+                    time.sleep(self.backoff_seconds * 2 ** attempt)
+                    continue
+                self._failed(role, model, t0, exc, r, retried, diagnostics)
+                raise
+            except Exception as exc:
+                self._failed(role, model, t0, exc, r, retried, diagnostics)
+                raise
+        raise AssertionError("unreachable: the last attempt returns or raises")
+
+    def _failed(self, role: str, model: str, t0: float, exc: Exception, r: Any,
+                retried: list[dict[str, Any]], diagnostics: dict[str, Any]) -> None:
+        entry = {"role": role, "model": model, "seconds": round(time.time() - t0, 2),
+                 "error_type": type(exc).__name__,
+                 "http_status": r.status_code if r is not None else None,
+                 **diagnostics, **self._quota_metadata(r)}
+        if retried:
+            entry["retried"] = retried
+        self.calls.append(entry)
 
 
 
 def default_core_bin() -> str:
-    """core/target/{release,debug}/ballistic-core, honouring CARGO_TARGET_DIR and cargo's
-    config.toml `build.target-dir`; otherwise whatever `ballistic-core` is on PATH."""
+    """$BALLISTIC_CORE_BIN if set; else core/target/{release,debug}/ballistic-core, honouring
+    CARGO_TARGET_DIR and cargo's config.toml `build.target-dir`; otherwise whatever
+    `ballistic-core` is on PATH."""
+    if os.environ.get("BALLISTIC_CORE_BIN"):
+        return os.environ["BALLISTIC_CORE_BIN"]
     here = os.path.dirname(os.path.abspath(__file__))
     core_dir = os.path.normpath(os.path.join(here, "..", "core"))
     target_dirs = [os.path.join(core_dir, "target")]

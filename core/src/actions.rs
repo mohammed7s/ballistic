@@ -177,6 +177,15 @@ pub fn validate(action: &Action, view: &FilteredScreen) -> Result<(), ActionErro
     };
     match action {
         Action::OpenApp { app } if app.trim().is_empty() => Err(ActionError::Empty("app")),
+        Action::Tap { target } if view.reader_picks.contains(target) => {
+            // A reader pick identifies a row or toggle for a tap only, never a field or slider,
+            // and never in the notification shade.
+            let e = element(*target)?;
+            if e.package == "com.android.systemui" || e.flags.editable || e.role == Role::Slider {
+                return Err(ActionError::Unidentified(*target));
+            }
+            if e.flags.clickable || e.flags.checkable { Ok(()) } else { Err(ActionError::NotActionable(*target)) }
+        }
         Action::Tap { target } => {
             let e = identified(*target)?;
             if e.flags.clickable || e.flags.editable || e.flags.checkable { Ok(()) }
@@ -321,12 +330,37 @@ pub fn match_app<'a>(name: &str, apps: &'a [AppEntry]) -> Option<&'a AppEntry> {
 /// label and resource-id words, case-insensitive.
 pub const CONFIRM_WORDS: &[&str] = &["send", "delete", "pay", "install", "remove", "post", "confirm purchase"];
 
+/// Keys that remove one character from an unsaved input, recorded on the emulator image. Their
+/// labels or ids say "delete", but they delete no stored data. Exact id, and the element must
+/// belong to the package the id names.
+const CHARACTER_DELETE_KEYS: &[&str] = &[
+    "com.google.android.inputmethod.latin:id/key_pos_del",
+    "com.google.android.deskclock:id/timer_setup_delete",
+];
+
+fn character_delete_key(e: &crate::screen_filter::Element) -> bool {
+    e.resource_id.as_deref().is_some_and(|rid| CHARACTER_DELETE_KEYS.contains(&rid)
+        && rid.split(":id/").next() == Some(e.package.as_str()))
+}
+
 /// Why this action needs the owner's yes before Hands runs it, or `None`.
 pub fn confirmation_reason(action: &Action, view: &FilteredScreen) -> Option<String> {
     match action {
         Action::Type { submit: true, .. } => Some("type and submit".into()),
         Action::Tap { target } | Action::LongPress { target } => {
             let e = view.element(*target)?;
+            if character_delete_key(e) {
+                return None;
+            }
+            if view.reader_picks.contains(target) {
+                // The reader chose this element from content core withheld. Code (no model)
+                // checks that content for the guarded words; a hit needs the owner's yes.
+                let text = e.content.and_then(|c| view.content(c)).map(|c| c.text.as_str()).unwrap_or("");
+                let joined = format!(" {} ", app_words(text).join(" "));
+                if let Some(w) = CONFIRM_WORDS.iter().find(|w| joined.contains(&format!(" {w} "))) {
+                    return Some(format!("activate an element the reader chose whose content mentions {w:?}"));
+                }
+            }
             // The recorded keyboard action key can submit the same draft as Send. Its
             // caption may say Enter, Send, or something else; do not infer its effect.
             if matches!(e.resource_id.as_deref(),

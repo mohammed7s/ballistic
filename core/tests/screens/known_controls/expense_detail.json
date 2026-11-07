@@ -1,0 +1,734 @@
+{
+ "source": "20261107-015454_ExpenseDeleteSingle.json",
+ "observation": 3,
+ "goal": "Delete the following expenses from pro expense: Taxi Fare.",
+ "selection": "Full recorded screen; installed_apps omitted",
+ "screen": {
+  "package": "com.arduia.expense",
+  "activity": "com.arduia.expense.ui.MainActivity",
+  "width": 1080,
+  "height": 2400,
+  "nodes": [
+   {
+    "id": 1,
+    "parent": null,
+    "role": "container",
+    "class_name": "android.widget.FrameLayout",
+    "label": null,
+    "text": null,
+    "resource_id": null,
+    "package": "com.arduia.expense",
+    "bounds": {
+     "x1": 0,
+     "y1": 128,
+     "x2": 1080,
+     "y2": 2337
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 2,
+    "parent": 1,
+    "role": "container",
+    "class_name": "android.view.ViewGroup",
+    "label": null,
+    "text": null,
+    "resource_id": "com.arduia.expense:id/coordinator",
+    "package": "com.arduia.expense",
+    "bounds": {
+     "x1": 0,
+     "y1": 128,
+     "x2": 1080,
+     "y2": 2337
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 3,
+    "parent": 2,
+    "role": "container",
+    "class_name": "android.widget.FrameLayout",
+    "label": null,
+    "text": null,
+    "resource_id": "com.arduia.expense:id/design_bottom_sheet",
+    "package": "com.arduia.expense",
+    "bounds": {
+     "x1": 0,
+     "y1": 1391,
+     "x2": 1080,
+     "y2": 2337
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 4,
+    "parent": 3,
+    "role": "text",
+    "class_name": "android.widget.TextView",
+    "label": null,
+    "text": "Expense Detail",
+    "resource_id": "com.arduia.expense:id/tv_expense_detail",
+    "package": "com.arduia.expense",
+    "bounds": {
+     "x1": 42,
+     "y1": 1433,
+     "x2": 403,
+     "y2": 1504
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 5,
+    "parent": 3,
+    "role": "button",
+    "class_name": "android.widget.ImageButton",
+    "label": null,
+    "text": null,
+    "resource_id": "com.arduia.expense:id/btn_close",
+    "package": "com.arduia.expense",
+    "bounds": {
+     "x1": 946,
+     "y1": 1423,
+     "x2": 1038,
+     "y2": 1515
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 6,
+    "parent": 3,
+    "role": "text",
+    "class_name": "android.widget.TextView",
+    "label": null,
+    "text": "Taxi Fare",
+    "resource_id": "com.arduia.expense:id/tv_name_value",
+    "package": "com.arduia.expense",
+    "bounds": {
+     "x1": 270,
+     "y1": 1625,
+     "x2": 904,
+     "y2": 1696
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 7,
+    "parent": 3,
+    "role": "image",
+    "class_name": "android.widget.ImageView",
+    "label": null,
+    "text": null,
+    "resource_id": "com.arduia.expense:id/btn_delete",
+    "package": "com.arduia.expense",
+    "bounds": {
+     "x1": 925,
+     "y1": 1614,
+     "x2": 1017,
+     "y2": 1706
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 8,
+    "parent": 3,
+    "role": "text",
+    "class_name": "android.widget.TextView",
+    "label": null,
+    "text": "Amount",
+    "resource_id": "com.arduia.expense:id/tv_amount",
+    "package": "com.arduia.expense",
+    "bounds": {
+     "x1": 84,
+     "y1": 1780,
+     "x2": 217,
+     "y2": 1831
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 9,
+    "parent": 3,
+    "role": "text",
+    "class_name": "android.widget.TextView",
+    "label": null,
+    "text": "179.68",
+    "resource_id": "com.arduia.expense:id/tv_amount_value",
+    "package": "com.arduia.expense",
+    "bounds": {
+     "x1": 270,
+     "y1": 1774,
+     "x2": 408,
+     "y2": 1845
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 10,
+    "parent": 3,
+    "role": "text",
+    "class_name": "android.widget.TextView",
+    "label": null,
+    "text": "USD",
+    "resource_id": "com.arduia.expense:id/tv_currency_symbol",
+    "package": "com.arduia.expense",
+    "bounds": {
+     "x1": 408,
+     "y1": 1786,
+     "x2": 473,
+     "y2": 1829
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 11,
+    "parent": 3,
+    "role": "text",
+    "class_name": "android.widget.TextView",
+    "label": null,
+    "text": "Date",
+    "resource_id": "com.arduia.expense:id/tv_date",
+    "package": "com.arduia.expense",
+    "bounds": {
+     "x1": 84,
+     "y1": 1892,
+     "x2": 163,
+     "y2": 1943
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 12,
+    "parent": 3,
+    "role": "text",
+    "class_name": "android.widget.TextView",
+    "label": null,
+    "text": "Yesterday 12:00 PM",
+    "resource_id": "com.arduia.expense:id/tv_date_value",
+    "package": "com.arduia.expense",
+    "bounds": {
+     "x1": 270,
+     "y1": 1887,
+     "x2": 668,
+     "y2": 1944
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 13,
+    "parent": 3,
+    "role": "text",
+    "class_name": "android.widget.TextView",
+    "label": null,
+    "text": "Note",
+    "resource_id": "com.arduia.expense:id/tv_note",
+    "package": "com.arduia.expense",
+    "bounds": {
+     "x1": 84,
+     "y1": 1991,
+     "x2": 166,
+     "y2": 2042
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 14,
+    "parent": 3,
+    "role": "text",
+    "class_name": "android.widget.TextView",
+    "label": null,
+    "text": "A need",
+    "resource_id": "com.arduia.expense:id/tv_note_value",
+    "package": "com.arduia.expense",
+    "bounds": {
+     "x1": 270,
+     "y1": 1986,
+     "x2": 1017,
+     "y2": 2043
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 15,
+    "parent": 3,
+    "role": "button",
+    "class_name": "android.widget.Button",
+    "label": null,
+    "text": "EDIT",
+    "resource_id": "com.arduia.expense:id/btn_edit",
+    "package": "com.arduia.expense",
+    "bounds": {
+     "x1": 42,
+     "y1": 2148,
+     "x2": 1038,
+     "y2": 2295
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 16,
+    "parent": null,
+    "role": "container",
+    "class_name": "android.widget.FrameLayout",
+    "label": null,
+    "text": null,
+    "resource_id": null,
+    "package": "com.android.systemui",
+    "bounds": {
+     "x1": 0,
+     "y1": 0,
+     "x2": 1080,
+     "y2": 128
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 17,
+    "parent": 16,
+    "role": "container",
+    "class_name": "android.widget.FrameLayout",
+    "label": null,
+    "text": null,
+    "resource_id": "com.android.systemui:id/status_bar",
+    "package": "com.android.systemui",
+    "bounds": {
+     "x1": 0,
+     "y1": 0,
+     "x2": 1080,
+     "y2": 128
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 18,
+    "parent": 17,
+    "role": "text",
+    "class_name": "android.widget.TextView",
+    "label": "16:34",
+    "text": "15:34",
+    "resource_id": "com.android.systemui:id/clock",
+    "package": "com.android.systemui",
+    "bounds": {
+     "x1": 50,
+     "y1": 1,
+     "x2": 148,
+     "y2": 128
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 19,
+    "parent": 17,
+    "role": "image",
+    "class_name": "android.widget.ImageView",
+    "label": "SMS Messenger notification: ",
+    "text": null,
+    "resource_id": null,
+    "package": "com.android.systemui",
+    "bounds": {
+     "x1": 148,
+     "y1": 1,
+     "x2": 206,
+     "y2": 128
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 20,
+    "parent": 17,
+    "role": "image",
+    "class_name": "android.widget.ImageView",
+    "label": "Android System notification: Serial console enabled",
+    "text": null,
+    "resource_id": null,
+    "package": "com.android.systemui",
+    "bounds": {
+     "x1": 206,
+     "y1": 1,
+     "x2": 264,
+     "y2": 128
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 21,
+    "parent": 17,
+    "role": "image",
+    "class_name": "android.widget.ImageView",
+    "label": "Do Not Disturb",
+    "text": null,
+    "resource_id": null,
+    "package": "com.android.systemui",
+    "bounds": {
+     "x1": 809,
+     "y1": 35,
+     "x2": 866,
+     "y2": 93
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 22,
+    "parent": 17,
+    "role": "container",
+    "class_name": "android.widget.FrameLayout",
+    "label": "Phone signal full.",
+    "text": null,
+    "resource_id": "com.android.systemui:id/mobile_combo",
+    "package": "com.android.systemui",
+    "bounds": {
+     "x1": 866,
+     "y1": 35,
+     "x2": 970,
+     "y2": 93
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 23,
+    "parent": 22,
+    "role": "image",
+    "class_name": "android.widget.ImageView",
+    "label": "No internet",
+    "text": null,
+    "resource_id": "com.android.systemui:id/mobile_type",
+    "package": "com.android.systemui",
+    "bounds": {
+     "x1": 866,
+     "y1": 43,
+     "x2": 931,
+     "y2": 85
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 24,
+    "parent": 17,
+    "role": "container",
+    "class_name": "android.widget.LinearLayout",
+    "label": "Battery 100 percent.",
+    "text": null,
+    "resource_id": "com.android.systemui:id/battery",
+    "package": "com.android.systemui",
+    "bounds": {
+     "x1": 986,
+     "y1": 1,
+     "x2": 1006,
+     "y2": 128
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   }
+  ],
+  "capabilities": {
+   "operations": [
+    "open_app",
+    "tap",
+    "long_press",
+    "type",
+    "scroll",
+    "swipe",
+    "back",
+    "home",
+    "wait"
+   ],
+   "app_grants": [
+    "ca.zgrs.clipper",
+    "code.name.monkey.retromusic",
+    "com.android.camera2",
+    "com.android.chrome",
+    "com.android.settings",
+    "com.android.vending",
+    "com.arduia.expense",
+    "com.dimowner.audiorecorder",
+    "com.example.androidworld",
+    "com.flauschcode.broccoli",
+    "com.google.android.apps.docs",
+    "com.google.android.apps.maps",
+    "com.google.android.apps.messaging",
+    "com.google.android.apps.photos",
+    "com.google.android.calendar",
+    "com.google.android.contacts",
+    "com.google.android.deskclock",
+    "com.google.android.dialer",
+    "com.google.android.documentsui",
+    "com.google.android.gm",
+    "com.google.android.googlequicksearchbox",
+    "com.google.android.youtube",
+    "com.google.androidenv.miniwob",
+    "com.simplemobiletools.calendar.pro",
+    "com.simplemobiletools.draw.pro",
+    "com.simplemobiletools.gallery.pro",
+    "com.simplemobiletools.smsmessenger",
+    "de.dennisguse.opentracks",
+    "net.cozic.joplin",
+    "net.gsantner.markor",
+    "net.osmand",
+    "org.tasks",
+    "org.videolan.vlc"
+   ]
+  }
+ }
+}

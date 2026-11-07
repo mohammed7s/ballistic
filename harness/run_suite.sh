@@ -25,7 +25,7 @@ PY=~/android_world/.venv/bin/python
 TASKS="${TASKS:-ContactsAddContact ClockTimerEntry ClockStopWatchRunning OpenAppTaskEval SystemWifiTurnOff SystemBluetoothTurnOn SystemBrightnessMax TurnOnWifiAndOpenApp SimpleSmsSend SimpleSmsReplyMostRecent SimpleCalendarAddOneEvent SimpleCalendarEventsOnDate MarkorCreateNote MarkorDeleteNote MarkorCreateFolder ExpenseAddSingle ExpenseDeleteSingle RecipeAddSingleRecipe FilesDeleteFile CameraTakePhoto}"
 OUT=~/ballistic_runs/suite_${AGENT}_$(date +%Y%m%d-%H%M%S).tsv
 mkdir -p ~/ballistic_runs
-printf "# agent=%s model=%s base_url=%s seed=%s commit=%s\n" "$AGENT" "$MODEL" "$BASE_URL" "${SEED:-0}" "$(git rev-parse --short HEAD)" > "$OUT"
+printf "# agent=%s model=%s base_url=%s seed=%s commit=%s\n" "$AGENT" "$MODEL" "$BASE_URL" "${SEED:-0}" "$(git rev-parse --short HEAD 2>/dev/null || echo "${BALLISTIC_COMMIT:-unknown}")" > "$OUT"
 printf "task\tresult\tsteps\tseconds\texit\tbenchmark\tagent_done\tfailure_category\tmodel_calls\tprompt_tokens\trun_json\n" >> "$OUT"
 for t in $TASKS; do
   log="${OUT%.tsv}_${t}.log"

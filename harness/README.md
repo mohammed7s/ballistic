@@ -86,7 +86,7 @@ Core asks and the harness answers, one JSON line each way (`core/src/bridge.rs`)
 |---|---|
 | `--confirm approve\|deny` | answer to every confirmation core asks for (benchmark: approve; injection tests: deny) |
 | `--reader_model`, `--judge_model`, `--verifier_model` | model name for that role on the same `--base_url`; default `--model` (the planner's) |
-| `--core_bin` | path to `ballistic-core` |
+| `--core_bin` | path to `ballistic-core`; default `$BALLISTIC_CORE_BIN`, else the cargo target dirs |
 | `--core_mode observe` | observe once and report counts (pipe smoke test) |
 
 A core run's JSON has the same fields as before plus `core_args`, `roles`, `confirm`,
@@ -157,3 +157,15 @@ Core binds guarded approvals to one exact resolved operation and app. A host err
 is ambiguous: core stops instead of retrying a possible send/delete. `not_executed` is reserved
 for cases where the host can guarantee no input was dispatched. Do not classify a timeout as
 `not_executed` merely because an acknowledgment was not received.
+
+### Model retries and observation settling (7 November 2026)
+
+`ModelClient` retries HTTP 502/503/504 and connection failures up to three times (waits 2, 4,
+8 s); a success after retries is one call with a `retried` list. Read timeouts and 4xx are not
+retried. The run JSON records HTTP status and a quota classification derived from the full
+response (daily, rate, mixed or unknown), without storing the raw error body. Malformed successful
+responses produce `ModelResponseError` with response-shape and allowlisted finish-reason fields,
+instead of a missing-content `KeyError`. Observation settles on two consecutive samples with the same foreground and size whose
+trees match, or differ only slightly (same skeleton, at most a tenth of the nodes changed); the
+later sample is returned. Unsettled samples are spaced 0.3 s, doubling; six acquisitions and a
+30-second soft deadline bound the wait.

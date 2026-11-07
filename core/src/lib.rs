@@ -12,6 +12,8 @@ pub mod actions;
 pub mod screen_filter;
 pub mod agent;
 pub mod run;
+pub mod reader;
+pub mod readback;
 
 pub mod capabilities;
 pub mod verification;

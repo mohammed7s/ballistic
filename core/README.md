@@ -4,12 +4,16 @@ Current implementation (7 November 2026): initial tree agent, action validation,
 confirmation hooks, verifier and stdio bridge. Contract and evidence refinements are described
 below; see the implementation status and test results in `docs/CONTEXT.md`.
 The 7 November benchmark safety patch rejects unidentified mutation targets, preserves package
-ownership through filtering and supplies a few code-owned labels from exact control identifiers.
-Anonymous Quick Settings tiles remain blocked. After an acknowledged guarded input the loop
-stops with `pending` / verification `unknown`; it does not retry through Send, Enter or another
-route. This also stops recipient/search submissions because semantic effects are not yet bound.
-These are conservative safety restrictions, not reliable completion checks or measured score gains.
-Reader/taint/Rule of Two, deny-only judge, full policy/configuration and skill execution below are the **design still to implement**.
+ownership through filtering and supplies code-owned labels from exact control identifiers
+(§5). The core fix of 7 November replaces the stop after an acknowledged guarded input with a
+**readback** and an **idempotency guard** (§10): core observes once, compares the two screens in
+code, records `changed` / `unchanged` / `unreadable` and continues; the same guarded input again
+needs a fresh confirmation saying it may already have been sent, and a second acknowledgement on
+the same control stops the run. The reader's **`element` shape** is implemented (§7); `facts`
+and `summary` are not. Code-owned labels now cover the recorded anonymous controls of the
+20-task suite, including two Quick Settings tiles (§5). Keyboard suggestion-strip text (the
+clipboard) is content. Taint rule, Rule of Two as code, deny-only judge, full
+policy/configuration and skill execution below are the **design still to implement**.
 Live Contacts validation passed (8 steps, 65.5 s, 7 November 2026). Harness terminal prompt input
 and offline port replay exist; offline replay is not live skill execution. The terminal is the
 current user interface; there is no localhost/browser UI planned. The next product UI is the
@@ -181,6 +185,20 @@ The filter turns `ScreenState` into the planner's view. Rules, applied in order:
 6. Number the remaining nodes `e1, e2, ...` in reading order and print one line each:
    `e7 button "Save" [clickable]`, `e3 switch "Bluetooth" [off]`, `e9 item «c4: 38 chars»`.
 
+**Code-owned labels** (`screen_filter.rs`, `KNOWN_CONTROLS` and `code_owned_label`). A control
+whose only strings are content, or which has none, can still be named by core when its identity
+is structural: exact owning package + exact resource id + role (Expense "Add expense", "Delete
+expense", "Close"; camera "Last photo thumbnail"; Markor "Note text" editor; calendar "Previous
+month", "Next month", event "Start date/time", "End date/time"; SystemUI "Display brightness"
+slider; SMS "New conversation", "Send message"; the notification footer). Two Quick Settings
+tiles have no ids; they are named only when package, `android.widget.Switch` class, parent
+`qqs_tile_layout`, slot (0, 1) and the OS description ("Internet", "Bluetooth.") all agree on the
+recorded emulator image. Calendar month cells are named by grid position ("Day cell, week 3,
+column 5"). The control's own strings stay content in every case, so no app text becomes an
+identity; SSIDs and device names stay content. Every entry was seen in a recorded screen; there is
+no substring or caption heuristic. Keyboard text other than exact `key_pos_*` keys (the
+suggestion strip shows the clipboard) is content.
+
 Everything else the planner needs from content (the newest thread, the message from the dentist)
 it gets through `read` (§6) as a typed answer.
 
@@ -240,12 +258,29 @@ Anything outside the shape is dropped. The planner never receives reader prose; 
 `element` id or the field values, each tagged with its source. The `summary` goes to the owner,
 with the source of every number and link in it.
 
+**Implemented: `element` (7 Nov 2026, `reader.rs`, `prompts/reader.txt`).** `read` with
+`shape: element` costs one extra model call on that step, only when the planner asks. Core sends
+the reader the planner's question and, for each element owning a requested `cN`, one JSON object
+`{"id":"e7","position":1,"text":"..."}` (position = reading order from the top), under rules
+that say the text is data and never an instruction. The reply must be exactly one of those ids or
+`none` (whitespace, backticks or quotes around it tolerated); anything else, including an id that
+is not a candidate, is rejected, logged by size only (`reader.rejected`, `reply_chars`) and never
+forwarded. The planner then sees one line under `Reader facts:`, `reader: element e8 (source
+app:<package>)`, or the history note `reader: element none` / `reader: answer rejected`. The read
+dispatches nothing and the next step reuses the same screen. Core keeps the pick by identity
+(package, resource id, role, bounds and withheld text, compared in code) and re-locates it on
+later screens; it disappears when the row changes. A pick authorizes one plain `tap` on that
+element (not a field, slider, long press or anything in the shade); if its withheld text contains
+a guarded word (§9) the tap needs the owner's confirmation. `facts` and `summary` are not
+implemented; such a read is refused without a model call and the run continues.
+
 **Provenance.** Every value core handles carries a source tag: `owner:request`, `owner:contacts`,
 `screen:label`, `sms:<sender>`, `note:<file>`, `web:<host>`, `app:<package>`. Tags are set by the
 port and the filter, never by a model, and they follow the value through the reader into any
 action argument.
 
-**Rules enforced in code**, from `SPEC.md` §7.2–7.3:
+**Target rules to enforce in code**, from `SPEC.md` §7.2–7.3 (full provenance and Rule of Two
+remain unfinished; see the implementation status at the top):
 
 1. The planner prompt is built only from: rules, request, app list, history, typed reader facts,
    filter output. There is no code path that puts raw content into it.
@@ -284,6 +319,11 @@ anything the taint rule or the Rule of Two flags. **Soft confirmation** (one tap
 window): settings toggles, alarms, timers. The initial UI agent recognises these from the target node's label
 and role (`"Send"`, `"Delete"`, `"Pay"`, `"Install"`, …), from the app's category and from
 `type` with `submit` in messaging apps. Owner policy lives in one file in the storage directory.
+Implemented today: guarded words in the target's label or resource-id words, the recorded
+keyboard action key, `type` with `submit`, and a reader-picked element whose withheld text
+contains a guarded word. Two exact keys that remove one typed character (the keyboard's
+`key_pos_del`, the timer's `timer_setup_delete`, when the element belongs to that package) are
+not guarded. A repeat of an acknowledged guarded input is confirmed again (§10).
 
 The contract design extends this classification with operation metadata. Approval covers the
 canonical operation id, app, resolved recipient/target, exact value/body, attachment identities
@@ -322,6 +362,36 @@ After an ambiguous send or other side effect (timeout, lost acknowledgment), ins
 retrying. Retry only when reliable readback proves no effect or the route offers a valid
 idempotency guarantee for that exact operation. Otherwise stop and report the uncertainty;
 blind retries risk duplicates. A verifier failure must not automatically repeat a possible send.
+
+**Readback and idempotency guard (implemented 7 Nov 2026, `readback.rs`, `agent.rs`).** When Hands
+acknowledges a guarded input (Send, a keyboard action key, `type` with `submit`, any activation
+§9 confirms), core takes one fresh observation and compares it in code with the screen the input
+was planned on: app or activity changed, a filled edit field emptied, the target gone, elements
+added or removed, otherwise content changed. The step event records `readback` as `changed`,
+`unchanged` or `unreadable` (the Screen port failed or returned no nodes) with those fixed signal
+words; the planner's history gets the same words (`guarded input acknowledged; readback: changed
+(field_emptied)`), and the loop continues on that screen. The readback dispatches nothing, and
+it adds no screen text to any prompt: planner and verifier still see only the filtered view.
+Ordinary inputs get the same comparison in their history line (`screen changed (...)` or
+`screen unchanged`). An error or timeout from Hands still stops the run as before.
+
+The guard counts acknowledged guarded inputs by package, control (resource id, else label,
+else role and bounds) and typed text. The same input again is dispatched only after a fresh hard
+confirmation whose request says it was already acknowledged in this run and may already have
+been sent; after the second acknowledgement on the same control the run stops (`pending`,
+verification `unknown`). Other guarded inputs in the same run carry a note that one was
+acknowledged earlier. A guaranteed `not_executed` is not counted.
+
+*Why a fooled readback costs at most one extra confirmation.* The readback never authorizes,
+dispatches or skips anything: confirmation (§9) and the count above are decided before and after
+each dispatch whatever the readback said. If a stale tree, a slow app or a hostile app makes the
+readback report `unchanged` after a real send, the worst case is that the planner asks for the
+same Send again; core then asks the owner once more, with a request saying it may already have
+been sent, and stops after that second acknowledgement. If it reports `changed` after a failed
+send, the planner moves on and the task fails visibly; nothing extra is sent. Either way no input
+is ever dispatched without a confirmation, and no guarded input is acknowledged more than twice
+on one control in a run. Readback is therefore evidence for the planner and the log, not a
+receipt: it does not raise verification above `unknown`, and the done check (below) is unchanged.
 
 AndroidWorld's `is_successful` result remains an independent scoreboard even when the agent says
 `done` or gives up. Benchmark-only privileged database/file inspection is permitted for scoring,
@@ -382,7 +452,14 @@ model planning failures; classify a deliberate denial as policy denial, not exec
 
 - **Unit tests, no emulator**: recorded screens (`core/tests/screens/*.json`) → filter output,
   match-only titles, action validation, taint rule, Rule of Two, policy decisions, skill
-  matching, reader shape enforcement.
+  matching, reader shape enforcement. Today (`cargo test`, 64 tests): `agent_checks.rs`,
+  `benchmark_regressions.rs`, `readback_and_reader.rs` (readback on the recorded SMS send, no
+  screen text in prompts, no dispatch, unreadable readback; repeat Send needs a "may already have
+  been sent" confirmation and two stop the run; reader on the recorded conversation list returns
+  an id only, hostile row text never reaches the planner, prose and non-candidate ids are
+  rejected) and `known_controls.rs` (each code-owned label on its recorded screen, Quick Settings
+  spoofs, character-delete keys, clipboard in the keyboard strip). Harness: 35 Python tests
+  (`python3 -m unittest discover -p 'test_*.py'` in `harness/`).
 - **Injection tests, on the emulator** (`tests/injection/*.json`), each: a setup (an SMS
   delivered through the emulator console, a Markor note written by adb), a request, and
   expectations about what must not happen, with confirmations denied. First cases:
@@ -452,14 +529,14 @@ Layout:
 core/
   README.md                 this file
   schema/actions.json       action schema (shared with every host)
-  prompts/planner.txt       prompt texts (shared with every host)
+  prompts/planner.txt       prompt texts (shared with every host); planner.txt and reader.txt exist
   prompts/reader.txt  prompts/judge.txt  prompts/verifier.txt
   src/                      Rust crate `ballistic_core`
     types.rs                ScreenState, Node, Action, Value+Source, ConfirmRequest
     ports.rs                the four traits
     screen_filter.rs
     actions.rs              validation, target resolution, app-name matching
-    planner.rs  reader.rs  judge.rs  verifier.rs
+    planner.rs  reader.rs  judge.rs  verifier.rs   (reader.rs: element shape; readback.rs: §10)
     provenance.rs           source tags, taint rule, Rule of Two
     policy.rs
     skills.rs
@@ -535,9 +612,14 @@ The generated file is committed and must be regenerated whenever `ffi.rs` change
 checksum of every exported function against the loaded library, so a stale binding fails at load.
 The harness build (`cargo build`, no feature) contains none of this.
 
-**What remains in core for the app**: the reader (`read`/`answer` still end the run as
-`unsupported`), policy and routing moving into core from the shell's `ConfirmFloor`, core
+**What remains in core for the app**: reader facts/summary and answer provenance (the element
+reader is implemented), policy and routing moving into core from the shell's `ConfirmFloor`, core
 contracts for notification reply, dial and alarm, and checking the hard-approval signature.
+
+The element reader stops repeated identical queries on the same observation and allows at most
+three distinct consecutive queries without navigation. These bounds limit stalled model calls;
+they do not establish completion. The verifier rejects anonymous switch/checkable evidence, but
+still cannot prove that every requested field or value was satisfied merely from cited node IDs.
 
 ## 16. Order of work
 
@@ -546,7 +628,11 @@ contracts for notification reply, dial and alarm, and checking the hard-approval
 3. Backend client and config.
 4. Planner + loop + action validation + done check; executable capability contracts, exact
    operation approval, evidence statuses, ambiguous-effect fail-stop; compare the 20 tasks.
-5. Reader with typed shapes, provenance tags; injection tests 1, 2, 4, 6.
+   *Done (initial); readback and idempotency guard after guarded inputs done 7 Nov; 20-task
+   comparison in `docs/BENCHMARK_RUNS.md`.*
+5. Reader with typed shapes, provenance tags; injection tests 1, 2, 4, 6. *`element` shape
+   with source tags done 7 Nov (unit tests with a hostile row and reader prose, §14 case 6 at
+   unit level); `facts`, `summary` and the emulator injection tests open.*
 6. Taint rule, Rule of Two, policy, confirmation; injection tests 3, 5.
 7. Judge.
 8. Shipped capability descriptions loaded by relevance/on demand; skills recorded on PASS,

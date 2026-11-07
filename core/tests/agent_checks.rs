@@ -174,3 +174,17 @@ fn invalid_later_plan_preserves_prior_execution_status() {
     assert_eq!(result["execution_status"],"executed");
     assert_eq!(result["failure_category"],"planning");
 }
+
+
+#[test]
+fn recorded_airplane_mode_switch_is_not_wifi_completion_evidence() {
+    let raw: serde_json::Value=serde_json::from_str(include_str!("screens/benchmark_regressions/core4_wifi_false_done.json")).unwrap();
+    let screen: ballistic_core::types::ScreenState=serde_json::from_value(raw["screen"].clone()).unwrap();
+    let view=ballistic_core::screen_filter::filter(&screen,&ballistic_core::screen_filter::FilterContext {
+        request:"Turn wifi off.",typed:&[]});
+    let switch=view.elements.iter().find(|e| e.role==ballistic_core::types::Role::Switch).unwrap();
+    assert!(switch.label.is_none());
+    let verdict=ballistic_core::verification::assess(&serde_json::json!({"status":"verified",
+        "evidence_basis":"visible_ui","nodes":[format!("e{}",switch.id)]}).to_string(),&view);
+    assert_eq!(verdict.status,ballistic_core::types::VerificationStatus::Unknown);
+}

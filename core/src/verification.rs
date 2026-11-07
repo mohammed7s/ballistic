@@ -17,7 +17,12 @@ pub fn assess(text: &str, screen: &FilteredScreen) -> Verification {
     let _ = v.reason; // Never return model prose to the planner.
     let valid = !v.nodes.is_empty() && v.nodes.iter().all(|id| id.strip_prefix('e')
         .filter(|s| !s.starts_with('0')).and_then(|s| s.parse::<u32>().ok())
-        .and_then(|id| screen.element(id)).is_some());
+        .and_then(|id| screen.element(id)).is_some_and(|element| {
+            // State alone cannot establish which setting a switch controls. Generic ids,
+            // matched words such as "off", and a reader pick do not identify a control.
+            !(element.flags.checkable || element.role == Role::Switch)
+                || element.label.is_some()
+        }));
     if v.evidence_basis != "visible_ui" || (v.status != VerificationStatus::Unknown && !valid) {
         return Verification::default();
     }

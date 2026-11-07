@@ -211,7 +211,7 @@ class ObservationTest(unittest.TestCase):
 
     def test_slow_acquisition_hits_soft_deadline(self):
         host = self.host(sample(self.old))
-        self.clock.side_effect = [0, 0, 16, 16]
+        self.clock.side_effect = [0, 0, 31, 31]  # past the 30-second soft deadline
         with self.assertRaisesRegex(ObservationError, 'acquisition_deadline'):
             host.observe()
         self.assertEqual(host.env.state_reads, 1)

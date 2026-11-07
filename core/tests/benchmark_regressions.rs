@@ -33,11 +33,14 @@ fn run(replies: Vec<Value>, request: &str) -> (Value, Vec<Value>) {
 fn recorded_quick_settings_guesses_never_resolve_to_hands() {
     let mut s = fixture("shade");
     // The real trace has a launcher/Settings foreground package and a SystemUI overlay.
-    // Even an owner-matched caption cannot identify an anonymous toggle.
+    // Even an owner-matched caption cannot identify an anonymous toggle. Only the two tiles
+    // with a code-owned slot identity (Internet, Bluetooth) are named; the others stay anonymous.
     for package in ["com.google.android.apps.nexuslauncher", "com.android.settings"] {
         s.package = package.into();
         let view = filtered(&s, "Turn on Internet Bluetooth. Flashlight Do Not Disturb.");
-        for node in [4, 5, 6, 7] {
+        assert_eq!(view.element(element_id(&view, 4)).unwrap().label.as_deref(), Some("Internet (Wi-Fi) tile"));
+        assert_eq!(view.element(element_id(&view, 5)).unwrap().label.as_deref(), Some("Bluetooth tile"));
+        for node in [6, 7] {
             let id = element_id(&view, node);
             assert_eq!(view.element(id).unwrap().label, None);
             for action in [Action::Tap { target: id }, Action::LongPress { target: id }] {
@@ -199,8 +202,9 @@ fn generic_resource_ids_do_not_authorize_unknown_buttons_or_fields() {
 }
 
 #[test]
-fn acknowledged_send_enter_long_press_and_type_submit_stop_with_unknown_effects() {
+fn acknowledged_send_enter_long_press_and_type_submit_read_back_then_continue() {
     let s = fixture("before");
+    let after = fixture("after");
     let view = filtered(&s, "send the message");
     let send = format!("e{}", element_id(&view, 13));
     let enter = format!("e{}", element_id(&view, 62));
@@ -209,19 +213,20 @@ fn acknowledged_send_enter_long_press_and_type_submit_stop_with_unknown_effects(
         json!({"action":"long_press","target":send}),
         json!({"action":"tap","target":enter}),
         json!({"action":"type","target":field,"text":"hello","submit":true})] {
-        let (result, calls) = run(vec![json!(s), completion(action), json!("approved"), json!({"result":"ok"})], "send the message");
-        assert_eq!(result["done"], false);
-        assert_eq!(result["steps"], 1);
-        assert_eq!(result["task_status"], "pending");
+        let (result, calls) = run(vec![json!(s), completion(action.clone()), json!("approved"), json!({"result":"ok"}),
+            json!(after), completion(json!({"action":"give_up","reason":"checked"}))], "send the message");
+        assert_eq!(result["steps"], 2, "{action}");
         assert_eq!(result["execution_status"], "executed");
         assert_eq!(result["verification"]["status"], "unknown");
-        assert_eq!(result["verification"]["evidence_basis"], "none");
-        assert_eq!(result["failure_category"], "verification");
         assert_eq!(calls.iter().filter(|c| c["ask"] == "confirm").count(), 1);
+        // The readback is one observation and no dispatch.
         assert_eq!(calls.iter().filter(|c| c["ask"] == "act").count(), 1);
-        // No next plan or verifier is called, so changed ids, empty compose fields and
-        // alternate keyboard routes cannot authorize another possibly duplicate effect.
-        assert_eq!(calls.iter().filter(|c| c["ask"] == "complete").count(), 1);
+        assert_eq!(calls.iter().filter(|c| c["ask"] == "observe").count(), 2);
+        let step = calls.iter().find(|c| c["event"]["step"] == 1).unwrap();
+        assert_eq!(step["event"]["readback"]["outcome"], "changed");
+        let planner: Vec<&Value> = calls.iter().filter(|c| c["ask"] == "complete").collect();
+        assert_eq!(planner.len(), 2);
+        assert!(planner[1]["messages"].to_string().contains("guarded input acknowledged; readback: changed"));
     }
 }
 
@@ -243,9 +248,13 @@ fn only_guaranteed_non_execution_allows_another_submission_attempt() {
     let action = completion(json!({"action":"tap","target":format!("e{}", element_id(&view, 13))}));
     let (result, calls) = run(vec![json!(s), action.clone(), json!("approved"),
         json!({"result":"not_executed","message":"rejected before dispatch"}),
-        json!(s), action, json!("approved"), json!({"result":"ok"})], "send the message");
-    assert_eq!(result["steps"], 2);
+        json!(s), action, json!("approved"), json!({"result":"ok"}),
+        json!(fixture("after")), completion(json!({"action":"give_up","reason":"checked"}))], "send the message");
+    assert_eq!(result["steps"], 3);
     assert_eq!(result["verification"]["status"], "unknown");
     assert_eq!(calls.iter().filter(|c| c["ask"] == "act").count(), 2);
-    assert_eq!(calls.iter().filter(|c| c["ask"] == "confirm").count(), 2);
+    let confirms: Vec<&Value> = calls.iter().filter(|c| c["ask"] == "confirm").collect();
+    assert_eq!(confirms.len(), 2);
+    // A guaranteed non-execution is not an acknowledged input: no "may already" warning.
+    assert!(!confirms[1]["request"]["reason"].as_str().unwrap().contains("may already"));
 }

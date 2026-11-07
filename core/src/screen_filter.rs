@@ -77,6 +77,9 @@ pub struct FilteredScreen {
     pub lines: Vec<String>,
     pub elements: Vec<Element>,
     pub contents: Vec<ContentRef>,
+    /// Elements the reader picked (§7 `element` shape) and core re-located on this screen.
+    /// Set by the agent loop, never by the filter; they may be tapped like a matched item.
+    pub reader_picks: Vec<u32>,
 }
 
 impl FilteredScreen {
@@ -118,27 +121,96 @@ const OS_LABEL_PACKAGES: &[&str] = &[
 const SYSTEMUI: &str = "com.android.systemui";
 const SETTINGS: &str = "com.android.settings";
 
+/// A control recognised by its exact owning package, exact resource id and role. Every entry
+/// was seen in a recorded screen (`ballistic_runs/`, 6–7 Nov 2026); the label is ours, so the
+/// control's own strings (which an app or a notification may fill) never become its identity.
+struct KnownControl {
+    package: &'static str,
+    resource_id: &'static str,
+    role: Role,
+    label: &'static str,
+}
+
+const KNOWN_CONTROLS: &[KnownControl] = &[
+    KnownControl { package: "com.simplemobiletools.smsmessenger", resource_id: "com.simplemobiletools.smsmessenger:id/conversations_fab", role: Role::Button, label: "New conversation" },
+    KnownControl { package: "com.simplemobiletools.smsmessenger", resource_id: "com.simplemobiletools.smsmessenger:id/thread_send_message", role: Role::Button, label: "Send message" },
+    KnownControl { package: "com.arduia.expense", resource_id: "com.arduia.expense:id/fb_main_add", role: Role::Button, label: "Add expense" },
+    KnownControl { package: "com.arduia.expense", resource_id: "com.arduia.expense:id/btn_delete", role: Role::Image, label: "Delete expense" },
+    KnownControl { package: "com.arduia.expense", resource_id: "com.arduia.expense:id/btn_close", role: Role::Button, label: "Close" },
+    KnownControl { package: "com.android.camera2", resource_id: "com.android.camera2:id/rounded_thumbnail_view", role: Role::Button, label: "Last photo thumbnail" },
+    KnownControl { package: "net.gsantner.markor", resource_id: "net.gsantner.markor:id/document__fragment__edit__highlighting_editor", role: Role::Edit, label: "Note text" },
+    KnownControl { package: "com.simplemobiletools.calendar.pro", resource_id: "com.simplemobiletools.calendar.pro:id/top_left_arrow", role: Role::Image, label: "Previous month" },
+    KnownControl { package: "com.simplemobiletools.calendar.pro", resource_id: "com.simplemobiletools.calendar.pro:id/top_right_arrow", role: Role::Image, label: "Next month" },
+    KnownControl { package: "com.simplemobiletools.calendar.pro", resource_id: "com.simplemobiletools.calendar.pro:id/event_start_date", role: Role::Text, label: "Start date" },
+    KnownControl { package: "com.simplemobiletools.calendar.pro", resource_id: "com.simplemobiletools.calendar.pro:id/event_start_time", role: Role::Text, label: "Start time" },
+    KnownControl { package: "com.simplemobiletools.calendar.pro", resource_id: "com.simplemobiletools.calendar.pro:id/event_end_date", role: Role::Text, label: "End date" },
+    KnownControl { package: "com.simplemobiletools.calendar.pro", resource_id: "com.simplemobiletools.calendar.pro:id/event_end_time", role: Role::Text, label: "End time" },
+    // The brightness dialog's (and shade's) slider; its text is SystemUI, which stays content.
+    KnownControl { package: SYSTEMUI, resource_id: "com.android.systemui:id/slider", role: Role::Slider, label: "Display brightness" },
+];
+
+/// Quick Settings tiles have no individual ids. On the recorded emulator image the first two
+/// tiles of the collapsed panel are Internet and Bluetooth. A tile is named only when all of
+/// package, class, parent id, slot and the OS-written description agree; a tile the owner moved
+/// or a third-party tile with a copied description in another slot stays unidentified.
+const QS_TILES: &[(usize, &str, &str)] = &[(0, "Internet", "Internet (Wi-Fi) tile"), (1, "Bluetooth.", "Bluetooth tile")];
+
 /// Recorded controls whose identity does not depend on displayed text. Never use a caption,
-/// tile position, generic switch id or a resource-id substring as an identity. In particular,
-/// the recorded Quick Settings tiles have no individual ids: their names stay content.
-fn static_control_label(node: &Node, parent: Option<&Node>) -> Option<&'static str> {
-    if node.role != Role::Button || node.flags.editable || node.flags.checkable {
-        return None;
+/// a generic switch id or a resource-id substring as an identity; positions only inside an
+/// exact parent (Quick Settings tiles, calendar month grid), never on their own.
+fn code_owned_label(nodes: &[Node], i: usize, parent: Option<usize>) -> Option<String> {
+    let node = &nodes[i];
+    let package = node.package.as_deref()?;
+    let parent_node = parent.map(|p| &nodes[p]);
+    let parent_rid = parent_node.and_then(|p| p.resource_id.as_deref());
+    let siblings = || nodes.iter().filter(move |n| n.parent.is_some() && n.parent == node.parent);
+    let rid = node.resource_id.as_deref();
+    if package == SYSTEMUI && node.role == Role::Switch && rid.is_none()
+        && node.class_name.as_deref() == Some("android.widget.Switch")
+        && parent_node.is_some_and(|p| p.package.as_deref() == Some(SYSTEMUI))
+        && parent_rid == Some("com.android.systemui:id/qqs_tile_layout") {
+        let slot = siblings().position(|n| n.id == node.id)?;
+        return QS_TILES.iter().find(|(s, cd, _)| *s == slot && node.label.as_deref() == Some(*cd))
+            .map(|(_, _, label)| label.to_string());
     }
-    match (node.package.as_deref()?, node.resource_id.as_deref()?) {
-        (SYSTEMUI, id) if parent.is_some_and(|p|
-            p.package.as_deref() == Some(SYSTEMUI)
-                && p.resource_id.as_deref() == Some("com.android.systemui:id/notification_stack_scroller")) => {
-            match id {
-                "com.android.systemui:id/manage_text" => Some("Manage notifications"),
-                "com.android.systemui:id/dismiss_text" => Some("Clear all notifications"),
-                _ => None,
-            }
-        },
-        ("com.simplemobiletools.smsmessenger", "com.simplemobiletools.smsmessenger:id/conversations_fab") => Some("New conversation"),
-        ("com.simplemobiletools.smsmessenger", "com.simplemobiletools.smsmessenger:id/thread_send_message") => Some("Send message"),
-        _ => None,
+    let rid = rid?;
+    if package == "com.simplemobiletools.calendar.pro" && node.role == Role::Item
+        && rid == "com.simplemobiletools.calendar.pro:id/month_view_background" {
+        // The month grid draws its day numbers; the cells carry none. Name a cell by its
+        // row and column among its visible siblings, which is structure, never content.
+        let cells: Vec<&Node> = siblings().filter(|n| n.resource_id.as_deref() == Some(rid)
+            && n.flags.visible && n.bounds.area() > 0).collect();
+        let rank = |key: fn(&Node) -> i32| {
+            let mut v: Vec<i32> = cells.iter().map(|n| key(n)).collect();
+            v.sort_unstable(); v.dedup();
+            v.iter().position(|x| *x == key(node)).map(|p| p + 1)
+        };
+        if !node.flags.visible || node.bounds.area() == 0 { return None; }
+        return Some(format!("Day cell, week {}, column {}", rank(|n| n.bounds.y1)?, rank(|n| n.bounds.x1)?));
     }
+    if package == SYSTEMUI && node.role == Role::Button && !node.flags.editable && !node.flags.checkable
+        && parent_node.is_some_and(|p| p.package.as_deref() == Some(SYSTEMUI))
+        && parent_rid == Some("com.android.systemui:id/notification_stack_scroller") {
+        return match rid {
+            "com.android.systemui:id/manage_text" => Some("Manage notifications".into()),
+            "com.android.systemui:id/dismiss_text" => Some("Clear all notifications".into()),
+            _ => None,
+        };
+    }
+    KNOWN_CONTROLS.iter()
+        .find(|k| k.package == package && k.resource_id == rid && k.role == node.role
+            && node.flags.editable == (k.role == Role::Edit) && !node.flags.checkable)
+        .map(|k| k.label.to_string())
+}
+
+/// Keyboard apps show the owner's clipboard and word predictions in their suggestion strip.
+/// Only their keys (exact `key_pos_*` ids in the keyboard's own package) and the navigation-bar
+/// keys are labels; every other keyboard string is content.
+const IME_PACKAGES: &[&str] = &["com.google.android.inputmethod.latin", "com.android.inputmethod.latin"];
+
+fn is_keyboard_key(package: &str, rid: Option<&str>) -> bool {
+    rid.is_some_and(|r| r.strip_prefix(package).and_then(|r| r.strip_prefix(":id/key_pos_")).is_some()
+        || r.starts_with("android:id/input_method_nav_"))
 }
 
 /// Words that mark a Settings page or row as listing Wi-Fi networks or Bluetooth devices, whose
@@ -362,8 +434,10 @@ pub fn filter(screen: &ScreenState, ctx: &FilterContext) -> FilteredScreen {
         let settings_device_text = package == SETTINGS
             && (device_page || w.item_root.is_some_and(|r| device_row.contains(&r)));
 
-        let static_label = static_control_label(n, raw_parent(i).map(|p| &nodes[p]));
-        let mut labels: Vec<String> = static_label.into_iter().map(str::to_string).collect();
+        let static_label = code_owned_label(nodes, i, raw_parent(i));
+        let keyboard_text = IME_PACKAGES.contains(&package.as_str())
+            && !is_keyboard_key(&package, n.resource_id.as_deref());
+        let mut labels: Vec<String> = static_label.iter().cloned().collect();
         let mut content: Vec<String> = Vec::new();
         let mut typed: Vec<String> = Vec::new();
         for p in &w.pieces {
@@ -371,7 +445,7 @@ pub fn filter(screen: &ScreenState, ctx: &FilterContext) -> FilteredScreen {
                 false // Keep all displayed strings separate from code-owned control labels.
             } else if w.flags.editable && p.kind == PieceKind::Text {
                 false
-            } else if package == SYSTEMUI {
+            } else if package == SYSTEMUI || keyboard_text {
                 false
             } else if w.flags.editable && p.kind == PieceKind::Label {
                 true // Explicit field hints name the control, including inside scrolling forms.

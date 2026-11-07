@@ -1,0 +1,4430 @@
+{
+ "source": "20261107-015111_SimpleCalendarEventsOnDate.json",
+ "observation": 2,
+ "goal": "What events do I have October 27 2023 in Simple Calendar Pro? Answer with the titles only. If there are multiple titles, format your answer as a comma separated list.",
+ "selection": "Full recorded screen; installed_apps omitted",
+ "screen": {
+  "package": "com.simplemobiletools.calendar.pro",
+  "activity": "com.simplemobiletools.calendar.pro.activities.MainActivity",
+  "width": 1080,
+  "height": 2400,
+  "nodes": [
+   {
+    "id": 1,
+    "parent": null,
+    "role": "container",
+    "class_name": "android.widget.FrameLayout",
+    "label": null,
+    "text": null,
+    "resource_id": null,
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 0,
+     "y1": 0,
+     "x2": 1080,
+     "y2": 2400
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 2,
+    "parent": 1,
+    "role": "container",
+    "class_name": "android.view.ViewGroup",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/main_coordinator",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 0,
+     "y1": 128,
+     "x2": 1080,
+     "y2": 2337
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 3,
+    "parent": 2,
+    "role": "container",
+    "class_name": "android.widget.RelativeLayout",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/top_toolbar_holder",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 42,
+     "y1": 149,
+     "x2": 1038,
+     "y2": 275
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 4,
+    "parent": 3,
+    "role": "image",
+    "class_name": "android.widget.ImageView",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/top_toolbar_search_icon",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 42,
+     "y1": 149,
+     "x2": 147,
+     "y2": 275
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 5,
+    "parent": 3,
+    "role": "edit",
+    "class_name": "android.widget.EditText",
+    "label": "Search",
+    "text": "Search",
+    "resource_id": "com.simplemobiletools.calendar.pro:id/top_toolbar_search",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 147,
+     "y1": 149,
+     "x2": 626,
+     "y2": 275
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": true,
+     "editable": true,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 6,
+    "parent": 3,
+    "role": "button",
+    "class_name": "android.widget.Button",
+    "label": "Change view",
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/change_view",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 668,
+     "y1": 149,
+     "x2": 795,
+     "y2": 275
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 7,
+    "parent": 3,
+    "role": "button",
+    "class_name": "android.widget.Button",
+    "label": "Settings",
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/settings",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 795,
+     "y1": 149,
+     "x2": 922,
+     "y2": 275
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 8,
+    "parent": 3,
+    "role": "image",
+    "class_name": "android.widget.ImageView",
+    "label": "More options",
+    "text": null,
+    "resource_id": null,
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 922,
+     "y1": 149,
+     "x2": 1027,
+     "y2": 275
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": true,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 9,
+    "parent": 2,
+    "role": "container",
+    "class_name": "android.view.ViewGroup",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/calendar_coordinator",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 0,
+     "y1": 296,
+     "x2": 1080,
+     "y2": 2337
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 10,
+    "parent": 9,
+    "role": "other",
+    "class_name": "androidx.viewpager.widget.b",
+    "label": null,
+    "text": null,
+    "resource_id": null,
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 0,
+     "y1": 296,
+     "x2": 1080,
+     "y2": 2337
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": true,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 11,
+    "parent": 10,
+    "role": "image",
+    "class_name": "android.widget.ImageView",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/top_left_arrow",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 0,
+     "y1": 296,
+     "x2": -933,
+     "y2": 438
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 12,
+    "parent": 10,
+    "role": "text",
+    "class_name": "android.widget.TextView",
+    "label": "September",
+    "text": "September",
+    "resource_id": "com.simplemobiletools.calendar.pro:id/top_value",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 0,
+     "y1": 296,
+     "x2": -147,
+     "y2": 438
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 13,
+    "parent": 10,
+    "role": "image",
+    "class_name": "android.widget.ImageView",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/top_right_arrow",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 0,
+     "y1": 296,
+     "x2": 0,
+     "y2": 438
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 14,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 0,
+     "y1": 512,
+     "x2": -926,
+     "y2": 816
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 15,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 0,
+     "y1": 512,
+     "x2": -772,
+     "y2": 816
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 16,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 0,
+     "y1": 512,
+     "x2": -617,
+     "y2": 816
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 17,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 0,
+     "y1": 512,
+     "x2": -463,
+     "y2": 816
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 18,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 0,
+     "y1": 512,
+     "x2": -309,
+     "y2": 816
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 19,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 0,
+     "y1": 512,
+     "x2": -155,
+     "y2": 816
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 20,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 0,
+     "y1": 512,
+     "x2": 0,
+     "y2": 816
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 21,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 0,
+     "y1": 816,
+     "x2": -926,
+     "y2": 1120
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 22,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 0,
+     "y1": 816,
+     "x2": -772,
+     "y2": 1120
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 23,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 0,
+     "y1": 816,
+     "x2": -617,
+     "y2": 1120
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 24,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 0,
+     "y1": 816,
+     "x2": -463,
+     "y2": 1120
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 25,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 0,
+     "y1": 816,
+     "x2": -309,
+     "y2": 1120
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 26,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 0,
+     "y1": 816,
+     "x2": -155,
+     "y2": 1120
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 27,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 0,
+     "y1": 816,
+     "x2": 0,
+     "y2": 1120
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 28,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 0,
+     "y1": 1120,
+     "x2": -926,
+     "y2": 1424
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 29,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 0,
+     "y1": 1120,
+     "x2": -772,
+     "y2": 1424
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 30,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 0,
+     "y1": 1120,
+     "x2": -617,
+     "y2": 1424
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 31,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 0,
+     "y1": 1120,
+     "x2": -463,
+     "y2": 1424
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 32,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 0,
+     "y1": 1120,
+     "x2": -309,
+     "y2": 1424
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 33,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 0,
+     "y1": 1120,
+     "x2": -155,
+     "y2": 1424
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 34,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 0,
+     "y1": 1120,
+     "x2": 0,
+     "y2": 1424
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 35,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 0,
+     "y1": 1425,
+     "x2": -926,
+     "y2": 1729
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 36,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 0,
+     "y1": 1425,
+     "x2": -772,
+     "y2": 1729
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 37,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 0,
+     "y1": 1425,
+     "x2": -617,
+     "y2": 1729
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 38,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 0,
+     "y1": 1425,
+     "x2": -463,
+     "y2": 1729
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 39,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 0,
+     "y1": 1425,
+     "x2": -309,
+     "y2": 1729
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 40,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 0,
+     "y1": 1425,
+     "x2": -155,
+     "y2": 1729
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 41,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 0,
+     "y1": 1425,
+     "x2": 0,
+     "y2": 1729
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 42,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 0,
+     "y1": 1729,
+     "x2": -926,
+     "y2": 2033
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 43,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 0,
+     "y1": 1729,
+     "x2": -772,
+     "y2": 2033
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 44,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 0,
+     "y1": 1729,
+     "x2": -617,
+     "y2": 2033
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 45,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 0,
+     "y1": 1729,
+     "x2": -463,
+     "y2": 2033
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 46,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 0,
+     "y1": 1729,
+     "x2": -309,
+     "y2": 2033
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 47,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 0,
+     "y1": 1729,
+     "x2": -155,
+     "y2": 2033
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 48,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 0,
+     "y1": 1729,
+     "x2": 0,
+     "y2": 2033
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 49,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 0,
+     "y1": 2033,
+     "x2": -926,
+     "y2": 2337
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 50,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 0,
+     "y1": 2033,
+     "x2": -772,
+     "y2": 2337
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 51,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 0,
+     "y1": 2033,
+     "x2": -617,
+     "y2": 2337
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 52,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 0,
+     "y1": 2033,
+     "x2": -463,
+     "y2": 2337
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 53,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 0,
+     "y1": 2033,
+     "x2": -309,
+     "y2": 2337
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 54,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 0,
+     "y1": 2033,
+     "x2": -155,
+     "y2": 2337
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 55,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 0,
+     "y1": 2033,
+     "x2": 0,
+     "y2": 2337
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 56,
+    "parent": 10,
+    "role": "image",
+    "class_name": "android.widget.ImageView",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/top_left_arrow",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 0,
+     "y1": 296,
+     "x2": 147,
+     "y2": 438
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 57,
+    "parent": 10,
+    "role": "text",
+    "class_name": "android.widget.TextView",
+    "label": "October",
+    "text": "October",
+    "resource_id": "com.simplemobiletools.calendar.pro:id/top_value",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 147,
+     "y1": 296,
+     "x2": 933,
+     "y2": 438
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 58,
+    "parent": 10,
+    "role": "image",
+    "class_name": "android.widget.ImageView",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/top_right_arrow",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 933,
+     "y1": 296,
+     "x2": 1080,
+     "y2": 438
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 59,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 0,
+     "y1": 512,
+     "x2": 154,
+     "y2": 816
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 60,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 154,
+     "y1": 512,
+     "x2": 308,
+     "y2": 816
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 61,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 309,
+     "y1": 512,
+     "x2": 463,
+     "y2": 816
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 62,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 463,
+     "y1": 512,
+     "x2": 617,
+     "y2": 816
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 63,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 617,
+     "y1": 512,
+     "x2": 771,
+     "y2": 816
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 64,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 771,
+     "y1": 512,
+     "x2": 925,
+     "y2": 816
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 65,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 926,
+     "y1": 512,
+     "x2": 1080,
+     "y2": 816
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 66,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 0,
+     "y1": 816,
+     "x2": 154,
+     "y2": 1120
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 67,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 154,
+     "y1": 816,
+     "x2": 308,
+     "y2": 1120
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 68,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 309,
+     "y1": 816,
+     "x2": 463,
+     "y2": 1120
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 69,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 463,
+     "y1": 816,
+     "x2": 617,
+     "y2": 1120
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 70,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 617,
+     "y1": 816,
+     "x2": 771,
+     "y2": 1120
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 71,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 771,
+     "y1": 816,
+     "x2": 925,
+     "y2": 1120
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 72,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 926,
+     "y1": 816,
+     "x2": 1080,
+     "y2": 1120
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 73,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 0,
+     "y1": 1120,
+     "x2": 154,
+     "y2": 1424
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 74,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 154,
+     "y1": 1120,
+     "x2": 308,
+     "y2": 1424
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 75,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 309,
+     "y1": 1120,
+     "x2": 463,
+     "y2": 1424
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 76,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 463,
+     "y1": 1120,
+     "x2": 617,
+     "y2": 1424
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 77,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 617,
+     "y1": 1120,
+     "x2": 771,
+     "y2": 1424
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 78,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 771,
+     "y1": 1120,
+     "x2": 925,
+     "y2": 1424
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 79,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 926,
+     "y1": 1120,
+     "x2": 1080,
+     "y2": 1424
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 80,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 0,
+     "y1": 1425,
+     "x2": 154,
+     "y2": 1729
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 81,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 154,
+     "y1": 1425,
+     "x2": 308,
+     "y2": 1729
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 82,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 309,
+     "y1": 1425,
+     "x2": 463,
+     "y2": 1729
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 83,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 463,
+     "y1": 1425,
+     "x2": 617,
+     "y2": 1729
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 84,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 617,
+     "y1": 1425,
+     "x2": 771,
+     "y2": 1729
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 85,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 771,
+     "y1": 1425,
+     "x2": 925,
+     "y2": 1729
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 86,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 926,
+     "y1": 1425,
+     "x2": 1080,
+     "y2": 1729
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 87,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 0,
+     "y1": 1729,
+     "x2": 154,
+     "y2": 2033
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 88,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 154,
+     "y1": 1729,
+     "x2": 308,
+     "y2": 2033
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 89,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 309,
+     "y1": 1729,
+     "x2": 463,
+     "y2": 2033
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 90,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 463,
+     "y1": 1729,
+     "x2": 617,
+     "y2": 2033
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 91,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 617,
+     "y1": 1729,
+     "x2": 771,
+     "y2": 2033
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 92,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 771,
+     "y1": 1729,
+     "x2": 925,
+     "y2": 2033
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 93,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 926,
+     "y1": 1729,
+     "x2": 1080,
+     "y2": 2033
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 94,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 0,
+     "y1": 2033,
+     "x2": 154,
+     "y2": 2337
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 95,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 154,
+     "y1": 2033,
+     "x2": 308,
+     "y2": 2337
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 96,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 309,
+     "y1": 2033,
+     "x2": 463,
+     "y2": 2337
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 97,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 463,
+     "y1": 2033,
+     "x2": 617,
+     "y2": 2337
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 98,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 617,
+     "y1": 2033,
+     "x2": 771,
+     "y2": 2337
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 99,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 771,
+     "y1": 2033,
+     "x2": 925,
+     "y2": 2337
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 100,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 926,
+     "y1": 2033,
+     "x2": 1080,
+     "y2": 2337
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 101,
+    "parent": 10,
+    "role": "image",
+    "class_name": "android.widget.ImageView",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/top_left_arrow",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 1080,
+     "y1": 296,
+     "x2": 1080,
+     "y2": 438
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 102,
+    "parent": 10,
+    "role": "text",
+    "class_name": "android.widget.TextView",
+    "label": "November",
+    "text": "November",
+    "resource_id": "com.simplemobiletools.calendar.pro:id/top_value",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 1227,
+     "y1": 296,
+     "x2": 1080,
+     "y2": 438
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 103,
+    "parent": 10,
+    "role": "image",
+    "class_name": "android.widget.ImageView",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/top_right_arrow",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 2013,
+     "y1": 296,
+     "x2": 1080,
+     "y2": 438
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 104,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 1080,
+     "y1": 512,
+     "x2": 1080,
+     "y2": 816
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 105,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 1234,
+     "y1": 512,
+     "x2": 1080,
+     "y2": 816
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 106,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 1389,
+     "y1": 512,
+     "x2": 1080,
+     "y2": 816
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 107,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 1543,
+     "y1": 512,
+     "x2": 1080,
+     "y2": 816
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 108,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 1697,
+     "y1": 512,
+     "x2": 1080,
+     "y2": 816
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 109,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 1851,
+     "y1": 512,
+     "x2": 1080,
+     "y2": 816
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 110,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 2006,
+     "y1": 512,
+     "x2": 1080,
+     "y2": 816
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 111,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 1080,
+     "y1": 816,
+     "x2": 1080,
+     "y2": 1120
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 112,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 1234,
+     "y1": 816,
+     "x2": 1080,
+     "y2": 1120
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 113,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 1389,
+     "y1": 816,
+     "x2": 1080,
+     "y2": 1120
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 114,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 1543,
+     "y1": 816,
+     "x2": 1080,
+     "y2": 1120
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 115,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 1697,
+     "y1": 816,
+     "x2": 1080,
+     "y2": 1120
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 116,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 1851,
+     "y1": 816,
+     "x2": 1080,
+     "y2": 1120
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 117,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 2006,
+     "y1": 816,
+     "x2": 1080,
+     "y2": 1120
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 118,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 1080,
+     "y1": 1120,
+     "x2": 1080,
+     "y2": 1424
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 119,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 1234,
+     "y1": 1120,
+     "x2": 1080,
+     "y2": 1424
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 120,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 1389,
+     "y1": 1120,
+     "x2": 1080,
+     "y2": 1424
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 121,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 1543,
+     "y1": 1120,
+     "x2": 1080,
+     "y2": 1424
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 122,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 1697,
+     "y1": 1120,
+     "x2": 1080,
+     "y2": 1424
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 123,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 1851,
+     "y1": 1120,
+     "x2": 1080,
+     "y2": 1424
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 124,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 2006,
+     "y1": 1120,
+     "x2": 1080,
+     "y2": 1424
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 125,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 1080,
+     "y1": 1425,
+     "x2": 1080,
+     "y2": 1729
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 126,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 1234,
+     "y1": 1425,
+     "x2": 1080,
+     "y2": 1729
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 127,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 1389,
+     "y1": 1425,
+     "x2": 1080,
+     "y2": 1729
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 128,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 1543,
+     "y1": 1425,
+     "x2": 1080,
+     "y2": 1729
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 129,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 1697,
+     "y1": 1425,
+     "x2": 1080,
+     "y2": 1729
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 130,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 1851,
+     "y1": 1425,
+     "x2": 1080,
+     "y2": 1729
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 131,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 2006,
+     "y1": 1425,
+     "x2": 1080,
+     "y2": 1729
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 132,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 1080,
+     "y1": 1729,
+     "x2": 1080,
+     "y2": 2033
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 133,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 1234,
+     "y1": 1729,
+     "x2": 1080,
+     "y2": 2033
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 134,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 1389,
+     "y1": 1729,
+     "x2": 1080,
+     "y2": 2033
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 135,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 1543,
+     "y1": 1729,
+     "x2": 1080,
+     "y2": 2033
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 136,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 1697,
+     "y1": 1729,
+     "x2": 1080,
+     "y2": 2033
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 137,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 1851,
+     "y1": 1729,
+     "x2": 1080,
+     "y2": 2033
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 138,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 2006,
+     "y1": 1729,
+     "x2": 1080,
+     "y2": 2033
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 139,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 1080,
+     "y1": 2033,
+     "x2": 1080,
+     "y2": 2337
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 140,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 1234,
+     "y1": 2033,
+     "x2": 1080,
+     "y2": 2337
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 141,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 1389,
+     "y1": 2033,
+     "x2": 1080,
+     "y2": 2337
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 142,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 1543,
+     "y1": 2033,
+     "x2": 1080,
+     "y2": 2337
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 143,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 1697,
+     "y1": 2033,
+     "x2": 1080,
+     "y2": 2337
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 144,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 1851,
+     "y1": 2033,
+     "x2": 1080,
+     "y2": 2337
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 145,
+    "parent": 10,
+    "role": "item",
+    "class_name": "android.view.View",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/month_view_background",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 2006,
+     "y1": 2033,
+     "x2": 1080,
+     "y2": 2337
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 146,
+    "parent": 9,
+    "role": "button",
+    "class_name": "android.widget.ImageButton",
+    "label": "New Event",
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/calendar_fab",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 891,
+     "y1": 2148,
+     "x2": 1038,
+     "y2": 2295
+    },
+    "flags": {
+     "clickable": true,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 147,
+    "parent": 9,
+    "role": "list",
+    "class_name": "androidx.recyclerview.widget.RecyclerView",
+    "label": null,
+    "text": null,
+    "resource_id": "com.simplemobiletools.calendar.pro:id/quick_event_type_filter",
+    "package": "com.simplemobiletools.calendar.pro",
+    "bounds": {
+     "x1": 0,
+     "y1": 2337,
+     "x2": 1080,
+     "y2": 2337
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": false
+    }
+   },
+   {
+    "id": 148,
+    "parent": null,
+    "role": "container",
+    "class_name": "android.widget.FrameLayout",
+    "label": null,
+    "text": null,
+    "resource_id": null,
+    "package": "com.android.systemui",
+    "bounds": {
+     "x1": 0,
+     "y1": 0,
+     "x2": 1080,
+     "y2": 128
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 149,
+    "parent": 148,
+    "role": "container",
+    "class_name": "android.widget.FrameLayout",
+    "label": null,
+    "text": null,
+    "resource_id": "com.android.systemui:id/status_bar",
+    "package": "com.android.systemui",
+    "bounds": {
+     "x1": 0,
+     "y1": 0,
+     "x2": 1080,
+     "y2": 128
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 150,
+    "parent": 149,
+    "role": "text",
+    "class_name": "android.widget.TextView",
+    "label": "16:34",
+    "text": "15:34",
+    "resource_id": "com.android.systemui:id/clock",
+    "package": "com.android.systemui",
+    "bounds": {
+     "x1": 50,
+     "y1": 1,
+     "x2": 148,
+     "y2": 128
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 151,
+    "parent": 149,
+    "role": "image",
+    "class_name": "android.widget.ImageView",
+    "label": "SMS Messenger notification: ",
+    "text": null,
+    "resource_id": null,
+    "package": "com.android.systemui",
+    "bounds": {
+     "x1": 148,
+     "y1": 1,
+     "x2": 206,
+     "y2": 128
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 152,
+    "parent": 149,
+    "role": "image",
+    "class_name": "android.widget.ImageView",
+    "label": "Android System notification: Serial console enabled",
+    "text": null,
+    "resource_id": null,
+    "package": "com.android.systemui",
+    "bounds": {
+     "x1": 206,
+     "y1": 1,
+     "x2": 264,
+     "y2": 128
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 153,
+    "parent": 149,
+    "role": "image",
+    "class_name": "android.widget.ImageView",
+    "label": "Do Not Disturb",
+    "text": null,
+    "resource_id": null,
+    "package": "com.android.systemui",
+    "bounds": {
+     "x1": 809,
+     "y1": 35,
+     "x2": 866,
+     "y2": 93
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 154,
+    "parent": 149,
+    "role": "container",
+    "class_name": "android.widget.FrameLayout",
+    "label": "Phone signal full.",
+    "text": null,
+    "resource_id": "com.android.systemui:id/mobile_combo",
+    "package": "com.android.systemui",
+    "bounds": {
+     "x1": 866,
+     "y1": 35,
+     "x2": 970,
+     "y2": 93
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 155,
+    "parent": 154,
+    "role": "image",
+    "class_name": "android.widget.ImageView",
+    "label": "No internet",
+    "text": null,
+    "resource_id": "com.android.systemui:id/mobile_type",
+    "package": "com.android.systemui",
+    "bounds": {
+     "x1": 866,
+     "y1": 43,
+     "x2": 931,
+     "y2": 85
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   },
+   {
+    "id": 156,
+    "parent": 149,
+    "role": "container",
+    "class_name": "android.widget.LinearLayout",
+    "label": "Battery 100 percent.",
+    "text": null,
+    "resource_id": "com.android.systemui:id/battery",
+    "package": "com.android.systemui",
+    "bounds": {
+     "x1": 986,
+     "y1": 1,
+     "x2": 1006,
+     "y2": 128
+    },
+    "flags": {
+     "clickable": false,
+     "long_clickable": false,
+     "editable": false,
+     "scrollable": false,
+     "checkable": false,
+     "checked": false,
+     "selected": false,
+     "enabled": true,
+     "focused": false,
+     "visible": true
+    }
+   }
+  ],
+  "capabilities": {
+   "operations": [
+    "open_app",
+    "tap",
+    "long_press",
+    "type",
+    "scroll",
+    "swipe",
+    "back",
+    "home",
+    "wait"
+   ],
+   "app_grants": [
+    "ca.zgrs.clipper",
+    "code.name.monkey.retromusic",
+    "com.android.camera2",
+    "com.android.chrome",
+    "com.android.settings",
+    "com.android.vending",
+    "com.arduia.expense",
+    "com.dimowner.audiorecorder",
+    "com.example.androidworld",
+    "com.flauschcode.broccoli",
+    "com.google.android.apps.docs",
+    "com.google.android.apps.maps",
+    "com.google.android.apps.messaging",
+    "com.google.android.apps.photos",
+    "com.google.android.calendar",
+    "com.google.android.contacts",
+    "com.google.android.deskclock",
+    "com.google.android.dialer",
+    "com.google.android.documentsui",
+    "com.google.android.gm",
+    "com.google.android.googlequicksearchbox",
+    "com.google.android.youtube",
+    "com.google.androidenv.miniwob",
+    "com.simplemobiletools.calendar.pro",
+    "com.simplemobiletools.draw.pro",
+    "com.simplemobiletools.gallery.pro",
+    "com.simplemobiletools.smsmessenger",
+    "de.dennisguse.opentracks",
+    "net.cozic.joplin",
+    "net.gsantner.markor",
+    "net.osmand",
+    "org.tasks",
+    "org.videolan.vlc"
+   ]
+  }
+ }
+}
