@@ -5,11 +5,11 @@
 
 package app.ballistic.assistant.core
 
-/** Mirrors Rust `PortError`. */
-sealed class PortException(message: String) : Exception(message) {
-    class Disconnected(message: String) : PortException("host disconnected: $message")
-    class Malformed(message: String) : PortException("host returned malformed data: $message")
-    class Host(message: String) : PortException("host error: $message")
+/** Mirrors Rust `PortError`. [reason] is the text without the kind prefix, as core receives it. */
+sealed class PortException(val reason: String, kind: String) : Exception("$kind: $reason") {
+    class Disconnected(reason: String) : PortException(reason, "host disconnected")
+    class Malformed(reason: String) : PortException(reason, "host returned malformed data")
+    class Host(reason: String) : PortException(reason, "host error")
 }
 
 /** Eyes. Returns the current screen; retries an empty tree inside the port. */

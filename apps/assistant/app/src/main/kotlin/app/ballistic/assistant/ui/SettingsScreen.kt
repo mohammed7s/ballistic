@@ -45,6 +45,7 @@ import app.ballistic.assistant.core.AppPolicy
 import app.ballistic.assistant.core.ConfirmMode
 import app.ballistic.assistant.core.Observe
 import app.ballistic.assistant.core.Route
+import app.ballistic.assistant.debug.DebugTools
 import app.ballistic.assistant.models.Endpoint
 import app.ballistic.assistant.models.ModelsConfig
 import app.ballistic.assistant.storage.SecretStore
@@ -58,6 +59,9 @@ fun SettingsScreen(graph: AppGraph, activity: Activity) {
     LazyColumn(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         item { Section("Engine") }
         item { Text(graph.engine.description) }
+        if (DebugTools.AVAILABLE) {
+            item { DebugImport(graph) }
+        }
 
         item { Section("Model") }
         item { ModelSettings(graph, enabled = unlocked) }
@@ -106,6 +110,18 @@ fun SettingsScreen(graph: AppGraph, activity: Activity) {
                 HorizontalDivider()
             }
         }
+    }
+}
+
+/** Debug builds: re-run the adb file import (DebugTools) and show what it did. */
+@Composable
+private fun DebugImport(graph: AppGraph) {
+    var notes by remember { mutableStateOf(graph.importNotes) }
+    Column {
+        OutlinedButton(onClick = { notes = graph.importDebugFiles().ifEmpty { listOf("Nothing to import.") } }) {
+            Text("Import files/models_key and files/models_import.json (debug)")
+        }
+        for (note in notes) Text(note, style = MaterialTheme.typography.bodySmall)
     }
 }
 

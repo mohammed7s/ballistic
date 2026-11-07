@@ -101,10 +101,15 @@ class PromptSession(
         core.stop()
     }
 
+    /** Re-reads which engine will take the next run (it depends on Settings). */
+    fun refreshEngine() {
+        _state.update { it.copy(engine = core.description) }
+    }
+
     private fun start(request: String) {
         val run = RunView(id = UUID.randomUUID().toString(), request = request)
         _state.update {
-            it.copy(phase = Phase.Running, pendingRequest = null, activity = "starting", runs = it.runs + run)
+            it.copy(phase = Phase.Running, engine = core.description, pendingRequest = null, activity = "starting", runs = it.runs + run)
         }
         scope.launch {
             val listener = object : RunListener {

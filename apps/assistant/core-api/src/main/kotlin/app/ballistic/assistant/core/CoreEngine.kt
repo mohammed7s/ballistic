@@ -48,8 +48,8 @@ data class StepEvent(
 )
 
 /**
- * What core returns at the end of a run (the JSON `agent::run` returns). [stopped] is the
- * shell's: core has no cancellation yet (docs/ANDROID_APP.md, integration step 1).
+ * What core returns at the end of a run (the JSON `agent::run` returns). [stopped] records
+ * the owner's Stop request; execution status retains any effects from earlier steps.
  */
 @Serializable
 data class RunResult(

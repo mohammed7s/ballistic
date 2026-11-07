@@ -45,6 +45,8 @@ kotlin {
 
 dependencies {
     implementation(project(":core-api"))
+    // JNA for the UniFFI binding: the aar carries libjnidispatch.so for each ABI.
+    implementation("net.java.dev.jna:jna:${libs.versions.jna.get()}@aar")
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)

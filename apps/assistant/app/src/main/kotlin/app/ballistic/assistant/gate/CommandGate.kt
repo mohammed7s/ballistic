@@ -8,6 +8,10 @@
 // This prompt carries no CryptoObject: its result is a callback inside our process, which is
 // enough to tell the owner's finger from a stranger's voice. A passkey alternative (SPEC §7.8)
 // and voice entry (wake word, push-to-talk) are not built yet.
+//
+// Debug builds only: with no strong biometric available (the AndroidWorld emulator has none
+// enrolled), DebugTools offers a test PIN for this gate. Release builds have no fallback, and
+// no build uses it for operation approval.
 
 package app.ballistic.assistant.gate
 
@@ -24,6 +28,7 @@ import android.os.CancellationSignal
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ProcessLifecycleOwner
+import app.ballistic.assistant.debug.DebugTools
 import app.ballistic.assistant.session.CommandGateState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -61,7 +66,14 @@ class CommandGate(app: Application) : CommandGateState {
 
     /** Shows the system biometric prompt; [onResult] gets null on success or the failure text. */
     fun authenticate(activity: Activity, onResult: (String?) -> Unit) {
-        unavailableReason(activity)?.let { onResult(it); return }
+        unavailableReason(activity)?.let { why ->
+            val shown = DebugTools.gateFallback(activity, why) { ok ->
+                if (ok) _unlocked.value = true
+                onResult(if (ok) null else "Not unlocked")
+            }
+            if (!shown) onResult(why)
+            return
+        }
         val executor = activity.mainExecutor
         BiometricPrompt.Builder(activity)
             .setTitle("Unlock Ballistic")

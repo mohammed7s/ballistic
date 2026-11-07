@@ -41,6 +41,7 @@ import app.ballistic.assistant.session.RunView
 import app.ballistic.assistant.session.actionLabel
 import app.ballistic.assistant.session.evidenceLabel
 import app.ballistic.assistant.session.resultLabel
+import app.ballistic.assistant.storage.SecretStore
 
 @Composable
 fun PromptScreen(graph: AppGraph, activity: Activity) {
@@ -57,6 +58,8 @@ fun PromptScreen(graph: AppGraph, activity: Activity) {
         }
     }
 
+    // Which engine takes the next run depends on Settings (model configured, library present).
+    LaunchedEffect(Unit) { graph.session.refreshEngine() }
     // A request parked by a locked gate brings up the prompt at once.
     LaunchedEffect(state.phase) { if (state.phase == Phase.NeedsUnlock) unlock() }
     LaunchedEffect(state.runs.size, state.runs.lastOrNull()?.steps?.size) {
@@ -128,5 +131,6 @@ private fun modelLine(graph: AppGraph): String {
     } else {
         "on this device"
     }
-    return "Planner: ${planner.model}; $where"
+    val key = if (graph.secrets.has(SecretStore.MODEL_API_KEY)) "key stored" else "no API key stored"
+    return "Planner: ${planner.model}; $where; $key"
 }

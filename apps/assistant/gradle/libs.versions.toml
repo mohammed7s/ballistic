@@ -9,12 +9,15 @@ compose-bom = "2026.09.00"
 activity-compose = "1.13.0"
 lifecycle = "2.11.0"
 core-ktx = "1.19.1"
+# JNA: UniFFI's Kotlin bindings call libballistic_core through it.
+jna = "5.19.1"
 
 [libraries]
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
 kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "kotlinx-coroutines" }
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinx-coroutines" }
+jna = { module = "net.java.dev.jna:jna", version.ref = "jna" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
 
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "core-ktx" }
