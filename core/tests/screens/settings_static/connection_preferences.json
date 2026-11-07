@@ -1,0 +1,661 @@
+{
+  "provenance": {
+    "raw_sha256": "eb7502d456cbc9b798252a9894d12a635e38bb14404c6f47cf47fbb2086e256f",
+    "core_host_sha": "96d9c94fe74f974c41d57b54d6006a30f9e0468e",
+    "sanitization": "Settings-only; apps removed; summaries/device/footer/injected tile titles replaced with synthetic content"
+  },
+  "screen": {
+    "package": "com.android.settings",
+    "activity": "com.android.settings.SubSettings",
+    "width": 1080,
+    "height": 2400,
+    "nodes": [
+      {
+        "id": 1,
+        "parent": null,
+        "role": "container",
+        "class_name": "android.widget.FrameLayout",
+        "label": null,
+        "text": null,
+        "resource_id": null,
+        "package": "com.android.settings",
+        "bounds": {
+          "x1": 0,
+          "y1": 0,
+          "x2": 1080,
+          "y2": 2400
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 2,
+        "parent": 1,
+        "role": "list",
+        "class_name": "android.widget.ScrollView",
+        "label": null,
+        "text": null,
+        "resource_id": "com.android.settings:id/content_parent",
+        "package": "com.android.settings",
+        "bounds": {
+          "x1": 0,
+          "y1": 0,
+          "x2": 1080,
+          "y2": 2337
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": true,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 3,
+        "parent": 2,
+        "role": "container",
+        "class_name": "android.widget.FrameLayout",
+        "label": "Connection preferences",
+        "text": null,
+        "resource_id": "com.android.settings:id/collapsing_toolbar",
+        "package": "com.android.settings",
+        "bounds": {
+          "x1": 0,
+          "y1": 0,
+          "x2": 1080,
+          "y2": 709
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 4,
+        "parent": 3,
+        "role": "button",
+        "class_name": "android.widget.ImageButton",
+        "label": "Navigate up",
+        "text": null,
+        "resource_id": null,
+        "package": "com.android.settings",
+        "bounds": {
+          "x1": 0,
+          "y1": 128,
+          "x2": 147,
+          "y2": 275
+        },
+        "flags": {
+          "clickable": true,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 5,
+        "parent": 3,
+        "role": "text",
+        "class_name": "android.widget.TextView",
+        "label": null,
+        "text": "Connection preferences",
+        "resource_id": null,
+        "package": "com.android.settings",
+        "bounds": {
+          "x1": 189,
+          "y1": 166,
+          "x2": 189,
+          "y2": 237
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": false
+        }
+      },
+      {
+        "id": 6,
+        "parent": 2,
+        "role": "list",
+        "class_name": "androidx.recyclerview.widget.RecyclerView",
+        "label": null,
+        "text": null,
+        "resource_id": "com.android.settings:id/recycler_view",
+        "package": "com.android.settings",
+        "bounds": {
+          "x1": 0,
+          "y1": 709,
+          "x2": 1080,
+          "y2": 1894
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 7,
+        "parent": 6,
+        "role": "button",
+        "class_name": "android.widget.LinearLayout",
+        "label": null,
+        "text": null,
+        "resource_id": null,
+        "package": "com.android.settings",
+        "bounds": {
+          "x1": 0,
+          "y1": 709,
+          "x2": 1080,
+          "y2": 864
+        },
+        "flags": {
+          "clickable": true,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 8,
+        "parent": 7,
+        "role": "text",
+        "class_name": "android.widget.TextView",
+        "label": null,
+        "text": "Bluetooth",
+        "resource_id": "android:id/title",
+        "package": "com.android.settings",
+        "bounds": {
+          "x1": 189,
+          "y1": 751,
+          "x2": 415,
+          "y2": 822
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 9,
+        "parent": 6,
+        "role": "button",
+        "class_name": "android.widget.LinearLayout",
+        "label": null,
+        "text": null,
+        "resource_id": null,
+        "package": "com.android.settings",
+        "bounds": {
+          "x1": 0,
+          "y1": 864,
+          "x2": 1080,
+          "y2": 1070
+        },
+        "flags": {
+          "clickable": true,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 10,
+        "parent": 9,
+        "role": "text",
+        "class_name": "android.widget.TextView",
+        "label": null,
+        "text": "Cast",
+        "resource_id": "android:id/title",
+        "package": "com.android.settings",
+        "bounds": {
+          "x1": 189,
+          "y1": 906,
+          "x2": 297,
+          "y2": 977
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 11,
+        "parent": 9,
+        "role": "text",
+        "class_name": "android.widget.TextView",
+        "label": null,
+        "text": "Synthetic private summary",
+        "resource_id": "android:id/summary",
+        "package": "com.android.settings",
+        "bounds": {
+          "x1": 189,
+          "y1": 977,
+          "x2": 429,
+          "y2": 1028
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 12,
+        "parent": 6,
+        "role": "button",
+        "class_name": "android.widget.LinearLayout",
+        "label": null,
+        "text": null,
+        "resource_id": null,
+        "package": "com.android.settings",
+        "bounds": {
+          "x1": 0,
+          "y1": 1070,
+          "x2": 1080,
+          "y2": 1276
+        },
+        "flags": {
+          "clickable": true,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 13,
+        "parent": 12,
+        "role": "text",
+        "class_name": "android.widget.TextView",
+        "label": null,
+        "text": "Printing",
+        "resource_id": "android:id/title",
+        "package": "com.android.settings",
+        "bounds": {
+          "x1": 189,
+          "y1": 1112,
+          "x2": 371,
+          "y2": 1183
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 14,
+        "parent": 12,
+        "role": "text",
+        "class_name": "android.widget.TextView",
+        "label": null,
+        "text": "Synthetic private summary",
+        "resource_id": "android:id/summary",
+        "package": "com.android.settings",
+        "bounds": {
+          "x1": 189,
+          "y1": 1183,
+          "x2": 472,
+          "y2": 1234
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 15,
+        "parent": 6,
+        "role": "button",
+        "class_name": "android.widget.LinearLayout",
+        "label": null,
+        "text": null,
+        "resource_id": null,
+        "package": "com.android.settings",
+        "bounds": {
+          "x1": 0,
+          "y1": 1276,
+          "x2": 1080,
+          "y2": 1482
+        },
+        "flags": {
+          "clickable": true,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 16,
+        "parent": 15,
+        "role": "text",
+        "class_name": "android.widget.TextView",
+        "label": null,
+        "text": "Synthetic injected tile 16",
+        "resource_id": "android:id/title",
+        "package": "com.android.settings",
+        "bounds": {
+          "x1": 189,
+          "y1": 1318,
+          "x2": 492,
+          "y2": 1389
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 17,
+        "parent": 15,
+        "role": "text",
+        "class_name": "android.widget.TextView",
+        "label": null,
+        "text": "Synthetic private summary",
+        "resource_id": "android:id/summary",
+        "package": "com.android.settings",
+        "bounds": {
+          "x1": 189,
+          "y1": 1389,
+          "x2": 872,
+          "y2": 1440
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 18,
+        "parent": 6,
+        "role": "button",
+        "class_name": "android.widget.LinearLayout",
+        "label": null,
+        "text": null,
+        "resource_id": null,
+        "package": "com.android.settings",
+        "bounds": {
+          "x1": 0,
+          "y1": 1482,
+          "x2": 1080,
+          "y2": 1688
+        },
+        "flags": {
+          "clickable": true,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 19,
+        "parent": 18,
+        "role": "text",
+        "class_name": "android.widget.TextView",
+        "label": null,
+        "text": "Synthetic injected tile 19",
+        "resource_id": "android:id/title",
+        "package": "com.android.settings",
+        "bounds": {
+          "x1": 189,
+          "y1": 1524,
+          "x2": 505,
+          "y2": 1595
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 20,
+        "parent": 18,
+        "role": "text",
+        "class_name": "android.widget.TextView",
+        "label": null,
+        "text": "Synthetic private summary",
+        "resource_id": "android:id/summary",
+        "package": "com.android.settings",
+        "bounds": {
+          "x1": 189,
+          "y1": 1595,
+          "x2": 696,
+          "y2": 1646
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 21,
+        "parent": 6,
+        "role": "button",
+        "class_name": "android.widget.LinearLayout",
+        "label": null,
+        "text": null,
+        "resource_id": null,
+        "package": "com.android.settings",
+        "bounds": {
+          "x1": 0,
+          "y1": 1688,
+          "x2": 1080,
+          "y2": 1894
+        },
+        "flags": {
+          "clickable": true,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 22,
+        "parent": 21,
+        "role": "text",
+        "class_name": "android.widget.TextView",
+        "label": null,
+        "text": "Synthetic injected tile 22",
+        "resource_id": "android:id/title",
+        "package": "com.android.settings",
+        "bounds": {
+          "x1": 189,
+          "y1": 1730,
+          "x2": 497,
+          "y2": 1801
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 23,
+        "parent": 21,
+        "role": "text",
+        "class_name": "android.widget.TextView",
+        "label": null,
+        "text": "Synthetic private summary",
+        "resource_id": "android:id/summary",
+        "package": "com.android.settings",
+        "bounds": {
+          "x1": 189,
+          "y1": 1801,
+          "x2": 654,
+          "y2": 1852
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      }
+    ],
+    "installed_apps": [],
+    "capabilities": null
+  }
+}

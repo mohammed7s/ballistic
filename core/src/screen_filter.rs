@@ -503,6 +503,9 @@ pub fn filter(screen: &ScreenState, ctx: &FilterContext) -> FilteredScreen {
         }
         let toggles: Vec<usize> = (0..nodes.len())
             .filter(|&c| work[c].keep && work[c].absorbed_into.is_none() && work[c].parent == Some(r) && work[c].flags.checkable
+                // Settings PrimarySwitchPreference gives navigation and switch separate actions.
+                // A clickable widget must keep its own identity, bounds and checked state.
+                && !(nodes[c].package.as_deref() == Some(SETTINGS) && work[c].flags.clickable)
                 && nodes[c].package.as_deref().unwrap_or(&screen.package) == nodes[r].package.as_deref().unwrap_or(&screen.package))
             .collect();
         if let [c] = toggles[..] {
@@ -526,11 +529,10 @@ pub fn filter(screen: &ScreenState, ctx: &FilterContext) -> FilteredScreen {
     // Unknown subpages therefore stay content. Only a complete source-backed page envelope
     // can supply static control labels; a toolbar string can only tighten trust, never grant it.
     let settings_labels = settings::labels(screen);
-    let device_page = screen.activity == settings::SUB_SETTINGS
+    let device_page = screen.activity == settings::SUB_SETTINGS || settings::dedicated_activity(&screen.activity)
         || mentions_device_or_network(&screen.activity) || nodes.iter().any(|n|
         n.package.as_deref().unwrap_or(&screen.package) == SETTINGS
-            && n.resource_id.as_deref() == Some("com.android.settings:id/collapsing_toolbar")
-            && [non_empty(&n.label), non_empty(&n.text)].into_iter().flatten().any(mentions_device_or_network));
+            && n.resource_id.as_deref() == Some("com.android.settings:id/collapsing_toolbar"));
     let mut device_row: HashSet<usize> = HashSet::new();
     for (i, n) in nodes.iter().enumerate() {
         if let Some(root) = work[i].item_root {

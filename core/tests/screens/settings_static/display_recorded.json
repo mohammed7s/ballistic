@@ -1,0 +1,1140 @@
+{
+  "provenance": {
+    "core_host_sha": null,
+    "sanitization": "Settings nodes only; apps removed; summaries/carrier/SSID replaced with synthetic content",
+    "extracted_sha256": "9226b120f92dc612ca90da5586d7a9619caff2297c25e723dd34747bc4acb68a",
+    "source_record": "20261107-024334_SystemBrightnessMax.json",
+    "source_record_sha256": "afe1109b7ca89648e2c002d757356f53ed31952c4a31d25dec478565c82fd36b",
+    "reply": 14
+  },
+  "screen": {
+    "package": "com.android.settings",
+    "activity": "com.android.settings.SubSettings",
+    "width": 1080,
+    "height": 2400,
+    "nodes": [
+      {
+        "id": 1,
+        "parent": null,
+        "role": "container",
+        "class_name": "android.widget.FrameLayout",
+        "label": null,
+        "text": null,
+        "resource_id": null,
+        "package": "com.android.settings",
+        "bounds": {
+          "x1": 0,
+          "y1": 0,
+          "x2": 1080,
+          "y2": 2400
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 2,
+        "parent": 1,
+        "role": "list",
+        "class_name": "android.widget.ScrollView",
+        "label": null,
+        "text": null,
+        "resource_id": "com.android.settings:id/content_parent",
+        "package": "com.android.settings",
+        "bounds": {
+          "x1": 0,
+          "y1": 0,
+          "x2": 1080,
+          "y2": 2337
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": true,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 3,
+        "parent": 2,
+        "role": "container",
+        "class_name": "android.widget.FrameLayout",
+        "label": "Display",
+        "text": null,
+        "resource_id": "com.android.settings:id/collapsing_toolbar",
+        "package": "com.android.settings",
+        "bounds": {
+          "x1": 0,
+          "y1": 0,
+          "x2": 1080,
+          "y2": 598
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 4,
+        "parent": 3,
+        "role": "button",
+        "class_name": "android.widget.ImageButton",
+        "label": "Navigate up",
+        "text": null,
+        "resource_id": null,
+        "package": "com.android.settings",
+        "bounds": {
+          "x1": 0,
+          "y1": 128,
+          "x2": 147,
+          "y2": 275
+        },
+        "flags": {
+          "clickable": true,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 5,
+        "parent": 3,
+        "role": "text",
+        "class_name": "android.widget.TextView",
+        "label": null,
+        "text": "Display",
+        "resource_id": null,
+        "package": "com.android.settings",
+        "bounds": {
+          "x1": 189,
+          "y1": 166,
+          "x2": 189,
+          "y2": 237
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": false
+        }
+      },
+      {
+        "id": 6,
+        "parent": 2,
+        "role": "list",
+        "class_name": "androidx.recyclerview.widget.RecyclerView",
+        "label": null,
+        "text": null,
+        "resource_id": "com.android.settings:id/recycler_view",
+        "package": "com.android.settings",
+        "bounds": {
+          "x1": 0,
+          "y1": 598,
+          "x2": 1080,
+          "y2": 2337
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": true,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 7,
+        "parent": 6,
+        "role": "container",
+        "class_name": "android.widget.LinearLayout",
+        "label": null,
+        "text": null,
+        "resource_id": null,
+        "package": "com.android.settings",
+        "bounds": {
+          "x1": 0,
+          "y1": 640,
+          "x2": 1080,
+          "y2": 733
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 8,
+        "parent": 7,
+        "role": "text",
+        "class_name": "android.widget.TextView",
+        "label": null,
+        "text": "Brightness",
+        "resource_id": "android:id/title",
+        "package": "com.android.settings",
+        "bounds": {
+          "x1": 63,
+          "y1": 661,
+          "x2": 1038,
+          "y2": 712
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 9,
+        "parent": 6,
+        "role": "item",
+        "class_name": "android.widget.LinearLayout",
+        "label": null,
+        "text": null,
+        "resource_id": null,
+        "package": "com.android.settings",
+        "bounds": {
+          "x1": 0,
+          "y1": 733,
+          "x2": 1080,
+          "y2": 939
+        },
+        "flags": {
+          "clickable": true,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 10,
+        "parent": 9,
+        "role": "text",
+        "class_name": "android.widget.TextView",
+        "label": null,
+        "text": "Brightness level",
+        "resource_id": "android:id/title",
+        "package": "com.android.settings",
+        "bounds": {
+          "x1": 63,
+          "y1": 775,
+          "x2": 435,
+          "y2": 846
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 11,
+        "parent": 9,
+        "role": "text",
+        "class_name": "android.widget.TextView",
+        "label": null,
+        "text": "Synthetic private summary",
+        "resource_id": "android:id/summary",
+        "package": "com.android.settings",
+        "bounds": {
+          "x1": 63,
+          "y1": 846,
+          "x2": 111,
+          "y2": 897
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 12,
+        "parent": 6,
+        "role": "container",
+        "class_name": "android.widget.LinearLayout",
+        "label": null,
+        "text": null,
+        "resource_id": null,
+        "package": "com.android.settings",
+        "bounds": {
+          "x1": 0,
+          "y1": 981,
+          "x2": 1080,
+          "y2": 1074
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 13,
+        "parent": 12,
+        "role": "text",
+        "class_name": "android.widget.TextView",
+        "label": null,
+        "text": "Lock display",
+        "resource_id": "android:id/title",
+        "package": "com.android.settings",
+        "bounds": {
+          "x1": 63,
+          "y1": 1002,
+          "x2": 1038,
+          "y2": 1053
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 14,
+        "parent": 6,
+        "role": "item",
+        "class_name": "android.widget.LinearLayout",
+        "label": null,
+        "text": null,
+        "resource_id": null,
+        "package": "com.android.settings",
+        "bounds": {
+          "x1": 0,
+          "y1": 1074,
+          "x2": 1080,
+          "y2": 1280
+        },
+        "flags": {
+          "clickable": true,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 15,
+        "parent": 14,
+        "role": "text",
+        "class_name": "android.widget.TextView",
+        "label": null,
+        "text": "Lock screen",
+        "resource_id": "android:id/title",
+        "package": "com.android.settings",
+        "bounds": {
+          "x1": 63,
+          "y1": 1116,
+          "x2": 348,
+          "y2": 1187
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 16,
+        "parent": 14,
+        "role": "text",
+        "class_name": "android.widget.TextView",
+        "label": null,
+        "text": "Synthetic private summary",
+        "resource_id": "android:id/summary",
+        "package": "com.android.settings",
+        "bounds": {
+          "x1": 63,
+          "y1": 1187,
+          "x2": 527,
+          "y2": 1238
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 17,
+        "parent": 6,
+        "role": "item",
+        "class_name": "android.widget.LinearLayout",
+        "label": null,
+        "text": null,
+        "resource_id": null,
+        "package": "com.android.settings",
+        "bounds": {
+          "x1": 0,
+          "y1": 1280,
+          "x2": 1080,
+          "y2": 1486
+        },
+        "flags": {
+          "clickable": true,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 18,
+        "parent": 17,
+        "role": "text",
+        "class_name": "android.widget.TextView",
+        "label": null,
+        "text": "Screen timeout",
+        "resource_id": "android:id/title",
+        "package": "com.android.settings",
+        "bounds": {
+          "x1": 63,
+          "y1": 1322,
+          "x2": 418,
+          "y2": 1393
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 19,
+        "parent": 17,
+        "role": "text",
+        "class_name": "android.widget.TextView",
+        "label": null,
+        "text": "Synthetic private summary",
+        "resource_id": "android:id/summary",
+        "package": "com.android.settings",
+        "bounds": {
+          "x1": 63,
+          "y1": 1393,
+          "x2": 410,
+          "y2": 1444
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 20,
+        "parent": 6,
+        "role": "container",
+        "class_name": "android.widget.LinearLayout",
+        "label": null,
+        "text": null,
+        "resource_id": null,
+        "package": "com.android.settings",
+        "bounds": {
+          "x1": 0,
+          "y1": 1528,
+          "x2": 1080,
+          "y2": 1621
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 21,
+        "parent": 20,
+        "role": "text",
+        "class_name": "android.widget.TextView",
+        "label": null,
+        "text": "Appearance",
+        "resource_id": "android:id/title",
+        "package": "com.android.settings",
+        "bounds": {
+          "x1": 63,
+          "y1": 1549,
+          "x2": 1038,
+          "y2": 1600
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 22,
+        "parent": 6,
+        "role": "item",
+        "class_name": "android.widget.LinearLayout",
+        "label": null,
+        "text": null,
+        "resource_id": null,
+        "package": "com.android.settings",
+        "bounds": {
+          "x1": 0,
+          "y1": 1621,
+          "x2": 1080,
+          "y2": 1827
+        },
+        "flags": {
+          "clickable": true,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 23,
+        "parent": 22,
+        "role": "text",
+        "class_name": "android.widget.TextView",
+        "label": null,
+        "text": "Dark theme",
+        "resource_id": "android:id/title",
+        "package": "com.android.settings",
+        "bounds": {
+          "x1": 63,
+          "y1": 1663,
+          "x2": 333,
+          "y2": 1734
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 24,
+        "parent": 22,
+        "role": "text",
+        "class_name": "android.widget.TextView",
+        "label": null,
+        "text": "Synthetic private summary",
+        "resource_id": "android:id/summary",
+        "package": "com.android.settings",
+        "bounds": {
+          "x1": 63,
+          "y1": 1734,
+          "x2": 577,
+          "y2": 1785
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 25,
+        "parent": 22,
+        "role": "switch",
+        "class_name": "android.widget.Switch",
+        "label": "Dark theme",
+        "text": null,
+        "resource_id": "com.android.settings:id/switchWidget",
+        "package": "com.android.settings",
+        "bounds": {
+          "x1": 849,
+          "y1": 1621,
+          "x2": 1038,
+          "y2": 1827
+        },
+        "flags": {
+          "clickable": true,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": true,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 26,
+        "parent": 6,
+        "role": "item",
+        "class_name": "android.widget.LinearLayout",
+        "label": null,
+        "text": null,
+        "resource_id": null,
+        "package": "com.android.settings",
+        "bounds": {
+          "x1": 0,
+          "y1": 1827,
+          "x2": 1080,
+          "y2": 2033
+        },
+        "flags": {
+          "clickable": true,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 27,
+        "parent": 26,
+        "role": "text",
+        "class_name": "android.widget.TextView",
+        "label": null,
+        "text": "Screen saver",
+        "resource_id": "android:id/title",
+        "package": "com.android.settings",
+        "bounds": {
+          "x1": 63,
+          "y1": 1869,
+          "x2": 365,
+          "y2": 1940
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 28,
+        "parent": 26,
+        "role": "text",
+        "class_name": "android.widget.TextView",
+        "label": null,
+        "text": "Synthetic private summary",
+        "resource_id": "android:id/summary",
+        "package": "com.android.settings",
+        "bounds": {
+          "x1": 63,
+          "y1": 1940,
+          "x2": 233,
+          "y2": 1991
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 29,
+        "parent": 6,
+        "role": "item",
+        "class_name": "android.widget.LinearLayout",
+        "label": null,
+        "text": null,
+        "resource_id": null,
+        "package": "com.android.settings",
+        "bounds": {
+          "x1": 0,
+          "y1": 2033,
+          "x2": 1080,
+          "y2": 2188
+        },
+        "flags": {
+          "clickable": true,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 30,
+        "parent": 29,
+        "role": "text",
+        "class_name": "android.widget.TextView",
+        "label": null,
+        "text": "Display size and text",
+        "resource_id": "android:id/title",
+        "package": "com.android.settings",
+        "bounds": {
+          "x1": 63,
+          "y1": 2075,
+          "x2": 544,
+          "y2": 2146
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 31,
+        "parent": 6,
+        "role": "container",
+        "class_name": "android.widget.LinearLayout",
+        "label": null,
+        "text": null,
+        "resource_id": null,
+        "package": "com.android.settings",
+        "bounds": {
+          "x1": 0,
+          "y1": 2230,
+          "x2": 1080,
+          "y2": 2323
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 32,
+        "parent": 31,
+        "role": "text",
+        "class_name": "android.widget.TextView",
+        "label": null,
+        "text": "Color",
+        "resource_id": "android:id/title",
+        "package": "com.android.settings",
+        "bounds": {
+          "x1": 63,
+          "y1": 2251,
+          "x2": 1038,
+          "y2": 2302
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 33,
+        "parent": 6,
+        "role": "item",
+        "class_name": "android.widget.LinearLayout",
+        "label": null,
+        "text": null,
+        "resource_id": null,
+        "package": "com.android.settings",
+        "bounds": {
+          "x1": 0,
+          "y1": 2323,
+          "x2": 1080,
+          "y2": 2337
+        },
+        "flags": {
+          "clickable": true,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 34,
+        "parent": 33,
+        "role": "text",
+        "class_name": "android.widget.TextView",
+        "label": null,
+        "text": "Colors",
+        "resource_id": "android:id/title",
+        "package": "com.android.settings",
+        "bounds": {
+          "x1": 63,
+          "y1": 2365,
+          "x2": 216,
+          "y2": 2337
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": false
+        }
+      },
+      {
+        "id": 35,
+        "parent": 6,
+        "role": "container",
+        "class_name": "android.widget.LinearLayout",
+        "label": null,
+        "text": null,
+        "resource_id": null,
+        "package": "com.android.settings",
+        "bounds": {
+          "x1": 0,
+          "y1": 2520,
+          "x2": 1080,
+          "y2": 2337
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": false
+        }
+      },
+      {
+        "id": 36,
+        "parent": 35,
+        "role": "text",
+        "class_name": "android.widget.TextView",
+        "label": null,
+        "text": "Other display controls",
+        "resource_id": "android:id/title",
+        "package": "com.android.settings",
+        "bounds": {
+          "x1": 63,
+          "y1": 2541,
+          "x2": 1038,
+          "y2": 2337
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": false
+        }
+      },
+      {
+        "id": 37,
+        "parent": 6,
+        "role": "item",
+        "class_name": "android.widget.LinearLayout",
+        "label": null,
+        "text": null,
+        "resource_id": null,
+        "package": "com.android.settings",
+        "bounds": {
+          "x1": 0,
+          "y1": 2613,
+          "x2": 1080,
+          "y2": 2337
+        },
+        "flags": {
+          "clickable": true,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": false
+        }
+      },
+      {
+        "id": 38,
+        "parent": 37,
+        "role": "text",
+        "class_name": "android.widget.TextView",
+        "label": null,
+        "text": "Auto-rotate screen",
+        "resource_id": "android:id/title",
+        "package": "com.android.settings",
+        "bounds": {
+          "x1": 63,
+          "y1": 2655,
+          "x2": 498,
+          "y2": 2337
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": false
+        }
+      },
+      {
+        "id": 39,
+        "parent": 37,
+        "role": "text",
+        "class_name": "android.widget.TextView",
+        "label": null,
+        "text": "Synthetic private summary",
+        "resource_id": "android:id/summary",
+        "package": "com.android.settings",
+        "bounds": {
+          "x1": 63,
+          "y1": 2726,
+          "x2": 108,
+          "y2": 2337
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": false
+        }
+      },
+      {
+        "id": 40,
+        "parent": 37,
+        "role": "switch",
+        "class_name": "android.widget.Switch",
+        "label": "Auto-rotate screen",
+        "text": null,
+        "resource_id": "com.android.settings:id/switchWidget",
+        "package": "com.android.settings",
+        "bounds": {
+          "x1": 849,
+          "y1": 2613,
+          "x2": 1038,
+          "y2": 2337
+        },
+        "flags": {
+          "clickable": true,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": true,
+          "checked": true,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": false
+        }
+      }
+    ],
+    "installed_apps": [],
+    "capabilities": null
+  }
+}

@@ -1,5 +1,175 @@
 # Settings static observation — 7 November 2026
 
+## Round two: Display compatibility and actual radio controls
+
+This section supersedes the first-round missing-evidence/Display limitations below. Worktree
+base `3050c7dc56303072140e0f2a80541e505ecd4009`; first-round patch cherry-picked cleanly as
+`2cced83` (original `b6410b22c8b8e5e735ff76cb38a346487deee7ee`). Markor captions and creation
+field labels, foreground completion, pacing, planner feedback, and unrelated `docs/CONTEXT.md`
+were preserved. No agent, type/schema, verifier, model-client, prompt, budget, or task oracle
+changes. Later parent Calendar work is not in this isolated checkout.
+
+**No task/model validation or score uplift is claimed.** Last full suite remains **4/20 combined,
+9/20 independent state**. The separate caption round's provisional 2 pass / 1 fail does not
+change it. These are development regressions, not held-out evaluation or evidence of 13/20.
+
+### Captures and restoration
+
+Bounded observation sessions used only visible `emulator-5554`, explicit `adb -s emulator-5554`,
+AndroidWorld console port 5554, and `CoreHost(models=None).observe()` from the clean worktree
+`~/ballistic_validation/captions_96d9c94`, exact SHA
+`96d9c94fe74f974c41d57b54d6006a30f9e0468e`. Its status was checked clean. No key was read, model
+called, APK installed/built, emulator restarted, device clock changed, private settings/database
+used, or physical phone accessed. Remote dirty main sources were untouched.
+
+Each session checked active driver processes and exclusively created `~/ballistic_runs/emulator.lock`
+with owner/PID/UTC timestamp before device operations; bounded alarms and `finally` removed only
+its own matching lock. Genuine Display, Network, Internet, Connected devices, Connection
+preferences and Bluetooth dashboard trees were captured with screenshots and UI hierarchy XML.
+Routes used Settings intents, then GUI Connection preferences → Bluetooth. The AOSP manifest maps
+`BLUETOOTH_SETTINGS` to Connected devices, not directly to the Bluetooth main-switch page.
+An initial unsupported connected-device intent and several host settling failures were discarded;
+no readiness checks were weakened or failed trees used as evidence.
+
+Initial Wi-Fi and Bluetooth main switches both read `checked=true`. Only those two identified
+GUI controls were temporarily toggled. Wi-Fi off was captured, and its original true state was
+verified by fresh normalized observation. After Bluetooth's off toggle the current host session
+reported `no_ready_foreground`, including cleanup acquisition. A new exclusively locked session
+captured the genuine normalized off page, then restored Bluetooth through its freshly identified
+GUI switch bar and verified `checked=true` twice through fresh UI hierarchies. The saved final
+Bluetooth XML also reads true. No blind repeated toggle, Pair-page inference, connection-existence
+inference, or CLI settings read/write was used. Locks were released on failed sessions too;
+restoration was not claimed until readback succeeded. Independent SSH checking after the final
+session confirmed no lock and no capture/driver process. The parent was notified and subsequently
+assigned the device to another agent; all subsequent work here stayed offline.
+
+Raw captures remain outside the repository on ThinkPad under
+`~/ballistic_runs/settings_observation_round2{,b,c,d,e,f}/`, from 04:42–04:53 UTC, and downloaded
+under `/tmp/settings_captures/` locally. Session provenance records owner/PID/time and capture SHA.
+Fixtures under `core/tests/screens/settings_static/` are **sanitized synthetic copies**: Settings
+nodes only, installed-app/capability metadata removed, summaries/carrier/SSID/device/footer and
+injected-tile strings replaced with synthetic text. Structure, geometry, ownership, roles,
+resource IDs, visibility, enabled and checked flags remain observed. Static resource titles
+remain intact. Each fixture records its raw-wrapper hash (Display's historical extraction also
+records original run SHA and reply 14). No raw run artifact or account data was copied into Git.
+
+### Parent objections and implementation responses
+
+- **Display lost seven previously named controls.** The complete captured Display envelope now
+  restores all seven, including Navigate up. `PrimarySwitchPreference`/`DarkModePreference` has
+  separate row navigation and switch click listeners: the filter keeps clickable Settings
+  widgets separate instead of incorrectly folding them into navigation. Dark theme therefore
+  adds one correctly identified switch at its original bounds, preserving its observed state
+  and enabled flag. Four visible category headings and the toolbar also regain code-owned
+  labels. Hidden Colors/Auto-rotate titles do not grant actionable identity. The old keyword
+  fallback was not restored.
+- **No actual Wi-Fi or Bluetooth switch evidence.** Both checked states are now captured for
+  both controls. Internet requires the complete toolbar/list signature, static preference
+  anchors, a real `RestrictedSwitchPreference`, and explicitly validated opaque mobile-provider
+  and long-press Wi-Fi row forms (or the captured footer variant). Bluetooth requires its
+  separate `switch_bar`/`switch_text`/actual switch hierarchy and captured preference/footer
+  variant. The observed `checked` flag is copied unchanged; layout presence does not imply state.
+  Synthetic inverted-flag tests independently verify that layout does not select the state.
+- **Safe navigation without dynamic text leakage.** Dedicated manifest activities are allowed
+  only for their corresponding full profiles; SubSettings still requires the whole profile.
+  Direct activity names and any collapsing Settings toolbar tighten raw-text suppression,
+  including with an arbitrary wrong activity. Network/Connected retain their earlier identities;
+  the captured Connected variant lacking Pair/See-all summaries is supported without deriving
+  Bluetooth state. Carrier/SSID rows and Bluetooth's device summary/footer remain content even
+  when their strings collide with static labels. Malformed trees, ownership/role/activity
+  changes, missing anchors, extra unknown descendants and title collisions fail closed.
+- **Injected tile count is installation-dependent.** Agreed: three is **not** an AOSP control
+  identity. `DashboardFragment.createPreference()` builds injected tiles as ordinary preferences;
+  their normalized title-and-summary rows are indistinguishable from Cast/Printing. Arbitrary
+  opaque extras would let a renamed injected row replace a missing generic static anchor.
+  This round therefore retains the entire observed Connection preferences envelope: Bluetooth,
+  Cast, Printing and exactly three structurally checked **opaque** injected rows. Tile names are
+  never compared to recorded vendor/app names and never emitted as labels. Added/removed irrelevant
+  tiles reject the whole profile; collisions and replacing a removed static anchor with an
+  existing injected tile also reject. This is a narrow compatibility restriction, not proof of
+  row origin. Host metadata lacks preference keys/fragment/provider provenance; a fully fabricated
+  replacement with identical metadata and restored total cardinality is indistinguishable.
+  Supporting variable installations safely needs stronger producer identity, not a guessed count
+  or allowlisting installed-app names. No generalized Connection preferences support is claimed.
+
+Additional source at the same pinned Settings commit `e41cbfdd301b56e4c6f3ca38ad7116438d94f2b6`:
+[manifest activities](https://android.googlesource.com/platform/packages/apps/Settings/+/e41cbfdd301b56e4c6f3ca38ad7116438d94f2b6/AndroidManifest.xml),
+[Display controls](https://android.googlesource.com/platform/packages/apps/Settings/+/e41cbfdd301b56e4c6f3ca38ad7116438d94f2b6/res/xml/display_settings.xml),
+[DarkModePreference](https://android.googlesource.com/platform/packages/apps/Settings/+/e41cbfdd301b56e4c6f3ca38ad7116438d94f2b6/src/com/android/settings/display/darkmode/DarkModePreference.java),
+[Internet controller and dynamic entries](https://android.googlesource.com/platform/packages/apps/Settings/+/e41cbfdd301b56e4c6f3ca38ad7116438d94f2b6/src/com/android/settings/network/NetworkProviderSettings.java),
+[LongPressWifiEntryPreference](https://android.googlesource.com/platform/packages/apps/Settings/+/e41cbfdd301b56e4c6f3ca38ad7116438d94f2b6/src/com/android/settings/wifi/LongPressWifiEntryPreference.java),
+[Bluetooth main-switch wiring](https://android.googlesource.com/platform/packages/apps/Settings/+/e41cbfdd301b56e4c6f3ca38ad7116438d94f2b6/src/com/android/settings/connecteddevice/BluetoothDashboardFragment.java),
+[Bluetooth preferences](https://android.googlesource.com/platform/packages/apps/Settings/+/e41cbfdd301b56e4c6f3ca38ad7116438d94f2b6/res/xml/bluetooth_screen.xml),
+[injected dashboard preferences](https://android.googlesource.com/platform/packages/apps/Settings/+/e41cbfdd301b56e4c6f3ca38ad7116438d94f2b6/src/com/android/settings/dashboard/DashboardFragment.java).
+SettingsLib at pinned AOSP tag `android-13.0.0_r1`:
+[PrimarySwitchPreference separate listener and caption](https://android.googlesource.com/platform/frameworks/base/+/android-13.0.0_r1/packages/SettingsLib/src/com/android/settingslib/PrimarySwitchPreference.java),
+[main switch layout](https://android.googlesource.com/platform/frameworks/base/+/android-13.0.0_r1/packages/SettingsLib/MainSwitchPreference/res/layout/settingslib_main_switch_bar.xml).
+These sources explain the observed structure, not an attestation that the installed APK is
+built from exactly that commit. Provider/vendor differences remain a compatibility limit.
+
+### Frozen regressions, measured restoration and checks
+
+Before round-two production edits, froze the 14 residual test definitions in
+`core/tests/settings_residual_controls.rs`, SHA-256
+`2b40da0dd4c203f7e2c786876a317b1f60b42413cf247e6e4a6c5af5d7b21398` (unchanged).
+Bluetooth's off-state fixture was acquired later during restoration; the test definition was
+already fixed. All before/after tests use the same final sanitized fixtures. Baseline was rerun
+from a source archive of `2cced83` with a **separate Cargo target directory** to avoid stale
+same-target reuse. Frozen cases: **2 passed / 12 failed → 14 passed / 0 failed**. They cover
+Display navigation/split-switch semantics, both radio states, dedicated activities, Connection
+preferences, hostile summaries, SSID/carrier collisions, spoofed toolbar, wrong ownership/roles/
+activities/layouts, duplicate/missing/foreign nodes, hidden anchors, anonymous-switch evidence,
+and independence from IDs/geometry/request/typed history. Seven additional review tests cover
+arbitrary-activity fallback, row reordering, injected rows and collisions, layout/state
+independence, switch metadata mutations, tile-count changes and missing-anchor substitution.
+They are outside the frozen denominator.
+
+Empty-request filtering of the final fixture set gives these counts. Each pair is **named visible
+controls / labelled elements**; controls include disabled visible controls. No task/goal string
+selects an identity. Counts are observation coverage, not task success.
+
+| Captured page | First-round patch on current base | Round two |
+|---|---:|---:|
+| Network, historical SubSettings | 9 / 9 | 9 / 9 |
+| Network, dedicated activity | 0 / 0 | 9 / 9 |
+| Connected, historical SubSettings | 3 / 3 | 3 / 3 |
+| Connected, dedicated activity / brief summaries | 0 / 0 | 3 / 3 |
+| Pair new device | 0 / 0 | 0 / 0 |
+| Display, historical SubSettings | 0 / 0 | 8 / 13 |
+| Display, newly captured dedicated activity | 7 / 12 | 8 / 13 |
+| Internet, Wi-Fi checked true | 0 / 0 | 5 / 5 |
+| Internet, Wi-Fi checked false | 0 / 0 | 4 / 4 |
+| Connection preferences | 0 / 0 | 3 / 3 |
+| Bluetooth, checked true | 0 / 0 | 3 / 3 |
+| Bluetooth, checked false | 0 / 0 | 2 / 2 |
+
+The pre-first-round historical Display result was 7 controls / 12 labels, as measured below;
+round two restores all seven and correctly separates the eighth switch. No previously named
+control in these fixtures is lost. Unknown SubSettings, other locales, partially scrolled or
+trimmed layouts, populated Connected-device dashboards, different injected-tile counts, multiple
+mobile providers, connected Wi-Fi gear variants and unrecorded footer/feature variants still
+fail closed. Internet currently requires the recorded one-mobile-provider family. Recognition
+of both checked values does not prove eventual connectivity or a successful state change.
+
+Validation on this branch: initial cherry-pick **138 Rust tests with UniFFI passed**; final
+**159 Rust tests with UniFFI passed**, **79 Python tests passed, zero skips**. Python used the
+freshly built local `ballistic-core` through `BALLISTIC_TEST_CORE_BIN`. `git diff --check` passes.
+Rustfmt is unavailable in the installed toolchain; no toolchain download was performed. Python's
+mocked injection-check tests intentionally print an ERROR/lock example while unittest reports OK.
+Anonymous-switch verification remains unchanged and negative cases pass. A named switch is still
+only eligible visible-UI evidence: the model verifier does not enforce semantic goal coverage.
+No live model/task/injection validation was run by this implementation round.
+
+Reproduction uses the same commands as the first round below, plus
+`cargo test --offline --manifest-path core/Cargo.toml --features uniffi --test settings_residual_controls`
+and `--test settings_residual_safety`. Raw capture hashes and sanitization are recorded per fixture;
+raw restoration evidence is `settings_observation_round2e/internet_restored.json` and
+`settings_observation_round2f/bluetooth_restored.xml` on the paths above.
+
+---
+
+## Historical first round (before round-two repair)
+
 Offline development work based on `6d2bebb`. No live model, emulator, SSH, ADB, phone,
 AndroidWorld checker, or OS repository operations. This cannot establish live uplift:
 the last full suite remains **4/20 combined, 9/20 independent state**.
