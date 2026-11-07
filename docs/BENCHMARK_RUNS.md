@@ -26,6 +26,56 @@ setup and gaps and is not the sum in this table. Errors and early failed stops r
 time. These runs do **not** establish a speedup or a controlled latency comparison.
 Prompt means include only usage-bearing calls; failed-call usage is unknown.
 
+## Core 7 targeted — 7 November 2026 (six tasks, not a full suite)
+
+Exact pin `4de7adebb7bf53e5ea28de5dad0d01bf18ef780e`, tree
+`bf78db44331a437bcce239866764664bc21e0005`, release binary SHA-256
+`590274001a37f8cfb184f259246beccdfc352c988595f822928e5b0dc1deac75`.
+The six-task manifest was frozen before live work; no reruns or midrun edits. Fresh build gates:
+**285 Rust/UniFFI and 95 Python passed, zero skips**. Same original key, Gemini model, seed 0,
+role/step/correction limits, confirmation policy, five-second pacing and text-only request flag
+as Core6. Targeted order differs from the full suite. Parent independently verified all
+**51 original and 23 derived artifact hashes** and recomputed scores, usage and timings.
+
+**0 PASS / 5 FAIL / 1 ERROR; state 2/6; no accepted Done.** The corresponding Core6 cases had
+1 PASS / 5 FAIL, state 3/6. This round establishes no recovery. It is not a new 20-task score
+and does not replace the last complete result of 8 combined / 11 state. Same goals and budgets
+are not a controlled causal comparison: initial observations differ and identical reader inputs
+can produce different selections.
+
+| Task | Core6 combined / state | Core7 combined / state | Agent s, old → new | Calls, old → new | Trace-backed finding |
+|---|---|---|---:|---:|---|
+| OpenAppTaskEval | PASS / passed | FAIL / passed | 12.2 → 82.4 | 3 → 16 | Opened Settings, pursued permissions, never proposed Done. Neither changed verifier nor reader-correction path ran. |
+| SystemBrightnessMax | FAIL / failed | ERROR / failed | 53.3 → 50.9 | 7 → 9 | New reader correction exercised once; planner HTTP503 retried, then HTTP200 missing-content error. Never reached Display. |
+| FilesDeleteFile | FAIL / failed | FAIL / failed | 23.7 → 129.2 | 5 → 24 | More scrolling, reopening and reads, then gave up. No new reader correction; one recovered reader503. |
+| SimpleSmsSend | FAIL / passed | FAIL / passed | 62.6 → 86.9 | 13 → 14 | Three verifier calls received the revised prompt yet still inferred unsent from disabled Send. Missing status can independently justify unknown. |
+| SimpleSmsReplyMostRecent | FAIL / passed | FAIL / failed | 80.5 → 48.1 | 16 → 10 | Identical reader messages selected e8 instead of previous e7; entered the other conversation, then hit guarded-repeat stop. No verifier call. |
+| MarkorDeleteNote | FAIL / failed | FAIL / failed | 52.1 → 48.1 | 10 → 10 | Long-press rejection consumed correction slot; fourth read stopped at unchanged cap. |
+
+**83 logical calls / 85 HTTP attempts / 2 retries**: 83 HTTP200, two HTTP503, no429/400.
+Planner 60 calls, reader 20, verifier 3; ten ordinary correction calls, exactly one new
+reader-no-progress correction. The terminal brightness fault was a `ModelResponseError`
+(`missing_content`, `finish_reason=other`), not a proven emulator/transport outage; the current
+harness labels it with the broad environment category. Its unretained provider cause is unknown.
+The two inherited 503 retries had unknown usage. Known totals: **194,327 prompt + 3,014 output
+tokens**, two unknown-usage attempts. Agent time **445.6 s** versus selected Core6 **284.4 s**;
+checker **12.677 s**; **168.980 s** pacing is already included in agent time. Sum task process
+wall 618.205 s, supervisor 809.231 s including build/test gate and inter-task gaps.
+
+The revised verifier instruction did not correct the targeted faulty inference in this trial;
+this does not prove accepting Done would be justified. The reader correction produced no usable
+corrected action, so its live utility remains unmeasured. Keep these results separate from offline
+regression tests. No delivery, absence-of-duplicates, exact photo count or injection-safety claim.
+Review substantive observation/history improvements before another full suite; do not spend
+another round merely hoping for different outcomes or weaken success criteria to raise the score.
+
+Token-owned release at **09:45:43.120536 UTC**, independent process/lock check at **09:45:57.035989**:
+no supervisor or drivers, no emulator lock; original PID305875 and visible AndroidWorldAvd:5554
+window intact. Dirty main, AW/wrapper inventories, pinned tree and binary preserved. Remote
+credential scan passed before transfer. Evidence: ignored `ballistic_runs/core7_targeted_4de7ade/`,
+including `report.txt`, `per_task.tsv`, `comparison.json`, `trace_evidence.json`,
+`first_planner_prompt_diffs.txt`, `release_confirmation.json`, original JSON/logs and hash indexes.
+
 ## Core 6 complete — 7 November 2026
 
 **8 PASS / 10 FAIL / 2 ERROR, all 20 attempted. Independent state: 11/20 passed.**
