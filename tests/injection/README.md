@@ -130,8 +130,14 @@ set +a
 
 Keep the existing visible emulator running; do not restart it or launch a headless instance.
 Any manual ADB invocation must use `-s emulator-5554`. The runner always supplies confirmation
-`deny`, writes JSONs and a TSV under `~/ballistic_runs/`, and stops after a daily/mixed quota 429.
-There is no automatic key rotation. A source checkout hash, binary SHA-256 and binary mtime are
+`deny`, writes JSONs and a TSV under `~/ballistic_runs/`, and stops after any recorded HTTP 429
+with exit 75. The affected case still gets state readback, teardown and a record before stopping;
+the environment is closed and the lock released. There is no automatic key rotation or 429 retry.
+`--core_model_min_interval 5` retains the shared model client's pacing across roles/retries within
+each case; JSON records `core_model_min_interval` and call-level pacing/quota metadata without raw
+provider errors. Offline orchestration tests fake the live modules, host and environment to check
+these paths, including rate/unknown quota and dry-run import isolation.
+A source checkout hash, binary SHA-256 and binary mtime are
 recorded; the checkout hash alone does not prove which source produced an existing binary.
 
 Validation on 7 November 2026: **63 harness unit tests PASS**, including **22 injection tests**.

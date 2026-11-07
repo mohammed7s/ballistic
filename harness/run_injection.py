@@ -25,7 +25,8 @@ default route is Gemini flash-lite as in run_suite.sh.
 
 Emulator lock protocol: refuses to start while run_suite/run_task/chat.py/gradlew is running or
 ~/ballistic_runs/emulator.lock exists; holds the lock for the whole run and removes it on exit.
-A 429 whose body says PerDay stops the run after that case.
+Any recorded HTTP 429 stops the run after that case is measured and recorded (exit 75).
+--core_model_min_interval is honored and recorded in each case JSON.
 """
 
 from __future__ import annotations
@@ -169,7 +170,6 @@ def live_run(opts: argparse.Namespace, route_argv: list[str]) -> int:
 
 def _live_run(opts: argparse.Namespace, route_argv: list[str]) -> int:
     # AndroidWorld and run_task's flags only for live runs, so the dry run needs neither.
-    import requests
     import core_bridge
     import injection_setup
     import run_task
@@ -182,18 +182,6 @@ def _live_run(opts: argparse.Namespace, route_argv: list[str]) -> int:
     core_bin = F.core_bin or core_bridge.default_core_bin()
     commit = core_commit(core_bin)
 
-    class QuotaAwareModelClient(core_bridge.ModelClient):
-        """core_bridge.ModelClient that notes a per-day quota 429 (flag only; no body is kept)."""
-        per_day_quota = False
-
-        def complete(self, role, messages, max_tokens):
-            try:
-                return super().complete(role, messages, max_tokens)
-            except requests.HTTPError as e:
-                metadata = self._quota_metadata(e.response)
-                self.per_day_quota = metadata.get("quota_category") in ("daily", "mixed")
-                raise
-
     cases = checks.load_cases(only=opts.cases)
     stamp = time.strftime("%Y%m%d-%H%M%S")
     out_dir = os.path.join(F.out_dir, f"injection_{stamp}")
@@ -204,6 +192,7 @@ def _live_run(opts: argparse.Namespace, route_argv: list[str]) -> int:
         raise ValueError("no matching injection cases")
     env = env_launcher.load_and_setup_env(console_port=F.console_port, emulator_setup=False, adb_path=F.adb_path)
     evaluations = []
+    quota_limited = False
     try:
         for case in cases:
             print(f"== {case['name']}: {case['request']}")
@@ -212,7 +201,7 @@ def _live_run(opts: argparse.Namespace, route_argv: list[str]) -> int:
                 evaluations.append(ev)
                 print(f"   SKIP {case['skip_reason']}")
                 continue
-            models = QuotaAwareModelClient(run_task.core_models().routes, F.temperature, F.timeout)
+            models = run_task.core_models()
             host = core_bridge.CoreHost(env, models, "deny", run_task.print_core_event)
             args = ["run", "--request", case["request"], "--max-steps", str(case.get("max_steps", 10))]
             setup_log, problems, measured = [], [], []
@@ -227,7 +216,7 @@ def _live_run(opts: argparse.Namespace, route_argv: list[str]) -> int:
                     run = run_task.serve_core(host, args)
                     measured = injection_setup.state_after(env, case)
             except Exception as exc:
-                problems.append(f"setup/run/readback error: {type(exc).__name__}: {str(exc)[:400]}")
+                problems.append(f"setup/run/readback error: {type(exc).__name__}")
                 # Still inspect effects after a failed run where possible.
                 try:
                     measured = injection_setup.state_after(env, case)
@@ -243,6 +232,7 @@ def _live_run(opts: argparse.Namespace, route_argv: list[str]) -> int:
                 "setup": case.get("setup", []), "setup_log": setup_log, "setup_problems": problems,
                 "core_bin": core_bin, "core_commit": commit, "core_args": args,
                 "model": F.model, "base_url": F.base_url,
+                "core_model_min_interval": models.min_interval_seconds,
                 "roles": {r: m for r, (_, m, _) in models.routes.items()}, "confirm": "deny",
                 "steps": [e for e in host.events if "step" in e], "finished": run["finished"],
                 "model_calls": models.calls, "confirmations": host.confirmations,
@@ -259,8 +249,9 @@ def _live_run(opts: argparse.Namespace, route_argv: list[str]) -> int:
             evaluations.append(ev)
             write_tsv(os.path.join(F.out_dir, f"injection_{stamp}.tsv"), evaluations, core_bin, commit)
             print(f"   {ev['result']}  outcome={ev['outcome']}  model_calls={ev['model_calls']}  {failed_text(ev)[:300]}")
-            if models.per_day_quota:
-                print("\nper-day quota exhausted (429 PerDay); stopping")
+            quota_limited = any(call.get("http_status") == 429 for call in models.calls)
+            if quota_limited:
+                print("\nHTTP 429: stopping; remaining cases were not run")
                 break
     finally:
         env.close()
@@ -269,6 +260,8 @@ def _live_run(opts: argparse.Namespace, route_argv: list[str]) -> int:
     tsv = os.path.join(F.out_dir, f"injection_{stamp}.tsv")
     write_tsv(tsv, evaluations, core_bin, commit)
     print(f"written {tsv}\nwritten {out_dir}/")
+    if quota_limited:
+        return 75
     return 1 if any(e["result"] in ("FAIL", "ERROR") for e in evaluations) else 0
 
 
