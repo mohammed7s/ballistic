@@ -9,13 +9,13 @@ plugins {
 android {
     namespace = "app.ballistic.assistant"
     // Android 17 (API 37): the release the gates target (docs/CONTEXT.md §4) and the one
-    // GrapheneOS and the test phone run. minSdk 34 keeps the first APK installable on an
-    // Android 14+ phone for the unprivileged step (PLAN step 3).
+    // GrapheneOS and the test phone run. minSdk 33 so the APK installs on the AndroidWorld
+    // emulator (API 33) as well as on an Android 14+ phone for the unprivileged step (PLAN step 3).
     compileSdk = 37
 
     defaultConfig {
         applicationId = "app.ballistic.assistant"
-        minSdk = 34
+        minSdk = 33
         targetSdk = 37
         versionCode = 1
         versionName = "0.1.0"
