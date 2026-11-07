@@ -289,7 +289,9 @@ fn identical_read_on_unchanged_screen_stops_before_another_reader_call() {
     let read=|question: &str| completion(json!({"action":"read","targets":[format!("c{c}")],
         "question":question,"shape":"element"}));
     let (report,calls)=run(vec![json!(s),read("Which conversation?"),text("none"),
-        read("  WHICH   conversation? ")], REPLY_REQUEST);
+        // The existing second planner attempt now corrects a no-progress read.
+        read("  WHICH   conversation? "),read("Which conversation?")], REPLY_REQUEST);
+    assert_eq!(planner_calls(&calls).len(),3);
     assert_eq!(calls.iter().filter(|c| c["role"]=="reader").count(),1);
     assert!(asks(&calls,"act").is_empty());
     assert_eq!(report["done"],false);
@@ -306,7 +308,8 @@ fn paraphrased_reads_have_a_bounded_budget_without_screen_progress() {
         "question":question,"shape":"element"}));
     let (report,calls)=run(vec![json!(s),read("which conversation?"),text("none"),
         read("which thread?"),text("none"),read("which row?"),text("none"),
-        read("where is the thread?")],REPLY_REQUEST);
+        read("where is the thread?"),read("where is the thread?")],REPLY_REQUEST);
+    assert_eq!(planner_calls(&calls).len(),5);
     assert_eq!(calls.iter().filter(|c| c["role"]=="reader").count(),3);
     assert_eq!(report["done"],false);
     assert!(asks(&calls,"act").is_empty());

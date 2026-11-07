@@ -762,8 +762,15 @@ provenance (element and terminal source excerpts are implemented), policy and ro
 contracts for notification reply, dial and alarm, and checking the hard-approval signature.
 
 The element reader stops repeated identical queries on the same observation and allows at most
-three distinct consecutive queries without navigation. These bounds limit stalled model calls;
-they do not establish completion. The verifier rejects anonymous switch/checkable evidence, but
+three distinct consecutive queries without navigation. A blocked element read can use the
+step's existing planner correction opportunity with fixed code-owned feedback. There are still
+at most two planner attempts per step: if correction is already spent or repeats an exhausted
+read, core stops before another reader call. This may use a previously unused planner call;
+actual model-call cost and live uplift are unknown. The private normalized query equality,
+reader picks, normal action checks and terminal summary boundary are unchanged. See the
+[bounded correction development record](../docs/READER_CORRECTION_20261107.md).
+These bounds limit stalled reader calls; they do not establish completion.
+The verifier rejects anonymous switch/checkable evidence, but
 still cannot prove that every requested field or value was satisfied merely from cited node IDs.
 
 ## 16. Order of work

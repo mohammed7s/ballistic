@@ -11,6 +11,23 @@ use crate::{capabilities, verification, launch_completion, actions, bridge::Brid
 const RULES: &str = include_str!("../prompts/planner.txt");
 fn message(role: &str, content: String) -> ChatMessage { ChatMessage {role:role.into(),content} }
 
+// Fixed code-owned correction: never include reader prose or the private serialized query.
+const READ_NO_PROGRESS: &str = "Invalid action: this element read repeats an unchanged query or exceeds the consecutive-read limit. No reader call was made. Use current labels or a current reader pick for a legal action, or navigate or scroll an advertised scrollable area to obtain new evidence. Do not guess hidden controls. Return a corrected JSON action.";
+
+fn element_request(view: &FilteredScreen, targets: &[u32], question: &str) -> (Vec<ChatMessage>, String) {
+    let normalized_question=question.split_whitespace().collect::<Vec<_>>().join(" ").to_lowercase();
+    let mut ordered_targets=targets.to_vec();
+    ordered_targets.sort_unstable();
+    ordered_targets.dedup();
+    let messages=reader::element_messages(&normalized_question,view,&ordered_targets);
+    let query=serde_json::to_string(&messages).expect("serializable reader messages");
+    (messages,query)
+}
+
+fn read_exhausted(queries: &[String], query: &str) -> bool {
+    queries.iter().any(|prior| prior==query) || queries.len()>=3
+}
+
 
 /// Acknowledged guarded inputs on one control before the run stops (core/README.md §9).
 const GUARDED_REPEAT_LIMIT: u32 = 2;
@@ -106,7 +123,22 @@ pub(crate) fn drive<H: Host>(host: &mut H, request:&str, max_steps:u32) -> PortR
             stop_if_cancelled!(step-1);
             let completion=host.complete(ModelRole::Planner,&messages,800)?;
             match actions::parse_reply(&completion.text).and_then(|r|{ actions::resolve(&r.action,&view,&screen,&apps)?;Ok(r) }) {
-                Ok(reply)=> { parsed=Some(reply);break; },
+                Ok(reply)=> {
+                    if attempt==0 {
+                        if let Action::Read{targets,question,shape:ReadShape::Element}=&reply.action {
+                            let (_,query)=element_request(&view,targets,question);
+                            if read_exhausted(&read_queries,&query) {
+                                // Consume only this step's existing correction slot. If it was
+                                // already used, or correction repeats the read, the hard guard
+                                // below still stops before any reader call or state mutation.
+                                messages.push(message("assistant",completion.text));
+                                messages.push(message("user",READ_NO_PROGRESS.into()));
+                                continue;
+                            }
+                        }
+                    }
+                    parsed=Some(reply);break;
+                },
                 Err(e)=> {
                     if attempt==1 {
                         let category=match &e {
@@ -170,13 +202,8 @@ pub(crate) fn drive<H: Host>(host: &mut H, request:&str, max_steps:u32) -> PortR
                 // text; the planner gets an element id and a source tag, or fixed feedback.
                 const NO_MATCH: &str = "reader: element none; no match among requested candidates only. This does not establish absence elsewhere. Inspect current labels; use relevant visible navigation or scroll an advertised scrollable area before reading new candidates. Do not repeat the same read or guess hidden controls.";
                 let allowed=reader::candidates(&view,targets);
-                let normalized_question=question.split_whitespace().collect::<Vec<_>>().join(" ").to_lowercase();
-                let mut ordered_targets=targets.clone();
-                ordered_targets.sort_unstable();
-                ordered_targets.dedup();
-                let reader_messages=reader::element_messages(&normalized_question,&view,&ordered_targets);
-                let query=serde_json::to_string(&reader_messages).expect("serializable reader messages");
-                if read_queries.contains(&query) || read_queries.len()>=3 {
+                let (reader_messages,query)=element_request(&view,targets,question);
+                if read_exhausted(&read_queries,&query) {
                     // No new observation occurred between these reads. Another model call is
                     // not new evidence. Do not turn a no-progress stop into completion.
                     outcome="reader made no progress on unchanged screen; stopped".into();

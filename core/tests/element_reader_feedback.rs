@@ -177,9 +177,12 @@ fn identical_read_still_stops_and_distinct_reads_still_have_three_call_limit() {
             replies.push(read(q));
             if i + 1 < questions.len() { replies.push(completion("none")); }
         }
+        // No-progress rejection now consumes the existing correction slot; repeating it
+        // still stops with the same reader-call bound and no dispatch.
+        replies.push(read(questions.last().unwrap()));
         let (report, calls) = run(replies, 12);
         assert_eq!(calls.iter().filter(|c| c["role"] == "reader").count(), questions.len() - 1);
-        assert_eq!(plans(&calls).len(), questions.len());
+        assert_eq!(plans(&calls).len(), questions.len() + 1);
         assert_eq!(asks(&calls, "observe").len(), 1);
         assert!(asks(&calls, "act").is_empty());
         assert_eq!(report["reason"], "reader made no progress on unchanged screen; stopped");
