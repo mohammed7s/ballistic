@@ -6,7 +6,7 @@ use std::time::Instant;
 use serde_json::{json, Value};
 use crate::{capabilities, verification, actions, bridge::Bridge, ports::*, run::Host,
     readback::{self, Readback}, reader::{self, ElementAnswer, ReaderPick},
-    screen_filter::{self, FilterContext, FilteredScreen}, tools, types::*};
+    screen_filter::{self, FilterContext, FilteredScreen}, types::*};
 
 const RULES: &str = include_str!("../prompts/planner.txt");
 fn message(role: &str, content: String) -> ChatMessage { ChatMessage {role:role.into(),content} }
@@ -59,12 +59,11 @@ pub(crate) fn drive<H: Host>(host: &mut H, request:&str, max_steps:u32) -> PortR
     let mut verification = Verification::default();
     let mut execution_status = ExecutionStatus::NotExecuted;
     let mut task_status = "pending";
-    let mut session = tools::ToolSession::default();
 
     // Checked before every observation, model call and confirmation, and immediately before
     // every dispatch. A stop never interrupts a call already made; it prevents the next one.
     macro_rules! stop_if_cancelled { ($steps:expr) => {
-        if host.cancelled() { return Ok(session.attach(stopped($steps, task_status, execution_status, &verification))); }
+        if host.cancelled() { return Ok(stopped($steps, task_status, execution_status, &verification)); }
     } }
 
     // Acknowledged guarded inputs in this run, counted whatever their readback said.
@@ -98,10 +97,8 @@ pub(crate) fn drive<H: Host>(host: &mut H, request:&str, max_steps:u32) -> PortR
         let app_names:Vec<_>=apps.iter().map(|a|a.label.as_str()).collect();
         let facts_block=if facts.is_empty() {String::new()} else {format!("Reader facts:\n{}\n",facts.join("\n"))};
         let state=format!("Owner request: {request}\nApps: {}\nHistory: {}\n{facts_block}Screen {} / {}:\n{}",json!(app_names),history.join("\n"),screen.package,screen.activity,screen_filter::render(&view));
-        let state=format!("{state}{}",tools::planner_facts(&session));
         let mut messages=vec![message("system",format!("{RULES}\nAction schema: {}",actions::ACTIONS_SCHEMA)),message("user",state)];
         messages[0].content.push_str(&format!("\n{}", capabilities::planner_instructions(screen.capabilities.as_ref())));
-        if let Some(t)=tools::planner_instructions(screen.capabilities.as_ref()) { messages[0].content.push_str(&format!("\n{t}")); }
         let mut parsed=None;
         for attempt in 0..2 {
             stop_if_cancelled!(step-1);
@@ -185,16 +182,6 @@ pub(crate) fn drive<H: Host>(host: &mut H, request:&str, max_steps:u32) -> PortR
                 }
             },
             Action::Read{..}=> {outcome="only the reader's element shape is available".into();next_screen=Some(screen.clone());},
-            Action::Tool{tool,args}=> {
-                stop_if_cancelled!(step-1);
-                let s=tools::call(host,tool,args,screen.capabilities.as_ref(),&mut session);
-                (outcome,task_status,failure_category,terminal)=(s.outcome,s.task_status,s.failure_category,s.terminal);
-            },
-            Action::Answer{text} if session.has_results()=> {
-                stop_if_cancelled!(step-1);
-                let s=tools::answer(text,&mut session);
-                (outcome,task_status,failure_category,terminal,done)=(s.outcome,s.task_status,s.failure_category,s.terminal,s.done);
-            },
             Action::Answer{..}=> {outcome="answer provenance is not implemented".into();task_status="unsupported";failure_category=Some("planning");terminal=true;},
             _=> {
                 let op=actions::resolve(&action,&view,&screen,&apps).map_err(|e|PortError::Malformed(e.to_string()))?.ok_or_else(||PortError::Malformed("no hands operation".into()))?;
@@ -279,7 +266,7 @@ pub(crate) fn drive<H: Host>(host: &mut H, request:&str, max_steps:u32) -> PortR
             history.push(line);
             if history.len()>8 {history.remove(0);}
         }
-        if terminal {return Ok(session.attach(json!({"done":done,"reason":outcome,"steps":step,"task_status":task_status,"execution_status":execution_status,"verification":verification,"failure_category":failure_category})));}
+        if terminal {return Ok(json!({"done":done,"reason":outcome,"steps":step,"task_status":task_status,"execution_status":execution_status,"verification":verification,"failure_category":failure_category}));}
     }
-    Ok(session.attach(json!({"done":false,"reason":"step budget exhausted","steps":max_steps,"task_status":task_status,"execution_status":execution_status,"verification":verification,"failure_category":if verification.evidence_basis=="model_assessment" {"verification"} else {"planning"}})))
+    Ok(json!({"done":false,"reason":"step budget exhausted","steps":max_steps,"task_status":task_status,"execution_status":execution_status,"verification":verification,"failure_category":if verification.evidence_basis=="model_assessment" {"verification"} else {"planning"}}))
 }

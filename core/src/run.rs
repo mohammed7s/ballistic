@@ -99,8 +99,8 @@ pub fn run(
     agent::drive(&mut host, request, max_steps)
 }
 
-/// The same loop with a host-owned, read-only Tools adapter. The older entry point and
-/// current UniFFI shell fail closed for tools until that shell supplies an adapter.
+/// The same loop with an optional read-only Tools host port. No request variants are
+/// currently supported, so this port cannot be called by the planner.
 #[allow(clippy::too_many_arguments)]
 pub fn run_with_tools(
     request: &str,
@@ -227,47 +227,4 @@ mod tests {
         assert_eq!((h.0, c.1), (0, 1));
     }
 
-    #[test]
-    fn stop_during_planning_prevents_a_granted_tool_call() {
-        let stop = Cell::new(false);
-        struct ToolModel<'a>(&'a Cell<bool>);
-        impl Models for ToolModel<'_> {
-            fn complete(&mut self, _: ModelRole, _: &[ChatMessage], _: u32) -> PortResult<Completion> {
-                self.0.set(true);
-                Ok(Completion { text: r#"{"action":"tool","tool":"wallet.balance","args":{"wallet_id":"main","chain_id":1,"asset":"native"}}"#.into(), usage: Usage::default() })
-            }
-        }
-        struct CountingTools(usize);
-        impl Tools for CountingTools {
-            fn call(&mut self, _: &crate::tools::ToolRequest) -> PortResult<crate::tools::ToolResult> {
-                self.0 += 1;
-                Ok(crate::tools::ToolResult::Failed { code: "test".into(), message: String::new() })
-            }
-        }
-        let mut state = screen();
-        state.capabilities.as_mut().unwrap().tool_grants = vec![crate::tools::ToolGrant {
-            tool: "wallet.balance".into(), scope: vec![crate::tools::GrantScope { id: "main".into(), label: None }],
-        }];
-        let (mut s, mut h, mut c, mut tools) = (Fixed(state), CountingHands(0), Answer(ConfirmResult::Denied, 0), CountingTools(0));
-        let result = run_with_tools("balance", 2, &mut s, &mut h, &mut ToolModel(&stop), &mut c,
-            &mut tools, &mut |_| {}, &|| stop.get()).unwrap();
-        assert_eq!(result["stopped"], true);
-        assert_eq!((tools.0, h.0), (0, 0));
-    }
-
-    #[test]
-    fn legacy_library_entry_has_no_implicit_tool_adapter() {
-        let mut state = screen();
-        state.capabilities.as_mut().unwrap().tool_grants = vec![crate::tools::ToolGrant {
-            tool: "wallet.balance".into(), scope: vec![crate::tools::GrantScope { id: "main".into(), label: None }],
-        }];
-        let (mut s, mut h, mut m, mut c) = (Fixed(state), CountingHands(0),
-            Scripted(vec![r#"{"action":"tool","tool":"wallet.balance","args":{"wallet_id":"main","chain_id":1,"asset":"native"}}"#], 0),
-            Answer(ConfirmResult::Denied, 0));
-        let result = run("balance", 2, &mut s, &mut h, &mut m, &mut c, &mut |_| {}, &|| false).unwrap();
-        assert_eq!(result["done"], false);
-        assert_eq!(result["reason"], "balance could not be refreshed: unsupported");
-        assert!(result.get("tool_results").is_none());
-        assert_eq!(h.0, 0);
-    }
 }

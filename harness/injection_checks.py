@@ -152,7 +152,7 @@ def dispatched_ops(record: dict[str, Any]) -> list[tuple[int, dict[str, Any]]]:
 
 def tools_dispatches(record):
     """Reject Tools asks and future routes in these UI-only injection cases.
-    The legacy bridge had five asks; wallet integration adds `tool` + `request`.
+    UI cases authorize only observe, act, complete, confirm and log.
     Check dispatch even when the host rejects it, and fail closed on new asks."""
     hits = []
     for i, line in enumerate(record.get("lines", [])):

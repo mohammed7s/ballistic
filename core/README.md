@@ -166,45 +166,15 @@ approve or deny from a test script and record it. App: the confirmation window o
 
 ### Tools port
 
-A fifth, optional door (`src/tools.rs`, `ports.rs`): `call(ToolRequest) -> ToolResult` for
-typed, read-only queries the host answers from outside the screen. The only tool is
-`wallet.balance`; the adapter and its configuration are documented in [`wallet/README.md`](../wallet/README.md).
+The optional `Tools` host interface (`src/tools.rs`, `ports.rs`) and resource grants remain as
+extension contracts. **No tools are currently supported.** `ToolRequest` has no variants, the
+planner schema has no `tool` action, and advertising a grant cannot enable one. The core does
+not collect tool results or render tool-specific answers; `answer` provenance is still pending.
 
-- **Action.** The planner emits `{"action":"tool","tool":"wallet.balance","args":{"wallet_id":
-  "main","chain_id":1,"asset":"native"}}`. `tools::ALLOWLIST` (code) fixes the tool names, the
-  exact argument names and the accepted values (chain 1, asset `native`, a wallet id of
-  `a-z0-9_-`). Any other tool, an extra argument (an address, a URL, a method) or another value is
-  an invalid action and never reaches the host. Core sends the host the flat request
-  `{"tool":"wallet.balance","wallet_id":"main","chain_id":1,"asset":"native"}`; the host resolves
-  the id to an address and endpoint from its own configuration.
-- **Grant.** `HostCapabilities.tool_grants` lists the owner's grants:
-  `[{"tool":"wallet.balance","scope":[{"id":"main","label":"Main wallet"}]}]`. No grant covering
-  that exact tool and wallet id: the step ends `not granted` before any call, so no wallet network
-  request is made. Granted tools and aliases are added to the planner prompt only when a grant
-  exists; the shared action schema still describes the tool action. The Python host rechecks the
-  grant at dispatch, so revocation after the observation prevents the RPC call.
-- **Result.** The host returns `{"result":"balance",...}` or `{"result":"failed","code":...}`.
-  Core validates every field (same wallet and chain as requested, decimal `balance_wei`,
-  0x hashes and address, `transport` `tor`|`https`, `trust` `rpc_reported`), recomputes
-  `balance_eth` in integer arithmetic and rejects a disagreeing one. A failure, a port error or a
-  rejected field stops the run with "could not be refreshed"; core never substitutes zero.
-- **Provenance.** The validated card values are `Tagged` with `Source::Rpc{source, transport}`.
-  The next planner prompt gets them under "Tool results" with that source (no address). The
-  finished report gains `tool_results` (the card) and `answer`.
-- **Answer.** After a result, `answer` is supported. The owner-facing `answer.text` and card are
-  rendered from validated fields ("Main wallet has 1.2345 ETH on Ethereum mainnet."), never from
-  model wording. The taint rule (§7, rule 2) applies to the model's `text`: each number or `0x`
-  word in it must equal an Rpc-tagged value; otherwise the model text is dropped
-  (`model_text: null`, `model_text_check: "rejected: … not in the tool result"`). An answer has no
-  side effect, so the value's source shown on the card stands in for the hard confirmation an
-  action would need. Amounts written in words are not detected; that is why the shown amount
-  comes only from the card. `answer` with no tool result is still unsupported.
-
-The in-process Rust host can supply this adapter through `run::run_with_tools`. The existing
-`run::run` and current UniFFI app entry point have no Tools adapter and fail closed, even if a
-host mistakenly advertises a grant. The wallet C ABI is not yet wired into the Android shell.
-Stop is checked before dispatching a tool. Model API key environment variables, including
-numbered development keys, are excluded from both core and wallet child processes.
+The in-process `run::run_with_tools` and generic JSON-lines host boundary remain available for
+future typed integrations. Adding one requires explicit request/result types, core validation,
+owner grant enforcement and evidence handling. Model API key environment variables, including
+numbered development keys, are excluded from core child processes.
 
 ## 5. Screen filter: what the planner sees
 
@@ -264,7 +234,6 @@ validation is rejected and counted; the model gets one retry with the error.
 | `back`, `home` | | |
 | `wait` | | screen still loading |
 | `read` | `targets` (c-ids), `question`, `shape` | hands content to the reader (§7); `shape` is `summary`, `element` or `facts`; the typed result comes back next step |
-| `tool` | `tool`, `args` | read-only query through the Tools port (§4); allowlisted names and arguments only, owner grant required |
 | `answer` | `text` | for questions the owner asked; text goes through the taint rule |
 | `done` | `evidence` | triggers the done check (§10) |
 | `give_up` | `reason` | |
@@ -578,7 +547,7 @@ core/
   src/                      Rust crate `ballistic_core`
     types.rs                ScreenState, Node, Action, Value+Source, ConfirmRequest
     ports.rs                the four traits, plus the optional Tools port
-    tools.rs                Tools port: allowlist, owner grants, result validation, Rpc-tagged answer
+    tools.rs                optional Tools contracts and grants; no supported requests
     screen_filter.rs
     actions.rs              validation, target resolution, app-name matching
     planner.rs  reader.rs  judge.rs  verifier.rs   (reader.rs: element shape; readback.rs: §10)
@@ -595,9 +564,7 @@ core/
   uniffi.toml               binding settings (Kotlin package app.ballistic.assistant.core.ffi)
   tests/                    unit tests + recorded screens
 harness/
-  core_bridge.py            Screen/Hands/Confirm over JSON lines, on top of AndroidWorld's env;
-                            Tools via WalletTools → the ballistic-wallet CLI
-wallet/                     read-only wallet adapter (Tools port's `wallet.balance`), own crate
+  core_bridge.py            Screen/Hands/Confirm over JSON lines, on top of AndroidWorld's env
   run_task.py, chat.py      gain --agent core
 tests/injection/            emulator injection cases
 ```

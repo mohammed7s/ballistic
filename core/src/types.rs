@@ -149,8 +149,6 @@ pub enum Action {
         question: String,
         shape: ReadShape,
     },
-    /// A read-only query through the Tools port; checked against `tools::ALLOWLIST`.
-    Tool { tool: String, args: serde_json::Value },
     Answer { text: String },
     Done { evidence: String },
     GiveUp { reason: String },

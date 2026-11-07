@@ -42,8 +42,8 @@ pub trait Confirm {
     fn ask(&mut self, request: &ConfirmRequest) -> PortResult<ConfirmResult>;
 }
 
-/// Read-only queries outside the screen (a wallet balance). The host resolves the request with
-/// trusted configuration; core has already checked the allowlist and the owner's grant.
+/// Optional read-only queries outside the screen. No request variants are currently supported;
+/// future implementations must validate typed requests and owner grants before dispatch.
 pub trait Tools {
     fn call(&mut self, request: &ToolRequest) -> PortResult<ToolResult>;
 }

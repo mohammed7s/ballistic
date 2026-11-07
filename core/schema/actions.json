@@ -230,50 +230,6 @@
       "type": "object",
       "properties": {
         "action": {
-          "const": "tool"
-        },
-        "why": {
-          "type": "string"
-        },
-        "tool": {
-          "type": "string",
-          "enum": [
-            "wallet.balance"
-          ]
-        },
-        "args": {
-          "type": "object",
-          "properties": {
-            "wallet_id": {
-              "type": "string",
-              "pattern": "^[a-z0-9_-]{1,32}$"
-            },
-            "chain_id": {
-              "const": 1
-            },
-            "asset": {
-              "const": "native"
-            }
-          },
-          "required": [
-            "wallet_id",
-            "chain_id",
-            "asset"
-          ],
-          "additionalProperties": false
-        }
-      },
-      "required": [
-        "action",
-        "tool",
-        "args"
-      ],
-      "additionalProperties": false
-    },
-    {
-      "type": "object",
-      "properties": {
-        "action": {
           "const": "answer"
         },
         "why": {

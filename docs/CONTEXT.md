@@ -15,6 +15,17 @@ confirmation dialog.**
 
 ## 2. Decisions taken (and why)
 
+**7 November 2026 — Kohaku wallet feature removed (owner decision):** removed the standalone
+adapter, vendored transport, dependencies, planner action, balance result rendering, host adapter
+and dedicated integration docs/tests. Ballistic has no wallet capability or planned wallet work.
+The optional generic Tools/grants contracts remain inert, with no supported request variants;
+phone control, capability checks, cancellation and injection checks remain. Wallet device testing
+is cancelled. Historical Git commits and ignored build/run artifacts are retained, not active
+product features. No device, emulator or external submission was changed for this removal.
+Local validation: **78 Rust tests with UniFFI, 63 Python harness tests and 41 JVM tests pass**
+(including the native core boundary); generic regression coverage rejects stale grants and
+unsupported tool actions before dispatch. Android/device validation was not rerun.
+
 **7 November 2026 — Astra recovery and Core 4 results:** the suite at `8098265`,
 `suite_core_20261107-023245.tsv`, finished all 20 tasks: **4 PASS, 9 FAIL, 7 ERROR**;
 AndroidWorld's independent state checker passed **9/20**. Agent time totals **1039.5 seconds**,
@@ -33,8 +44,7 @@ reader and control labels with cancellation plus the follow-up guards. Parent ve
 field-by-field completion evidence and skills remain unfinished. The native app APK was built
 for arm64 and x86_64 (34,618,793 bytes), with 41 JVM tests reported passing by the app agent;
 the real app prompt smoke is in progress and uses the earlier pre-Core-4 binary. Its host has
-notification observations and intent launching, not general control inside other apps. Wallet
-Android binaries also built, but new hardening changes still need rebuilding/device validation.
+notification observations and intent launching, not general control inside other apps.
 Injection runner/checker and fixtures are being completed; no live injection pass is claimed.
 
 **7 November 2026 — core suite rerun, 3/20 (`docs/BENCHMARK_RUNS.md`):** commit `1331cde`

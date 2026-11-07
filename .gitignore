@@ -6,3 +6,6 @@ __pycache__/
 ballistic_runs/
 *.gguf
 .DS_Store
+
+# Rust build output
+**/target/

@@ -6,8 +6,7 @@ Five kinds of ask:
   act       -> one HandsOp executed through AndroidWorld's adb helpers, in screen coordinates
   complete  -> one chat completion at the OpenAI-compatible endpoint configured for the role
   confirm   -> approve or deny from a fixed policy (benchmark: approve; injection tests: deny)
-  tool      -> one read-only query core has already allowlisted and grant-checked; `WalletTools`
-               answers `wallet.balance` by running the `ballistic-wallet` CLI (wallet/README.md)
+  tool      -> reserved optional read-only Tools port; core currently supports no requests
 plus `log`, which this file appends to the run record. Every line in both directions is kept in
 `CoreHost.lines` so a run can be replayed later with no emulator.
 
@@ -22,7 +21,7 @@ import os
 import re
 import subprocess
 import time
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, Protocol
 
 try:
     from android_world.env import adb_utils
@@ -201,7 +200,7 @@ class CoreHost:
 
     def __init__(self, env: Any, models: "ModelClient", confirm_policy: str = "approve",
                  on_event: Optional[Callable[[dict[str, Any]], None]] = None,
-                 tools: Optional["WalletTools"] = None):
+                 tools: Optional["Tools"] = None):
         self.env = env
         self.tools = tools
         self.models = models
@@ -560,66 +559,12 @@ class ModelClient:
 
 
 
-class WalletTools:
-    """`wallet.balance` for core's Tools port, from the owner's wallet file (host-owned, in the
-    storage directory; wallet/README.md):
+class Tools(Protocol):
+    """Optional host contract; no concrete adapters are shipped."""
 
-      {"wallets": [{"id": "main", "alias": "Main wallet", "address": "0x...", "chain_id": 1,
-                    "grants": ["wallet.balance"]}],
-       "rpc": {"url": "https://...", "transport": "tor"}}
+    def grants(self) -> list[dict[str, Any]]: ...
 
-    A wallet without "wallet.balance" in its grants is not advertised, so core refuses before any
-    call. This class only resolves the wallet id to its configured address and endpoint and runs
-    the adapter; the adapter's JSON line is returned as is for core to validate.
-    """
-
-    def __init__(self, config: dict[str, Any], wallet_bin: str, timeout: float = 75.0):
-        self.config = config
-        self.wallet_bin = wallet_bin
-        self.timeout = timeout  # outer bound only; the adapter has its own 60 s deadline
-        self.stderr: list[str] = []  # adapter logs: masked addresses, no prompts
-
-    @classmethod
-    def from_file(cls, path: str, wallet_bin: Optional[str] = None) -> "WalletTools":
-        with open(path) as f:
-            return cls(json.load(f), wallet_bin or default_wallet_bin())
-
-    def grants(self) -> list[dict[str, Any]]:
-        scope = [{"id": w["id"], "label": w.get("alias")} for w in self.config.get("wallets", [])
-                 if "wallet.balance" in w.get("grants", [])]
-        return [{"tool": "wallet.balance", "scope": scope}] if scope else []
-
-    def call(self, request: dict[str, Any]) -> dict[str, Any]:
-        if request.get("tool") != "wallet.balance":
-            raise ValueError(f"unknown tool {request.get('tool')!r}")
-        wallet = next((w for w in self.config.get("wallets", []) if w["id"] == request["wallet_id"]), None)
-        if wallet is None:
-            return {"result": "failed", "code": "unknown_wallet", "message": "no wallet with that id"}
-        if "wallet.balance" not in wallet.get("grants", []):
-            return {"result": "failed", "code": "not_granted", "message": "wallet grant is absent"}
-        if wallet.get("chain_id") != request["chain_id"]:
-            return {"result": "failed", "code": "chain_not_configured", "message": "wallet is configured for another chain"}
-        rpc = self.config["rpc"]
-        cmd = [self.wallet_bin, "balance", "--wallet-id", wallet["id"], "--address", wallet["address"],
-               "--rpc", rpc["url"], "--transport", rpc["transport"], "--chain-id", str(request["chain_id"])]
-        env = {k: v for k, v in os.environ.items() if not k.startswith("BALLISTIC_API_KEY")}
-        proc = subprocess.run(cmd, capture_output=True, timeout=self.timeout, env=env)
-        self.stderr.extend(proc.stderr.decode("utf-8", "replace").splitlines())
-        lines = [ln for ln in proc.stdout.decode("utf-8", "replace").splitlines() if ln.strip()]
-        if not lines:
-            raise RuntimeError(f"wallet adapter exited {proc.returncode} without a result")
-        return json.loads(lines[-1])
-
-
-def default_wallet_bin() -> str:
-    """wallet/target/{release,debug}/ballistic-wallet, else `ballistic-wallet` on PATH."""
-    here = os.path.dirname(os.path.abspath(__file__))
-    wallet_dir = os.path.normpath(os.path.join(here, "..", "wallet"))
-    for profile in ("release", "debug"):
-        p = os.path.join(wallet_dir, "target", profile, "ballistic-wallet")
-        if os.path.exists(p):
-            return p
-    return "ballistic-wallet"
+    def call(self, request: dict[str, Any]) -> dict[str, Any]: ...
 
 
 def default_core_bin() -> str:
