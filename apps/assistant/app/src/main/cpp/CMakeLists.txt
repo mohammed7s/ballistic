@@ -1,0 +1,46 @@
+cmake_minimum_required(VERSION 3.22)
+project(ballistic_llama LANGUAGES C CXX)
+set(CMAKE_CXX_STANDARD 17)
+# Keep phone-library builds bounded on development laptops.
+set_property(GLOBAL PROPERTY JOB_POOLS compile_pool=2 link_pool=1)
+set(CMAKE_JOB_POOL_COMPILE compile_pool)
+set(CMAKE_JOB_POOL_LINK link_pool)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+if(ANDROID)
+    # Debug APKs need usable CPU inference too; retain symbols and assertions.
+    add_compile_options("$<$<CONFIG:Debug>:-O2>")
+endif()
+include(FetchContent)
+set(BALLISTIC_LLAMA_ARCHIVE "https://codeload.github.com/ggml-org/llama.cpp/tar.gz/80d2c0c2c56e4a1bbf74be98f64b99927bf230bc" CACHE STRING "Pinned source archive, or an offline local copy")
+# Immutable upstream source; no model weights, runtime downloads, server or subprocess.
+FetchContent_Declare(llama
+    URL "${BALLISTIC_LLAMA_ARCHIVE}"
+    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+    TLS_VERIFY TRUE
+    URL_HASH SHA256=e9bf2b83a13e14b5577dcdb65bb18ff8c049143caab22106547d37ef8c54fbf3)
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+set(LLAMA_BUILD_COMMON ON CACHE BOOL "" FORCE)
+foreach(flag LLAMA_BUILD_TESTS LLAMA_BUILD_TOOLS LLAMA_BUILD_EXAMPLES LLAMA_BUILD_SERVER LLAMA_BUILD_APP LLAMA_OPENSSL LLAMA_SUBPROCESS GGML_NATIVE GGML_OPENMP GGML_CUDA GGML_VULKAN GGML_METAL GGML_CPU_KLEIDIAI)
+    set(${flag} OFF CACHE BOOL "" FORCE)
+endforeach()
+# Portable baseline binaries. No host -march=native and no optional ISA assumptions on x86.
+foreach(flag GGML_AVX GGML_AVX2 GGML_FMA GGML_F16C GGML_BMI2)
+    set(${flag} OFF CACHE BOOL "" FORCE)
+endforeach()
+FetchContent_MakeAvailable(llama)
+add_library(ballistic_engine STATIC engine.cpp)
+target_link_libraries(ballistic_engine PUBLIC llama llama-common)
+if(ANDROID)
+    add_library(ballistic_llama SHARED jni.cpp)
+    target_link_libraries(ballistic_llama PRIVATE ballistic_engine)
+    target_link_options(ballistic_llama PRIVATE "-Wl,-z,max-page-size=16384")
+else()
+    find_package(JNI REQUIRED)
+    add_library(ballistic_llama SHARED jni.cpp)
+    target_include_directories(ballistic_llama PRIVATE ${JNI_INCLUDE_DIRS})
+    target_link_libraries(ballistic_llama PRIVATE ballistic_engine)
+    enable_testing()
+    add_executable(ballistic_native_test engine_test.cpp)
+    target_link_libraries(ballistic_native_test PRIVATE ballistic_engine)
+    add_test(NAME ballistic_native_test COMMAND ballistic_native_test)
+endif()

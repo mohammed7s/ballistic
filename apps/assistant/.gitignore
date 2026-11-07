@@ -8,3 +8,6 @@ captures/
 
 # libballistic_core.so per ABI: built by scripts/build_core.sh, not committed.
 app/src/main/jniLibs/
+
+# Android CMake intermediates
+.cxx/

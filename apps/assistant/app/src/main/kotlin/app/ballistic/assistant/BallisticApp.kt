@@ -26,7 +26,7 @@ import app.ballistic.assistant.core.HostPorts
 import app.ballistic.assistant.core.PolicyStore
 import app.ballistic.assistant.core.RustCore
 import app.ballistic.assistant.gate.CommandGate
-import app.ballistic.assistant.models.ModelsHttp
+import app.ballistic.assistant.models.*
 import app.ballistic.assistant.session.PromptSession
 import app.ballistic.assistant.storage.ModelsConfigStore
 import app.ballistic.assistant.storage.SecretStore
@@ -54,12 +54,24 @@ class AppGraph(val app: Application) {
     val actionLog = ActionLog(app.filesDir.resolve("logs/actions.jsonl"))
     val modelsConfig = ModelsConfigStore(app.filesDir.resolve("models.json"))
     val secrets = SecretStore(app)
-
     /** Debug builds: files dropped by adb for an emulator test (DebugTools); release: nothing. */
     var importNotes: List<String> = DebugTools.importFiles(app.filesDir, secrets, modelsConfig)
         private set
 
     fun importDebugFiles(): List<String> = DebugTools.importFiles(app.filesDir, secrets, modelsConfig).also { importNotes = it }
+
+
+    val modelSelection = ModelSelectionStore(app.filesDir.resolve("model-selection.json")) { modelsConfig.load() != null }
+    val localModels = LocalModels(LlamaDriver())
+    val pendingModelImport = kotlinx.coroutines.flow.MutableStateFlow<android.net.Uri?>(null)
+    val localAi: LocalAiController = LocalAiController(app, scope, localModels, modelSelection) {
+        gate.unlocked.value && session.state.value.canSubmit && session.state.value.pendingRequest == null
+    }
+    val routedModels = RoutedModels(
+        selection = { localAi.selection.value.backend },
+        http = ModelsHttp(config = modelsConfig::load, apiKey = { secrets.get(SecretStore.MODEL_API_KEY) }),
+        local = localModels,
+    )
 
     val gate = CommandGate(app)
     val broker = ConfirmBroker(app)
@@ -71,7 +83,7 @@ class AppGraph(val app: Application) {
     val engine = EngineChoice(
         real = UniffiCoreEngine.load(),
         fake = FakeCoreEngine.demo(),
-        modelConfigured = { modelsConfig.load() != null },
+        modelConfigured = { localAi.selection.value.backend == ModelBackend.Local || modelsConfig.load() != null },
     )
 
     val hands = IntentHands(app)
@@ -79,7 +91,7 @@ class AppGraph(val app: Application) {
     val ports = HostPorts(
         screen = NotificationScreen(app, installedApps = { InstalledApps.list(app) }, capabilities = ::capabilities),
         hands = hands,
-        models = CountedModels(ModelsHttp(config = modelsConfig::load, apiKey = { secrets.get(SecretStore.MODEL_API_KEY) })),
+        models = CountedModels(routedModels),
         confirm = BiometricConfirm(broker, policyStore),
     )
 
@@ -97,7 +109,7 @@ class AppGraph(val app: Application) {
         return HostCapabilities(operations = IntentHands.OPERATIONS, appGrants = granted)
     }
 
-    val session = PromptSession(
+    val session: PromptSession = PromptSession(
         scope = scope,
         gate = gate,
         ports = ports,
@@ -108,6 +120,7 @@ class AppGraph(val app: Application) {
     /** Stop: no new model calls or dispatches, and any approval not yet given is denied. */
     fun stop() {
         session.stop()
+        localAi.stop()
         broker.denyPending("stopped by owner")
     }
 }
@@ -116,7 +129,10 @@ class AppGraph(val app: Application) {
  * Counts model calls and writes one logcat line per call: role, outcome, tokens, seconds. Never
  * the messages, the reply or the key.
  */
-class CountedModels(private val inner: Models) : Models {
+class CountedModels(private val inner: Models) : Models, ModelRunLifecycle {
+    override fun beginRun() { (inner as? ModelRunLifecycle)?.beginRun() }
+    override fun endRun() { (inner as? ModelRunLifecycle)?.endRun() }
+    override fun cancelRun() { (inner as? ModelRunLifecycle)?.cancelRun() }
     private val calls = AtomicInteger(0)
 
     override fun complete(role: ModelRole, messages: List<ChatMessage>, maxTokens: Int): Completion {

@@ -1,0 +1,5 @@
+[
+  {"id":"pixel-10-pro-cpu-trial","manufacturer":"Google","model":"Pixel 10 Pro","contextTokens":4096,"threads":4,"suggestion":"Qwen3 0.6B–4B GGUF candidates; start small. Gemma E2B/E4B remain under evaluation. CPU only; no Pixel measurements yet."},
+  {"id":"generic-8gb-cpu","minMemoryGiB":8,"contextTokens":4096,"threads":4,"suggestion":"Start with a small Qwen3 0.6B GGUF. Larger weights require memory and quality checks on this phone."},
+  {"id":"generic-conservative-cpu","minMemoryGiB":0,"contextTokens":4096,"threads":2,"suggestion":"Small GGUF models only; Qwen3 0.6B is an evaluation candidate, not a validated agent model."}
+]

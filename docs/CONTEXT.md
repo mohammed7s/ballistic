@@ -1339,3 +1339,23 @@ is generating the OTA; cloud credit $5.18 at approximately 01:26 UTC.
 
 The current `SPEC.md` (v0.3, 6 Nov 2026) supersedes the archived spec where they differ.
 `docs/SPEC.html` and `docs/SPEC.pdf` were rendered from v0.2 and are stale.
+
+## App focus — 7 November 2026
+
+The owner paused harness reliability work and benchmark fix/test loops to prioritize the native
+app, embedded inference and Local AI UX. Do not resume benchmark work without a new request.
+The previous live worker reports emulator ownership released; the parent SSH attempt on
+7 November timed out, so no new emulator installation or device validation is claimed.
+
+Local inference fits under the existing Models port: the Rust core still owns planning,
+reader separation, validation and approval requests; Kotlin routes model calls to embedded
+llama.cpp through JNI or the explicitly selected HTTP backend. One local model serves serial
+role calls with fresh context. The runtime is in the APK, while GGUF weights are imported into
+private storage. No automatic cloud fallback is permitted. Phone profiles remain suggestions
+until measured on the target phone. See [Local AI](../apps/assistant/LOCAL_AI.md).
+
+The updated debug APK has now built for ARM64 and x86_64. Host validation: 62 JVM tests passed
+without skips, including real local JNI generation/cancellation; 9 affected tests passed after
+the final context UI change. Parent checked native packaging and APK signature. These are host
+and build results, not device validation or model-quality evidence. Exact artifact digest,
+limitations and provenance: [delivery record](log/2026-11-07-local-ai-apk.md).

@@ -259,3 +259,15 @@ observation, model call, confirmation and dispatch, and is exported through UniF
    `commitText`, back/home). The app then builds as a priv-app with the assistant role.
 7. **Voice and overlay.** Wake word, push-to-talk, STT/TTS (SPEC §5.3), then in-process models
    (LiteRT-LM, llama.cpp) behind `Models`.
+
+## Embedded Local AI — 7 November 2026 update
+
+The new native Local AI destination and embedded llama.cpp CPU backend are implemented and
+packaged in an updated debug APK. It adds managed GGUF import/load/unload, explicit backend
+selection, suggested phone profiles, context controls and measured-only performance. Earlier
+rows above describing in-process models as not started refer to the old pass-2 APK.
+
+Read [Local AI architecture, setup and build guide](LOCAL_AI.md) and the
+[delivery evidence](../../docs/log/2026-11-07-local-ai-apk.md). Host inference and cancellation
+were tested; the new APK has not been installed or exercised on a phone/emulator. The current
+screen/input and production biometric limitations remain. Weights are not included.

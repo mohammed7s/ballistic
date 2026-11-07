@@ -44,12 +44,17 @@ import app.ballistic.assistant.session.resultLabel
 import app.ballistic.assistant.storage.SecretStore
 
 @Composable
-fun PromptScreen(graph: AppGraph, activity: Activity) {
+fun PromptScreen(graph: AppGraph, activity: Activity, onOpenLocalAi: () -> Unit = {}) {
     val state by graph.session.state.collectAsState()
     val unlocked by graph.gate.unlocked.collectAsState()
+    val localBusy by graph.localAi.busy.collectAsState()
+    val localState by graph.localModels.state.collectAsState()
+    val backend by graph.localAi.selection.collectAsState()
     var text by rememberSaveable { mutableStateOf("") }
     var gateMessage by remember { mutableStateOf<String?>(null) }
     val list = rememberLazyListState()
+    val localSelected = backend.backend == app.ballistic.assistant.models.ModelBackend.Local
+    val modelReady = !localSelected || (localState.metadata != null && graph.engine.current is app.ballistic.assistant.core.UniffiCoreEngine)
 
     fun unlock() {
         graph.gate.authenticate(activity) { failure ->
@@ -67,8 +72,13 @@ fun PromptScreen(graph: AppGraph, activity: Activity) {
     }
 
     Column(Modifier.padding(12.dp).imePadding(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(state.engine, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.tertiary)
-        Text(modelLine(graph), style = MaterialTheme.typography.labelMedium)
+        if(graph.engine.current is app.ballistic.assistant.core.FakeCoreEngine) {
+            Text(state.engine, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.error)
+        }
+        Text(if (backend.backend == app.ballistic.assistant.models.ModelBackend.Local) "Local · ${graph.localAi.model.value?.name ?: "no model installed"} · ${localState.phase} · model requests stay on device" else connectedModelSummary(graph), style = MaterialTheme.typography.labelMedium)
+        if(localSelected && !modelReady && state.runs.isNotEmpty()) {
+            OutlinedButton(onClick = onOpenLocalAi) { Text("Set up local model") }
+        }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(if (unlocked) "Unlocked" else "Locked", fontWeight = FontWeight.Bold,
                 color = if (unlocked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)
@@ -78,6 +88,20 @@ fun PromptScreen(graph: AppGraph, activity: Activity) {
         gateMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
 
         LazyColumn(Modifier.weight(1f).fillMaxWidth(), state = list, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            if(state.runs.isEmpty()) item {
+                Card(Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text("Start with opening an app", style = MaterialTheme.typography.titleLarge)
+                        Text("This build can open apps. Full screen control is unavailable. Opening an app does not confirm the rest of a task.")
+                        if(localSelected && !modelReady) {
+                            Text(if(graph.localAi.model.value == null) "Import a model to get started on this phone." else "Load your model before asking Ballistic.")
+                            Button(onClick = onOpenLocalAi) {
+                                Text(if(graph.localAi.model.value == null) "Import a local model" else "Load local model")
+                            }
+                        } else Text("Try: Open Clock")
+                    }
+                }
+            }
             items(state.runs, key = { it.id }) { RunCard(it) }
         }
 
@@ -87,13 +111,13 @@ fun PromptScreen(graph: AppGraph, activity: Activity) {
                 value = text,
                 onValueChange = { text = it },
                 modifier = Modifier.weight(1f),
-                enabled = state.canSubmit,
+                enabled = state.canSubmit && !localBusy,
                 placeholder = { Text("Ask Ballistic") },
             )
             if (state.canStop) {
                 Button(onClick = { graph.stop() }) { Text("Stop") }
             } else {
-                Button(onClick = { graph.session.submit(text); text = "" }, enabled = text.isNotBlank()) { Text("Run") }
+                Button(onClick = { graph.session.submit(text); text = "" }, enabled = text.isNotBlank() && !localBusy && !localState.busy && modelReady) { Text("Run") }
             }
         }
     }
@@ -123,7 +147,7 @@ private fun StepLine(step: StepEvent) {
     }
 }
 
-private fun modelLine(graph: AppGraph): String {
+internal fun modelLine(graph: AppGraph): String {
     val cfg = graph.modelsConfig.load() ?: return "No model configured"
     val planner = cfg.endpoint(ModelRole.Planner)
     val where = if (ModelRole.entries.any { cfg.endpoint(it).leavesDevice() }) {
@@ -133,4 +157,10 @@ private fun modelLine(graph: AppGraph): String {
     }
     val key = if (graph.secrets.has(SecretStore.MODEL_API_KEY)) "key stored" else "no API key stored"
     return "Planner: ${planner.model}; $where; $key"
+}
+
+internal fun connectedModelSummary(graph: AppGraph): String {
+    val cfg = graph.modelsConfig.load() ?: return "Connected model · not configured"
+    val external = ModelRole.entries.any { cfg.endpoint(it).leavesDevice() }
+    return "Connected · ${cfg.planner.model} · " + if(external) "model requests and context leave this device" else "model requests use a server on this device"
 }

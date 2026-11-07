@@ -12,11 +12,20 @@ android {
     // GrapheneOS and the test phone run. minSdk 33 so the APK installs on the AndroidWorld
     // emulator (API 33) as well as on an Android 14+ phone for the unprivileged step (PLAN step 3).
     compileSdk = 37
+    ndkVersion = "29.0.14206865"
+    externalNativeBuild {
+        cmake { path = file("src/main/cpp/CMakeLists.txt"); version = "3.31.6" }
+    }
 
     defaultConfig {
         applicationId = "app.ballistic.assistant"
         minSdk = 33
         targetSdk = 37
+        ndk { abiFilters += listOf("arm64-v8a", "x86_64") }
+        externalNativeBuild { cmake {
+            arguments += "-DANDROID_STL=c++_shared"
+            providers.gradleProperty("llamaArchive").orNull?.let { arguments += "-DBALLISTIC_LLAMA_ARCHIVE=$it" }
+        } }
         versionCode = 1
         versionName = "0.1.0"
     }

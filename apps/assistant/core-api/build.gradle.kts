@@ -31,6 +31,13 @@ dependencies {
 }
 
 tasks.test {
+    // Optional host JNI smoke, built from app/src/main/cpp (no Android device or weights).
+    System.getenv("BALLISTIC_LLAMA_LIBRARY_DIR")?.let {
+        systemProperty("java.library.path", it)
+        systemProperty("ballistic.llama.test", "true")
+    }
+    System.getenv("BALLISTIC_LLAMA_TEST_MODEL")?.let { systemProperty("ballistic.llama.model", it) }
+    System.getenv("BALLISTIC_LLAMA_TEST_MODEL_SHA256")?.let { systemProperty("ballistic.llama.model.sha256", it) }
     // Tests read recorded screens from core/tests/screens so the fixtures have one copy.
     systemProperty("ballistic.repo", rootDir.resolve("../..").canonicalPath)
     // UniffiCoreEngineTest runs the real core when a host build exists:

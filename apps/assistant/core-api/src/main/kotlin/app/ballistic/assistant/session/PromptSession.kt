@@ -69,6 +69,7 @@ class PromptSession(
     private val maxSteps: Int = 15,
     private val clock: () -> Long = System::currentTimeMillis,
 ) {
+    private val modelLifecycle = ports.models as? app.ballistic.assistant.models.ModelRunLifecycle
     private val core: RustCore = corePorts(ports.copy(confirm = ObservedConfirm(ports.confirm)))
     private val _state = MutableStateFlow(PromptState(engine = core.description))
     val state: StateFlow<PromptState> = _state.asStateFlow()
@@ -99,6 +100,7 @@ class PromptSession(
 
     fun stop() {
         core.stop()
+        modelLifecycle?.cancelRun()
     }
 
     /** Re-reads which engine will take the next run (it depends on Settings). */
@@ -107,6 +109,7 @@ class PromptSession(
     }
 
     private fun start(request: String) {
+        modelLifecycle?.beginRun()
         val run = RunView(id = UUID.randomUUID().toString(), request = request)
         _state.update {
             it.copy(phase = Phase.Running, engine = core.description, pendingRequest = null, activity = "starting", runs = it.runs + run)
@@ -125,9 +128,14 @@ class PromptSession(
             val (result, error) = try {
                 core.run(request, maxSteps, listener) to null
             } catch (e: Exception) {
-                if (e is kotlinx.coroutines.CancellationException) throw e
+                if (e is kotlinx.coroutines.CancellationException) {
+                    modelLifecycle?.cancelRun()
+                    modelLifecycle?.endRun()
+                    throw e
+                }
                 null to (e.message ?: e::class.simpleName ?: "error")
             }
+            modelLifecycle?.endRun()
             updateRun(run.id) { it.copy(result = result, error = error) }
             _state.update { it.copy(phase = Phase.Finished, activity = null) }
         }

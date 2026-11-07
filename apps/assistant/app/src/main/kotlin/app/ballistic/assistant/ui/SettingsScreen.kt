@@ -53,6 +53,8 @@ import app.ballistic.assistant.storage.SecretStore
 @Composable
 fun SettingsScreen(graph: AppGraph, activity: Activity) {
     val unlocked by graph.gate.unlocked.collectAsState()
+    val run by graph.session.state.collectAsState()
+    val localBusy by graph.localAi.busy.collectAsState()
     var policy by remember { mutableStateOf(graph.policyStore.load()) }
     val apps = remember { InstalledApps.list(activity) }
 
@@ -60,11 +62,11 @@ fun SettingsScreen(graph: AppGraph, activity: Activity) {
         item { Section("Engine") }
         item { Text(graph.engine.description) }
         if (DebugTools.AVAILABLE) {
-            item { DebugImport(graph) }
+            item { DebugImport(graph, enabled = run.canSubmit && run.pendingRequest == null && !localBusy) }
         }
 
-        item { Section("Model") }
-        item { ModelSettings(graph, enabled = unlocked) }
+        item { Section("Connected model") }
+        item { ModelSettings(graph, enabled = unlocked && run.canSubmit && run.pendingRequest == null && !localBusy) }
 
         item { Section("Notification access") }
         item {
@@ -115,10 +117,10 @@ fun SettingsScreen(graph: AppGraph, activity: Activity) {
 
 /** Debug builds: re-run the adb file import (DebugTools) and show what it did. */
 @Composable
-private fun DebugImport(graph: AppGraph) {
+private fun DebugImport(graph: AppGraph, enabled: Boolean) {
     var notes by remember { mutableStateOf(graph.importNotes) }
     Column {
-        OutlinedButton(onClick = { notes = graph.importDebugFiles().ifEmpty { listOf("Nothing to import.") } }) {
+        OutlinedButton(enabled = enabled, onClick = { notes = graph.importDebugFiles().ifEmpty { listOf("Nothing to import.") } }) {
             Text("Import files/models_key and files/models_import.json (debug)")
         }
         for (note in notes) Text(note, style = MaterialTheme.typography.bodySmall)
@@ -154,7 +156,7 @@ private fun ModelSettings(graph: AppGraph, enabled: Boolean) {
     var saved by remember { mutableStateOf<String?>(null) }
 
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        OutlinedTextField(baseUrl, { baseUrl = it }, Modifier.fillMaxWidth(), enabled = enabled, label = { Text("Base URL (OpenAI-compatible)") })
+        OutlinedTextField(baseUrl, { baseUrl = it }, Modifier.fillMaxWidth(), enabled = enabled, label = { Text("Server address (OpenAI-compatible)") })
         OutlinedTextField(model, { model = it }, Modifier.fillMaxWidth(), enabled = enabled, label = { Text("Model") })
         OutlinedTextField(
             key, { key = it }, Modifier.fillMaxWidth(), enabled = enabled,
@@ -165,13 +167,14 @@ private fun ModelSettings(graph: AppGraph, enabled: Boolean) {
             Button(
                 enabled = enabled && baseUrl.isNotBlank() && model.isNotBlank(),
                 onClick = {
-                    graph.modelsConfig.save((current ?: ModelsConfig(Endpoint(baseUrl, model))).copy(planner = Endpoint(baseUrl.trim(), model.trim())))
+                    if (!graph.gate.unlocked.value || !graph.session.state.value.canSubmit || graph.localAi.busy.value) return@Button
+                    graph.modelsConfig.save((graph.modelsConfig.load() ?: ModelsConfig(Endpoint(baseUrl, model))).let { it.copy(planner = it.planner.copy(baseUrl = baseUrl.trim(), model = model.trim())) })
                     if (key.isNotEmpty()) {
                         graph.secrets.put(SecretStore.MODEL_API_KEY, key)
                         key = ""
                         hasKey = true
                     }
-                    saved = "Saved"
+                    saved = "Connection saved. Choose Connected on Local AI to use it."
                 },
             ) { Text("Save") }
             if (hasKey) OutlinedButton(enabled = enabled, onClick = { graph.secrets.remove(SecretStore.MODEL_API_KEY); hasKey = false }) { Text("Forget key") }
