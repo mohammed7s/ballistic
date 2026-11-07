@@ -15,6 +15,12 @@ confirmation dialog.**
 
 ## 2. Decisions taken (and why)
 
+### 2026-11-07 — History decision experiment predeclared, still offline
+
+Reviewed the preparation and independently verified/copied its 49 indexed files to ignored `ballistic_runs/history_decision_eval_prep/`. The fixed design is **six familiar recorded cases, twelve logical planner requests**, with three AB and three BA pairs; no generated actions, extra cases, repair calls or outcome-driven repeats. Camera steps 4/5/8, Timer 5 and Calendar 13/20 cover capture repetition and local numeric/field choices. Conditional or unavailable evidence remains unknown, not forced gold. Three argument-preservation fixture pairs are offline information checks only. Manifest hash `37b7cca6c8005d3b9c0b7de215704f70632578cec35f68610aaa2eb4d64ff27c`; scoring hash `d186a04d6b0513936b0db5f02b4046ca679ac9b7fbfa9b121104ccda7f23f421`. Tracked rationale/order: `docs/HISTORY_DECISION_COMPARISON_20261107.md`.
+
+No model, network or device calls occurred in preparation or parent review. The revised candidate remains pending; both exact arms and transport must be reviewed/frozen before these twelve calls. This is a small decision comparison, not a task-success benchmark or a new score. The revision agent remains active offline.
+
 ### 2026-11-07 — Independent history review requires revision, not rollout
 
 Integrated review documentation `d0b3b06` (`docs/GROUNDED_HISTORY_REVIEW_20261107.md`), not candidate code. Review of isolated `5bb0b9f` found two blockers: private-key construction clones/escapes repeated ancestry before its size check, and blanket history replacement loses already-present typed-value/app-name/read-question distinctions even when identity is unsupported. Reviewer local release stress measurement:87,038,489 bytes peak additional requested heap and515.932 ms CPU on capped512-node/16,384-raw-byte input; this is constructed x86 evidence, not phone timing, typical usage or a global maximum. Parent verified six review artifact hashes and reran the scripted information-loss probes: alpha/beta type, read-question and app-selection histories become identical in the candidate but remain distinct in baseline.
