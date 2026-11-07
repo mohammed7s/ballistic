@@ -15,6 +15,12 @@ confirmation dialog.**
 
 ## 2. Decisions taken (and why)
 
+### 2026-11-07 — Independent history review requires revision, not rollout
+
+Integrated review documentation `d0b3b06` (`docs/GROUNDED_HISTORY_REVIEW_20261107.md`), not candidate code. Review of isolated `5bb0b9f` found two blockers: private-key construction clones/escapes repeated ancestry before its size check, and blanket history replacement loses already-present typed-value/app-name/read-question distinctions even when identity is unsupported. Reviewer local release stress measurement:87,038,489 bytes peak additional requested heap and515.932 ms CPU on capped512-node/16,384-raw-byte input; this is constructed x86 evidence, not phone timing, typical usage or a global maximum. Parent verified six review artifact hashes and reran the scripted information-loss probes: alpha/beta type, read-question and app-selection histories become identical in the candidate but remain distinct in baseline.
+
+No new action/reader-pick/citation/confirmation/completion bypass was found. Smaller findings are handle renewal churn at eight-record expiry and ambiguous anonymous sibling ancestry not matching the broad documentation claim. Candidate remains unmerged and untested with a live model. A new isolated Astra revision is assigned to bound construction before allocation, preserve existing argument context, and resolve/document smaller findings without loosening identity or policy. A separate offline agent is preparing a finite predeclared recorded-state decision comparison (at most24 logical calls, only after parent review), with no generated action execution. Neither agent may access the model, emulator, credentials or remote host during preparation. Last benchmark scores remain unchanged.
+
 ### 2026-11-07 — History prototype remains isolated pending independent review
 
 Astra candidate `5bb0b9f399ff9e91e26f150ec4882866d761145f` exists in isolated worktree `/home/wakeel/.t3/worktrees/ballistic/t3-670518a3`; **not cherry-picked, pushed or live-tested**. Child reports296Rust/100Python passes, no skips; JVM not run. Parent independently verified both replay binary hashes and reran the recorded-port comparison: all54 planner calls preserve dispatches/logs/budgets/reports with supplied recorded replies. This is plumbing evidence, not new model decisions or task success.
