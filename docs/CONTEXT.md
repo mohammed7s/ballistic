@@ -170,6 +170,17 @@ DRM; a Linux-based phone; upstreaming the agent itself.
   signed OTA. Our `BUILD_NUMBER` is `2026110600`, so our fingerprint differs from the official one.
   The phone's yellow boot notice shows `sha256(avb_pkmd.bin)` (checked: the official blazer
   `avb_pkmd.bin` hashes to the `4e8ee8f7…` value above).
+- **OS build result and test signing decision (7 Nov 2026):** stock tag `2026110200`,
+  build number `2026110600`, completed at 2026-11-06 23:57:51 UTC. First attempt failed
+  after 7164 s (`Cannot fork`; cgroup PID limit hit, 257 jobs); incremental resume with
+  `m -j32` succeeded in 834 s. Unsigned artifacts on the box:
+  `/home/build/gos/releases/2026110600/` (`blazer-target_files.zip` 4.3 GiB,
+  `blazer-otatools.zip` 512 MiB). Owner explicitly authorized **disposable cloud test keys**
+  and direct signed-image download to the ThinkPad, and clarified the Pixel is a test phone.
+  Existing Latitude keys stay separate; cloud test keys must not become production keys.
+  Cloud signing log: `/home/build/logs/sign-cloud-test.log`; key procedure and exception
+  recorded in `ballistic-os/docs/keys.md`. Phone flashing still needs the final backup/go
+  confirmation. This build omits Updater; signed OTA sideloading is the update path.
 - **Hardware (6 Nov 2026, corrected same day):** the owner's phone is a **Pixel 10 Pro**
   (`blazer`, SKU GEHN3, serial 56181FDCH0070R, stock Android 17 `CP2A.260805.005`), not a Pixel 10.
   **It cannot be bootloader-unlocked, so it cannot run GrapheneOS or Ballistic as it stands.**
