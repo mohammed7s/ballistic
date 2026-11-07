@@ -15,6 +15,19 @@ confirmation dialog.**
 
 ## 2. Decisions taken (and why)
 
+**7 November 2026 — core suite rerun, 3/20 (`docs/BENCHMARK_RUNS.md`):** commit `1331cde`
+(core code of `deeb3b0`), `gemini-flash-lite-latest`, seed 0, second API key, 01:41–01:59 UTC.
+**3 PASS / 13 FAIL / 4 ERROR**; checker view 4 passed (MarkorCreateFolder done but not claimed);
+**0 false "done"** (baseline 3). 559 s total, median 19.5 s, 113 calls, **2.3k prompt tokens per
+call** (T3A: 1,496 s, 281 calls, 10.7k). Cost per step is where the design wanted it; completion is
+not. Causes: guarded-input hard stop after Send/type+submit (3 tasks, incl. one the checker passed);
+target resolution refused on content-only rows and anonymous tiles (4) because the reader's
+`element` shape is not built; planning errors (6); environment (2 Gemini 503, 2
+`foreground_not_settled` from the observation-consistency check). Next in order: post-condition
+readback after guarded inputs; reader `element` shape; code-owned labels for known anonymous
+controls; 503 retry and a softer settle deadline. `run_suite.sh` no longer overrides a key already in
+the environment (so `BALLISTIC_API_KEY="$BALLISTIC_API_KEY_2"` selects the second key).
+
 **7 November 2026 — core benchmark rerun aborted (quota), no new score:** two attempts at commit
 `deeb3b0` with `gemini-flash-lite-latest`. Attempt 1 (00:54 UTC) lost all internet on the ThinkPad
 mid-suite (Tailscale offline, DNS failures): 20/20 ERROR in setup. Attempt 2 (01:05 UTC): 18 tasks
