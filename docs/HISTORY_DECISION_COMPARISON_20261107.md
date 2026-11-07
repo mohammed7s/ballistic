@@ -56,3 +56,14 @@ tokens, small sample, shared trajectories and lack of action execution limit int
 A useful result can justify a later closed-loop test; it cannot establish a full-suite gain,
 phone performance, exact photo count, saved event, delivery, safety pass or >=13/20 result.
 See `GROUNDED_HISTORY_REVIEW_20261107.md` for the unresolved prototype findings.
+
+## Transport clarification before any model outputs
+
+For this decision experiment only, configure the unchanged client with `retries=0` for
+**both arms**: one HTTP attempt per scheduled request, at most twelve attempts total.
+This supersedes the preparation's references to inherited retry behavior; the six cases,
+gold and AB/BA schedule are unchanged. Stop remaining calls on any request/transport/non-text
+response failure, including the first 429/400. A nonempty successful reply with malformed action
+JSON is recorded as a format failure and the fixed schedule continues without repair.
+No production or benchmark retry policy changes. The clarification is recorded before outputs
+in ignored `history_decision_eval_prep/TRANSPORT_ADDENDUM.json` and must be pinned in the freeze.

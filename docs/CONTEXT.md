@@ -15,6 +15,14 @@ confirmation dialog.**
 
 ## 2. Decisions taken (and why)
 
+### 2026-11-07 — Revised history cleared for twelve-call decision experiment only
+
+Reviewed isolated revision `5ff7d570e14a484e0f6b0b8876408240ddd1509c` (documentation HEAD `bd8886b`), still outside master. The serializer now enforces its encoded-byte budget before extending buffers, borrows ancestry fields and caches per-view context. Existing action arguments are restored with explicit whole-argument omission only above the history bound; renewal and ambiguous content-ancestry findings are addressed. Child measured the unchanged deep escaped stress case at 87,038,489 →43,304 peak requested bytes and 522.320 →0.174 ms local x86 CPU, not phone performance. Accepted512-node scratch peak increases to29,184 bytes, a documented indexing tradeoff.
+
+Parent verified all95 revision artifact hashes and the candidate binary hash, reran the full Rust/UniFFI suite (**303 passes, zero failures/ignored**) and reproduced54 recorded-port comparisons with unchanged dispatches/logs/limits/reports. Child reports102 fresh-binary Python passes, zero skips; no JVM claim. Correlation remains Camera6/8, Calendar2/32, Timer0/8; revised mean prompt overhead is524.39 characters, max565. Model decision quality is still unmeasured.
+
+Decision: permit only the predeclared twelve-call recorded-state comparison after its exact artifact/control/freeze gates pass; no generated action execution or emulator work, and no production merge yet. Both arms use existing client `retries=0` for this experiment, at most twelve HTTP attempts, with immediate stop on any request/transport/non-text failure. This pre-output transport clarification supersedes retry wording in the original preparation, not benchmark policy. Addendum SHA `505b05c14e28e5cd8392868737df717e833abbdeb050d935561923e870b28471`; cases/gold/order are unchanged. Evidence details: `docs/GROUNDED_HISTORY_REVISION_20261107.md` and `docs/HISTORY_DECISION_COMPARISON_20261107.md`.
+
 ### 2026-11-07 — History decision experiment predeclared, still offline
 
 Reviewed the preparation and independently verified/copied its 49 indexed files to ignored `ballistic_runs/history_decision_eval_prep/`. The fixed design is **six familiar recorded cases, twelve logical planner requests**, with three AB and three BA pairs; no generated actions, extra cases, repair calls or outcome-driven repeats. Camera steps 4/5/8, Timer 5 and Calendar 13/20 cover capture repetition and local numeric/field choices. Conditional or unavailable evidence remains unknown, not forced gold. Three argument-preservation fixture pairs are offline information checks only. Manifest hash `37b7cca6c8005d3b9c0b7de215704f70632578cec35f68610aaa2eb4d64ff27c`; scoring hash `d186a04d6b0513936b0db5f02b4046ca679ac9b7fbfa9b121104ccda7f23f421`. Tracked rationale/order: `docs/HISTORY_DECISION_COMPARISON_20261107.md`.
