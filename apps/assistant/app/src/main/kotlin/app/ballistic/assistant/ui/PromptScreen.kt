@@ -5,6 +5,9 @@
 package app.ballistic.assistant.ui
 
 import android.app.Activity
+import android.app.NotificationManager
+import android.content.Intent
+import android.provider.Settings
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -38,6 +41,8 @@ import app.ballistic.assistant.core.StepEvent
 import app.ballistic.assistant.models.leavesDevice
 import app.ballistic.assistant.session.Phase
 import app.ballistic.assistant.session.RunView
+import app.ballistic.assistant.session.PromptSession
+import kotlinx.coroutines.delay
 import app.ballistic.assistant.session.actionLabel
 import app.ballistic.assistant.session.evidenceLabel
 import app.ballistic.assistant.session.resultLabel
@@ -50,6 +55,7 @@ fun PromptScreen(graph: AppGraph, activity: Activity, onOpenLocalAi: () -> Unit 
     val localBusy by graph.localAi.busy.collectAsState()
     val localState by graph.localModels.state.collectAsState()
     val backend by graph.localAi.selection.collectAsState()
+    val backgroundNotice by graph.backgroundNotice.collectAsState()
     var text by rememberSaveable { mutableStateOf("") }
     var gateMessage by remember { mutableStateOf<String?>(null) }
     val list = rememberLazyListState()
@@ -80,20 +86,21 @@ fun PromptScreen(graph: AppGraph, activity: Activity, onOpenLocalAi: () -> Unit 
             OutlinedButton(onClick = onOpenLocalAi) { Text("Set up local model") }
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(if (unlocked) "Authenticated" else "Authentication needed", fontWeight = FontWeight.Bold,
+            Text(if (unlocked) "Requests enabled" else "Requests locked", fontWeight = FontWeight.Bold,
                 color = if (unlocked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)
-            if (unlocked) OutlinedButton(onClick = { graph.gate.lock() }) { Text("Lock session") }
-            else OutlinedButton(onClick = { unlock() }) { Text("Authenticate") }
+            if (unlocked) OutlinedButton(onClick = { graph.gate.lock() }) { Text("Lock requests") }
+            else OutlinedButton(onClick = { unlock() }) { Text("Enable requests") }
         }
-        Text("Verifies who may give requests. Locks when you leave Ballistic or turn off the screen; phone-control permissions are separate.", style = MaterialTheme.typography.bodySmall)
+        Text("Your phone unlock authorizes requests. Switching apps keeps access; sleeping or locking the phone blocks new requests. Sensitive actions still need approval.", style = MaterialTheme.typography.bodySmall)
         gateMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+        backgroundNotice?.let { Text(it, color = MaterialTheme.colorScheme.error) }
 
         LazyColumn(Modifier.weight(1f).fillMaxWidth(), state = list, verticalArrangement = Arrangement.spacedBy(8.dp)) {
             if(state.runs.isEmpty()) item {
                 Card(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Text("Start with opening an app", style = MaterialTheme.typography.titleLarge)
-                        Text("This build can open apps. Full screen control is unavailable. Opening an app does not confirm the rest of a task.")
+                        Text("What you can test", style = MaterialTheme.typography.titleLarge)
+                        Text("Local AI → Check local speed tests model inference. Ask can request opening an app, but this starter model may choose incorrectly. Creating alarms, typing and tapping are not supported yet.")
                         if(localSelected && !modelReady) {
                             Text(if(graph.localAi.model.value == null) "Download the starter or import your own model to get started." else "Load your model before asking Ballistic.")
                             Button(onClick = onOpenLocalAi) {
@@ -103,10 +110,21 @@ fun PromptScreen(graph: AppGraph, activity: Activity, onOpenLocalAi: () -> Unit 
                     }
                 }
             }
-            items(state.runs, key = { it.id }) { RunCard(it) }
+            items(state.runs, key = { it.id }) { RunCard(it, graph.session) }
         }
 
         state.activity?.let { Text("Now: $it", style = MaterialTheme.typography.bodySmall) }
+        if (state.canStop) {
+            val notificationsEnabled = activity.getSystemService(NotificationManager::class.java).areNotificationsEnabled()
+            Text("You can leave the app. Force-stopping it ends the task.", style = MaterialTheme.typography.bodySmall)
+            if (!notificationsEnabled) {
+                Text("Task notifications are disabled. Enable them for elapsed time and Stop outside the app.", style = MaterialTheme.typography.bodySmall)
+                OutlinedButton(onClick = {
+                    activity.startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, activity.packageName))
+                }) { Text("Task notification settings") }
+            }
+            OutlinedButton(onClick = { activity.moveTaskToBack(true) }) { Text("Continue in background") }
+        }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedTextField(
                 value = text,
@@ -125,16 +143,29 @@ fun PromptScreen(graph: AppGraph, activity: Activity, onOpenLocalAi: () -> Unit 
 }
 
 @Composable
-private fun RunCard(run: RunView) {
+private fun RunCard(run: RunView, session: PromptSession) {
+    var elapsed by remember(run.id) { mutableStateOf(session.elapsedMillis(run)) }
+    LaunchedEffect(run.id, run.finishedElapsedMs) {
+        do {
+            elapsed = session.elapsedMillis(run)
+            if (run.finishedElapsedMs != null) break
+            delay(250)
+        } while (true)
+    }
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(run.request, fontWeight = FontWeight.Bold)
+            val seconds = elapsed / 1000
+            Text("Elapsed: ${seconds / 60}:${(seconds % 60).toString().padStart(2, '0')}", style = MaterialTheme.typography.bodySmall)
             for (step in run.steps) StepLine(step)
             run.result?.let { r ->
                 Text(resultLabel(r), fontWeight = FontWeight.Bold)
                 Text("Evidence: ${evidenceLabel(r)} · ${r.reason}", style = MaterialTheme.typography.bodySmall)
             }
-            run.error?.let { Text("Error: $it", color = MaterialTheme.colorScheme.error) }
+            run.error?.let {
+                if (run.stopRequested) Text("Stopped. Any earlier actions remain.")
+                else Text("Error: $it", color = MaterialTheme.colorScheme.error)
+            }
         }
     }
 }

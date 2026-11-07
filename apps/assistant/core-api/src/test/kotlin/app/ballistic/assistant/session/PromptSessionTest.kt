@@ -30,6 +30,65 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withTimeout
 
 class PromptSessionTest {
+    @Test
+    fun cancellationThatThrowsIsStillRecordedAsAnOwnerStop() = runTest {
+        lateinit var session: PromptSession
+        val cancelledPorts = ports(mutableListOf()) { ConfirmResult.Approved }.copy(
+            screen = { session.stop(); error("local operation stopped") },
+        )
+        session = PromptSession(this, Gate(true), cancelledPorts,
+            { RustCore(FakeCoreEngine(FakeCoreEngine.demoSteps()), it, StandardTestDispatcher(testScheduler)) })
+        session.submit("open Clock")
+        testScheduler.advanceUntilIdle()
+        assertEquals(Phase.Finished, session.state.value.phase)
+        assertTrue(session.state.value.runs.single().stopRequested)
+        assertTrue(session.state.value.runs.single().error != null)
+    }
+
+    @Test
+    fun freshDeviceCheckOverridesStaleUnlockedUiState() = runTest {
+        val gate = object : CommandGateState {
+            override val unlocked = MutableStateFlow(true)
+            override fun canAcceptCommands() = false
+        }
+        val acted = mutableListOf<HandsOp>()
+        val session = PromptSession(this, gate, ports(acted) { ConfirmResult.Approved },
+            { RustCore(FakeCoreEngine(FakeCoreEngine.demoSteps()), it, StandardTestDispatcher(testScheduler)) })
+        session.submit("open Clock")
+        session.onUnlocked()
+        testScheduler.advanceUntilIdle()
+        assertEquals(Phase.NeedsUnlock, session.state.value.phase)
+        assertTrue(session.state.value.runs.isEmpty())
+        assertTrue(acted.isEmpty())
+    }
+
+    @Test
+    fun elapsedTimeExcludesAuthenticationAndFreezesAfterFailure() = runTest {
+        val gate = Gate(false)
+        var monotonic = 100L
+        val timedPorts = ports(mutableListOf()) { ConfirmResult.Approved }.copy(
+            screen = { monotonic = 1250L; error("observation failed") },
+        )
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val session = PromptSession(this, gate, timedPorts,
+            { RustCore(FakeCoreEngine(FakeCoreEngine.demoSteps()), it, dispatcher) },
+            clock = { -999L }, elapsedClock = { monotonic })
+        session.submit("open Clock")
+        monotonic = 1000L
+        assertTrue(session.state.value.runs.isEmpty())
+        gate.unlocked.value = true
+        session.onUnlocked()
+        assertEquals(1000L, session.state.value.runs.single().startedElapsedMs)
+        monotonic = 1100L
+        assertEquals(100L, session.elapsedMillis(session.state.value.runs.single()))
+        testScheduler.advanceUntilIdle()
+        val finished = session.state.value.runs.single()
+        assertEquals(Phase.Finished, session.state.value.phase)
+        assertEquals(1250L, finished.finishedElapsedMs)
+        monotonic = 9000L
+        assertEquals(250L, session.elapsedMillis(finished))
+    }
+
     private class Gate(open: Boolean) : CommandGateState {
         override val unlocked = MutableStateFlow(open)
     }

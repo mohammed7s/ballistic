@@ -1389,3 +1389,24 @@ download progressed. Authentication and platform permission are distinct; no Com
 grant is needed for model setup. Direct setup authentication and clearer wording were installed;
 adjacent download errors, MB/percent progress and setup screen-awake handling were built, with
 installation deferred to avoid interrupting the active download. See [setup evidence](log/2026-11-07-phone-setup-ux.md).
+
+## Command access and task lifecycle — 8 November 2026
+
+The owner requested elapsed time and background execution, and clarified that waking/unlocking
+the phone should authorize commands without an additional app fingerprint prompt. Manual app
+locking and sensitive-operation approval remain separate. The app now checks secure device
+unlock/interactive state at command admission; switching apps does not relock access. It trusts
+Android's configured unlock method, not a claim of fingerprint-only phone unlock.
+
+Ask has a monotonic elapsed timer and Continue in background. Owner-started Ask/local operations
+use a foreground service with a Stop notification and CPU wake lock; no automatic task restart.
+Notification permission was disabled on the test phone; the app now links to its notification
+settings. Alarm creation remains unsupported by the core-facing Android adapter. The owner's
+alarm trace also showed the small model repeatedly launching Settings. See
+[validation and limitations](log/2026-11-08-phone-background.md).
+
+Physical Pixel validation: short local speed check passed (0.4 s first token, 21.8 tokens/s)
+while backgrounded. Clock visibly opened but repeated because the adapter cannot verify the
+foreground app. Final installed APK's notification Stop ended the task, froze elapsed at 2:19,
+removed its foreground service and released its CPU wake lock. Six session tests passed.
+Model download is complete; normal phone sleep was restored after testing.

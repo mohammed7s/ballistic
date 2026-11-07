@@ -41,6 +41,11 @@ import app.ballistic.assistant.ui.SettingsScreen
 class MainActivity : ComponentActivity() {
     private val askNotifications = registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
 
+    override fun onResume() {
+        super.onResume()
+        graph.gate.refresh()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()

@@ -342,3 +342,18 @@ execution, verification or policy denial. A denied operation is not a model exec
 See `docs/CONTEXT.md` §6. Blocking: audience/distribution (nobody but the developer runs our key
 until decided); banking apps in use; the GrapheneOS team's stance on a user-controlled Computer
 Control gate (ask now); v1 model choice after measuring on the dev phone.
+
+## 8 November 2026 clarification: command access and background work
+
+The owner clarified that switching apps must not require another authentication. Ordinary
+command admission uses the phone's secure unlock state: voice may wake the screen, but cannot
+authorize a command while it is asleep or locked. Android's configured unlock methods are
+trusted; the ordinary app cannot infer fingerprint use from an unlocked-state check. A manual
+Ballistic lock disables new requests independently. Sensitive-operation biometric approvals
+remain separate and unchanged. This refines the earlier command-gate paragraph; voice wake-up
+is still unimplemented.
+
+Owner-started tasks may continue when the Activity is hidden, with a foreground service,
+visible progress/Stop notification when notifications are enabled, and elapsed time. Process
+death or force-stop must not silently restart a task. Keeping the process running does not grant
+permission for background activity launches or other-app screen control.

@@ -1,6 +1,6 @@
 # Local AI in Ballistic
 
-7 November 2026. Implementation and validation status are recorded in the delivery log; an
+8 November 2026. Implementation and validation status are recorded in the delivery log; an
 installable debug APK does not establish model quality or production phone-control readiness.
 
 ## Where it sits
@@ -23,8 +23,8 @@ existing core safety limitations still apply. The judge role is not a completed 
 
 ## Using the app
 
-1. Open **Local AI → Authenticate & set up**, or **Download & set up** if the session is
-   already authenticated. Authenticate with the device biometric when prompted.
+1. Unlock the phone, then open **Local AI → Download & set up**. If you manually locked
+   requests in Ballistic, use **Enable requests** first. There is no second app fingerprint prompt.
 2. Review the starter, download size, storage requirement and replacement notice. Confirm
    **Download & use on device**. No transfer begins just by opening the screen.
 3. Ballistic downloads the pinned file, checks its byte count and SHA-256, selects local inference
@@ -38,8 +38,8 @@ recommendation still requires target-phone testing.
 
 Downloads contact Hugging Face and its HTTPS CDN, not a model inference service. This transfers
 model files without sending prompts or API keys. The catalogue is shipped with the app and pins
-an immutable source revision and digest. Keep Ballistic open while downloading: this version has
-no background download service or resumable transfers. Stop discards the partial file; process
+an immutable source revision and digest. Owner-started setup runs with a foreground service, so
+you may leave the app. Transfers are not resumable. Stop discards the partial file; process
 restart cleans abandoned partials. Retry starts from byte zero. Existing managed weights survive
 network, size or digest failures. A completed verified replacement may remain installed if Stop
 arrives during loading.
@@ -47,11 +47,19 @@ arrives during loading.
 The phone needs its own internet connection; an ADB/USB debugging connection does not provide
 internet access. Transfer progress is shown in decimal MB and a percentage, with download errors
 beside the setup button. Ballistic keeps the screen awake during local setup while its activity
-is visible. Turning the screen off manually or leaving the app still locks the session.
+is visible. Turning the screen off blocks new requests; already-started work continues.
 
-Session authentication verifies who may issue requests or change settings. It is available in
-Ask, Local AI and Settings. It does not grant Android notification access or Computer Control,
-and it does not replace approval for a sensitive operation. Those are separate checks.
+The command gate checks the phone’s secure unlock state when a request is submitted. Switching
+apps does not relock it. A manual app lock disables new requests until re-enabled; sleeping or
+locking the phone blocks new requests. Android’s configured unlock methods are trusted; an
+unlocked-state check does not prove that a fingerprint rather than a PIN was used. This does not
+grant Android notification access or Computer Control, or approve a sensitive operation.
+
+While work is active, the app runs a foreground service with a Stop action and elapsed time in
+its notification. Enable **Settings → Task notification settings** to see it. Ask also displays
+a live elapsed timer, frozen at completion, and **Continue in background**. Force-stopping the
+app or process death interrupts work; no task is automatically resumed. Android may still block
+a background action that needs foreground UI. This service does not supply screen-control access.
 
 Manual **Import GGUF** remains available. Ballistic copies a compatible chat/instruct file into
 private storage and leaves the source untouched. Imported files are validated by native load;

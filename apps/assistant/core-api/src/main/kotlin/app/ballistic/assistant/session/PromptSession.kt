@@ -28,6 +28,7 @@ import kotlinx.coroutines.launch
 /** Whether the command gate (SPEC.md §7.8) has passed for this session. Owned by the app. */
 interface CommandGateState {
     val unlocked: StateFlow<Boolean>
+    fun canAcceptCommands(): Boolean = unlocked.value
 }
 
 enum class Phase { Idle, NeedsUnlock, Running, AwaitingApproval, Finished }
@@ -39,6 +40,10 @@ data class RunView(
     val steps: List<StepEvent> = emptyList(),
     val result: RunResult? = null,
     val error: String? = null,
+    /** Monotonic clock values, valid for this process only. Authentication wait is excluded. */
+    val startedElapsedMs: Long = 0,
+    val finishedElapsedMs: Long? = null,
+    val stopRequested: Boolean = false,
 )
 
 data class PromptState(
@@ -68,17 +73,22 @@ class PromptSession(
     private val log: ActionLog? = null,
     private val maxSteps: Int = 15,
     private val clock: () -> Long = System::currentTimeMillis,
+    private val elapsedClock: () -> Long = { System.nanoTime() / 1_000_000 },
 ) {
     private val modelLifecycle = ports.models as? app.ballistic.assistant.models.ModelRunLifecycle
     private val core: RustCore = corePorts(ports.copy(confirm = ObservedConfirm(ports.confirm)))
+    @Volatile private var stopRequested = false
     private val _state = MutableStateFlow(PromptState(engine = core.description))
     val state: StateFlow<PromptState> = _state.asStateFlow()
+
+    fun elapsedMillis(run: RunView): Long =
+        ((run.finishedElapsedMs ?: elapsedClock()) - run.startedElapsedMs).coerceAtLeast(0)
 
     /** Starts a run, or parks the request until the gate passes. Ignored while a run is active. */
     fun submit(text: String) {
         val request = text.trim()
         if (request.isEmpty() || !_state.value.canSubmit) return
-        if (!gate.unlocked.value) {
+        if (!gate.canAcceptCommands()) {
             _state.update { it.copy(phase = Phase.NeedsUnlock, pendingRequest = request) }
             return
         }
@@ -88,7 +98,7 @@ class PromptSession(
     /** Called by the app when the gate passes; runs a request parked by [submit]. */
     fun onUnlocked() {
         val pending = _state.value.pendingRequest ?: return
-        if (_state.value.phase == Phase.NeedsUnlock && gate.unlocked.value) start(pending)
+        if (_state.value.phase == Phase.NeedsUnlock && gate.canAcceptCommands()) start(pending)
     }
 
     /** The gate prompt was dismissed or failed: drop the parked request. */
@@ -99,6 +109,7 @@ class PromptSession(
     }
 
     fun stop() {
+        stopRequested = true
         core.stop()
         modelLifecycle?.cancelRun()
     }
@@ -109,8 +120,9 @@ class PromptSession(
     }
 
     private fun start(request: String) {
+        stopRequested = false
         modelLifecycle?.beginRun()
-        val run = RunView(id = UUID.randomUUID().toString(), request = request)
+        val run = RunView(id = UUID.randomUUID().toString(), request = request, startedElapsedMs = elapsedClock())
         _state.update {
             it.copy(phase = Phase.Running, engine = core.description, pendingRequest = null, activity = "starting", runs = it.runs + run)
         }
@@ -136,7 +148,8 @@ class PromptSession(
                 null to (e.message ?: e::class.simpleName ?: "error")
             }
             modelLifecycle?.endRun()
-            updateRun(run.id) { it.copy(result = result, error = error) }
+            val finished = elapsedClock()
+            updateRun(run.id) { it.copy(result = result, error = error, finishedElapsedMs = finished, stopRequested = stopRequested) }
             _state.update { it.copy(phase = Phase.Finished, activity = null) }
         }
     }

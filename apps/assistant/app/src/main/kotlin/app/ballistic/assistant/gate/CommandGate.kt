@@ -1,30 +1,17 @@
-// The command gate (SPEC.md §5.3, §7.8): no request is accepted, typed or spoken, until the
-// session has passed a strong biometric. It answers "who may command"; per-operation approval
-// (the confirmation window) is a separate check and is never satisfied by this one.
-//
-// Session: from a successful prompt until Ballistic has no visible activity (process ON_STOP)
-// or the screen turns off. Locking does not stop a run in progress; it stops new requests.
-//
-// This prompt carries no CryptoObject: its result is a callback inside our process, which is
-// enough to tell the owner's finger from a stranger's voice. A passkey alternative (SPEC §7.8)
-// and voice entry (wake word, push-to-talk) are not built yet.
-//
-// Debug builds only: with no strong biometric available (the AndroidWorld emulator has none
-// enrolled), DebugTools offers a test PIN for this gate. Release builds have no fallback, and
-// no build uses it for operation approval.
-
+// Commands use the phone's secure unlock state. Manual app locking is separate from
+// device locking; neither grants approval for a sensitive operation.
 package app.ballistic.assistant.gate
 
 import android.app.Activity
 import android.app.Application
+import android.app.KeyguardManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.hardware.biometrics.BiometricManager
-import android.hardware.biometrics.BiometricManager.Authenticators.BIOMETRIC_STRONG
-import android.hardware.biometrics.BiometricPrompt
-import android.os.CancellationSignal
+import android.os.PowerManager
+import android.os.Handler
+import android.os.Looper
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ProcessLifecycleOwner
@@ -34,66 +21,81 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-class CommandGate(app: Application) : CommandGateState {
+class CommandGate(private val app: Application) : CommandGateState {
+    private val keyguard = app.getSystemService(KeyguardManager::class.java)
+    private val power = app.getSystemService(PowerManager::class.java)
+    private val preferences = app.getSharedPreferences("command_gate", Context.MODE_PRIVATE)
+    private var manuallyLocked = preferences.getBoolean("manually_locked", false)
+    private var debugAuthenticated = false
     private val _unlocked = MutableStateFlow(false)
     override val unlocked: StateFlow<Boolean> = _unlocked.asStateFlow()
+    private val handler = Handler(Looper.getMainLooper())
+    private val refreshWhileVisible = object : Runnable {
+        override fun run() {
+            refresh()
+            handler.postDelayed(this, 500)
+        }
+    }
 
     init {
         ProcessLifecycleOwner.get().lifecycle.addObserver(
-            LifecycleEventObserver { _, event -> if (event == Lifecycle.Event.ON_STOP) lock() },
-        )
-        app.registerReceiver(
-            object : BroadcastReceiver() {
-                override fun onReceive(context: Context, intent: Intent) = lock()
+            LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_START) handler.post(refreshWhileVisible)
+                if (event == Lifecycle.Event.ON_STOP) handler.removeCallbacks(refreshWhileVisible)
             },
-            IntentFilter(Intent.ACTION_SCREEN_OFF),
-            Context.RECEIVER_NOT_EXPORTED,
         )
+        app.registerReceiver(object : BroadcastReceiver() {
+            override fun onReceive(context: Context, intent: Intent) {
+                if (intent.action == Intent.ACTION_SCREEN_OFF) {
+                    debugAuthenticated = false
+                    _unlocked.value = false
+                } else refresh()
+            }
+        }, IntentFilter().apply {
+            addAction(Intent.ACTION_SCREEN_OFF)
+            addAction(Intent.ACTION_SCREEN_ON)
+            addAction(Intent.ACTION_USER_PRESENT)
+        }, Context.RECEIVER_NOT_EXPORTED)
+        refresh()
     }
 
+    /** Read platform state at command admission, not just a possibly stale UI flow. */
+    override fun canAcceptCommands(): Boolean = refresh()
+
+    fun refresh(): Boolean {
+        val ready = !manuallyLocked && power.isInteractive && !keyguard.isKeyguardLocked &&
+            !keyguard.isDeviceLocked && (keyguard.isDeviceSecure || debugAuthenticated)
+        _unlocked.value = ready
+        return ready
+    }
+
+    /** Explicit manual lock persists across activity/process recreation. Existing work is not approval. */
     fun lock() {
+        manuallyLocked = true
+        preferences.edit().putBoolean("manually_locked", true).apply()
         _unlocked.value = false
     }
 
-    /** Why the gate cannot be opened on this device, or null if it can. */
-    fun unavailableReason(context: Context): String? =
-        when (context.getSystemService(BiometricManager::class.java).canAuthenticate(BIOMETRIC_STRONG)) {
-            BiometricManager.BIOMETRIC_SUCCESS -> null
-            BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED -> "No strong biometric is enrolled."
-            BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE, BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE -> "No strong biometric hardware is available."
-            else -> "Strong biometric authentication is unavailable."
-        }
-
-    /** Shows the system biometric prompt; [onResult] gets null on success or the failure text. */
     fun authenticate(activity: Activity, onResult: (String?) -> Unit) {
-        unavailableReason(activity)?.let { why ->
-            val shown = DebugTools.gateFallback(activity, why) { ok ->
-                if (ok) _unlocked.value = true
-                onResult(if (ok) null else "Not unlocked")
-            }
-            if (!shown) onResult(why)
-            return
+        fun enable() {
+            manuallyLocked = false
+            preferences.edit().putBoolean("manually_locked", false).apply()
+            onResult(if (refresh()) null else "Unlock the phone before giving Ballistic requests.")
         }
-        val executor = activity.mainExecutor
-        BiometricPrompt.Builder(activity)
-            .setTitle("Unlock Ballistic")
-            .setSubtitle("Ballistic takes requests only after this check")
-            .setAllowedAuthenticators(BIOMETRIC_STRONG)
-            .setNegativeButton("Cancel", executor) { _, _ -> onResult("Cancelled") }
-            .build()
-            .authenticate(
-                CancellationSignal(),
-                executor,
-                object : BiometricPrompt.AuthenticationCallback() {
-                    override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
-                        _unlocked.value = true
-                        onResult(null)
-                    }
-
-                    override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
-                        onResult(errString.toString())
-                    }
-                },
-            )
+        if (!keyguard.isDeviceSecure) {
+            val shown = DebugTools.gateFallback(activity, "Set a secure phone screen lock to authorize requests.") { ok ->
+                debugAuthenticated = ok
+                if (ok) enable() else onResult("Not unlocked")
+            }
+            if (!shown) onResult("Set a secure phone screen lock to authorize requests.")
+        } else if (power.isInteractive && !keyguard.isKeyguardLocked && !keyguard.isDeviceLocked) {
+            enable()
+        } else {
+            keyguard.requestDismissKeyguard(activity, object : KeyguardManager.KeyguardDismissCallback() {
+                override fun onDismissSucceeded() = enable()
+                override fun onDismissCancelled() { onResult("Phone unlock cancelled") }
+                override fun onDismissError() { onResult("Unlock the phone first, then return to Ballistic.") }
+            })
+        }
     }
 }

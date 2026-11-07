@@ -26,6 +26,7 @@ fun LocalAiScreen(graph: AppGraph, activity: Activity, onOpenAsk: () -> Unit = {
     val busy by ai.busy.collectAsState()
     val notice by ai.notice.collectAsState()
     val download by ai.downloadProgress.collectAsState()
+    val backgroundNotice by graph.backgroundNotice.collectAsState()
     var showDownload by rememberSaveable { mutableStateOf(false) }
     var authenticationError by remember { mutableStateOf<String?>(null) }
     val run by graph.session.state.collectAsState()
@@ -37,7 +38,7 @@ fun LocalAiScreen(graph: AppGraph, activity: Activity, onOpenAsk: () -> Unit = {
     val canStartSetup = run.canSubmit && run.pendingRequest == null && !busy && !engine.busy
     fun requestDownloadSetup() {
         authenticationError = null
-        if (graph.gate.unlocked.value) showDownload = true
+        if (graph.gate.canAcceptCommands()) showDownload = true
         else graph.gate.authenticate(activity) { error ->
             authenticationError = error
             if (error == null) showDownload = true
@@ -58,7 +59,7 @@ fun LocalAiScreen(graph: AppGraph, activity: Activity, onOpenAsk: () -> Unit = {
             Text("Downloads from Qwen on Hugging Face using your internet connection. Wi-Fi is recommended. License: ${ai.starter.license}.")
             Text("Ballistic will verify the file, select on-device AI and load it. ${size(ai.starter.bytes + ManagedModelStore.STORAGE_RESERVE)} free storage is needed; loading also needs available RAM.")
             if(model != null) Text("This replaces the managed model copy after verification. Your original imported document stays untouched.")
-            Text("Starter preview: phone performance and task quality are not yet validated. Keep Ballistic open while downloading. Interrupted downloads restart from the beginning.")
+            Text("Starter preview: phone performance and task quality are not yet validated. You can leave the app during download; progress stays in a notification. Force-stopping the app interrupts the download, which restarts from the beginning.")
         } },
         confirmButton = { TextButton(onClick = { showDownload = false; ai.downloadStarter() }, enabled = enabled) { Text("Download & use on device") } },
         dismissButton = { TextButton(onClick = { showDownload = false }) { Text("Cancel") } },
@@ -95,6 +96,10 @@ fun LocalAiScreen(graph: AppGraph, activity: Activity, onOpenAsk: () -> Unit = {
             }
         }
         item { SessionAccess(graph, activity) }
+        backgroundNotice?.let { message -> item { Text(message, color = MaterialTheme.colorScheme.error) } }
+        if (busy) item {
+            OutlinedButton(onClick = { activity.moveTaskToBack(true) }) { Text("Continue in background") }
+        }
         if(!run.canSubmit || run.pendingRequest != null) item { Text("Finish or stop the Ask run before changing models.") }
         item {
             Card(Modifier.fillMaxWidth()) {
@@ -106,7 +111,7 @@ fun LocalAiScreen(graph: AppGraph, activity: Activity, onOpenAsk: () -> Unit = {
                         Text("Verified download installed")
                         if(engine.metadata == null) Button(onClick = ai::load, enabled = enabled) { Text("Load starter model") }
                     } else Button(onClick = ::requestDownloadSetup, enabled = canStartSetup) {
-                        Text(if (unlocked) "Download & set up" else "Authenticate & set up")
+                        Text(if (unlocked) "Download & set up" else "Unlock & set up")
                     }
                     authenticationError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                     if (!canStartSetup) Text("Finish or stop the current operation before starting setup.")

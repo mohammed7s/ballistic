@@ -16,16 +16,16 @@ internal fun SessionAccess(graph: AppGraph, activity: Activity) {
     val unlocked by graph.gate.unlocked.collectAsState()
     var failure by remember { mutableStateOf<String?>(null) }
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text(if (unlocked) "Ballistic session authenticated" else "Authenticate to set up AI or change settings",
+        Text(if (unlocked) "Phone unlocked · requests enabled" else "Unlock the phone and enable requests",
             style = MaterialTheme.typography.titleMedium)
-        Text("Your fingerprint verifies who may give Ballistic requests. The session locks when you leave the app or turn off the screen. It does not grant control of other apps.",
+        Text("Ballistic uses your phone unlock, with no second app fingerprint prompt. New requests are blocked while the phone sleeps or is locked. Sensitive actions have separate approval.",
             style = MaterialTheme.typography.bodySmall)
         if (!unlocked) OutlinedButton(onClick = {
             graph.gate.authenticate(activity) { error ->
                 failure = error
                 if (error == null) graph.session.onUnlocked() else graph.session.onUnlockCancelled()
             }
-        }) { Text("Authenticate with fingerprint") }
+        }) { Text("Enable requests") }
         failure?.let { Text(it, color = MaterialTheme.colorScheme.error) }
     }
 }

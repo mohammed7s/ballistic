@@ -7,6 +7,7 @@
 package app.ballistic.assistant.ui
 
 import android.app.Activity
+import android.app.NotificationManager
 import android.content.Intent
 import android.provider.Settings
 import androidx.compose.foundation.layout.Arrangement
@@ -61,6 +62,15 @@ fun SettingsScreen(graph: AppGraph, activity: Activity) {
     LazyColumn(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         item { SessionAccess(graph, activity) }
         item {
+            Text("Task notifications", style = MaterialTheme.typography.titleMedium)
+            Text(if (activity.getSystemService(NotificationManager::class.java).areNotificationsEnabled())
+                "Enabled: background progress and Stop appear in a notification."
+                else "Disabled: enable notifications to see background progress and Stop outside Ballistic.")
+            OutlinedButton(onClick = {
+                activity.startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, activity.packageName))
+            }) { Text("Task notification settings") }
+        }
+        item {
             Text("Phone permissions are separate. Notification access allows reading notifications; it does not enable taps or screen control. This build has no Computer Control integration.",
                 style = MaterialTheme.typography.bodySmall)
         }
@@ -99,7 +109,7 @@ fun SettingsScreen(graph: AppGraph, activity: Activity) {
         items(apps, key = { it.`package` }) { app ->
             val p = policy.forApp(app.`package`)
             fun save(changed: AppPolicy) {
-                if (!graph.gate.unlocked.value) return
+                if (!graph.gate.canAcceptCommands()) return
                 policy = policy.with(app.`package`, changed)
                 graph.policyStore.save(policy)
             }
@@ -172,7 +182,7 @@ private fun ModelSettings(graph: AppGraph, enabled: Boolean) {
             Button(
                 enabled = enabled && baseUrl.isNotBlank() && model.isNotBlank(),
                 onClick = {
-                    if (!graph.gate.unlocked.value || !graph.session.state.value.canSubmit || graph.localAi.busy.value) return@Button
+                    if (!graph.gate.canAcceptCommands() || !graph.session.state.value.canSubmit || graph.localAi.busy.value) return@Button
                     graph.modelsConfig.save((graph.modelsConfig.load() ?: ModelsConfig(Endpoint(baseUrl, model))).let { it.copy(planner = it.planner.copy(baseUrl = baseUrl.trim(), model = model.trim())) })
                     if (key.isNotEmpty()) {
                         graph.secrets.put(SecretStore.MODEL_API_KEY, key)

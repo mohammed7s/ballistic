@@ -4,6 +4,8 @@
 package app.ballistic.assistant
 
 import android.app.Application
+import android.content.Intent
+import androidx.core.content.ContextCompat
 import app.ballistic.assistant.adapters.BiometricConfirm
 import app.ballistic.assistant.adapters.InstalledApps
 import app.ballistic.assistant.adapters.IntentHands
@@ -33,6 +35,10 @@ import app.ballistic.assistant.storage.SecretStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import java.util.concurrent.atomic.AtomicInteger
 
 class BallisticApp : Application() {
@@ -48,6 +54,10 @@ class BallisticApp : Application() {
 /** Wiring only: which adapter fills which port. Nothing here decides an action. */
 class AppGraph(val app: Application) {
     val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    val backgroundNotice = MutableStateFlow<String?>(
+        if (app.getSharedPreferences("work_lifecycle", 0).getBoolean("active", false))
+            "Previous work was interrupted when the app process stopped. It has not been resumed." else null,
+    )
 
     /** App-private files (core/README.md §15: policy, logs; plus the shell's model config). */
     val policyStore = PolicyStore(app.filesDir.resolve("policy.json"))
@@ -65,7 +75,7 @@ class AppGraph(val app: Application) {
     val localModels = LocalModels(LlamaDriver())
     val pendingModelImport = kotlinx.coroutines.flow.MutableStateFlow<android.net.Uri?>(null)
     val localAi: LocalAiController = LocalAiController(app, scope, localModels, modelSelection) {
-        gate.unlocked.value && session.state.value.canSubmit && session.state.value.pendingRequest == null
+        gate.canAcceptCommands() && session.state.value.canSubmit && session.state.value.pendingRequest == null
     }
     val routedModels = RoutedModels(
         selection = { localAi.selection.value.backend },
@@ -115,7 +125,25 @@ class AppGraph(val app: Application) {
         ports = ports,
         corePorts = { RustCore(engine, it) },
         log = actionLog,
+        elapsedClock = android.os.SystemClock::elapsedRealtime,
     )
+
+    init {
+        scope.launch {
+            combine(session.state, localAi.busy) { run, local -> run.canStop || local }
+                .distinctUntilChanged().collect { active ->
+                    if (active) {
+                        backgroundNotice.value = null
+                        try {
+                            ContextCompat.startForegroundService(app, Intent(app, WorkService::class.java))
+                        } catch (_: Exception) {
+                            backgroundNotice.value = "Could not start background execution. The task was stopped; return to Ballistic and retry."
+                            stop()
+                        }
+                    }
+                }
+        }
+    }
 
     /** Stop: no new model calls or dispatches, and any approval not yet given is denied. */
     fun stop() {
