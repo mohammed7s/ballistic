@@ -1,0 +1,748 @@
+{
+  "baseline_commit": "3069197",
+  "scope": "Offline rendered filter comparison, no model/device/checker; both neutral and original owner requests; no recorded display strings retained.",
+  "core4": [
+    {
+      "file": "20261107-023423_ContactsAddContact.json",
+      "counts": {
+        "inspect_screens": 8,
+        "owner_screens": 8
+      },
+      "changes": []
+    },
+    {
+      "file": "20261107-023549_ClockTimerEntry.json",
+      "counts": {
+        "inspect_screens": 4,
+        "owner_screens": 4,
+        "inspect_changed": 1,
+        "owner_changed": 1
+      },
+      "changes": [
+        {
+          "location": "lines[8].data",
+          "mode": "inspect",
+          "same_elements": true,
+          "labels_lost": 2,
+          "labels_gained": 0,
+          "labels_changed": 0
+        },
+        {
+          "location": "lines[8].data",
+          "mode": "owner",
+          "same_elements": true,
+          "labels_lost": 2,
+          "labels_gained": 0,
+          "labels_changed": 0
+        }
+      ]
+    },
+    {
+      "file": "20261107-023654_ClockStopWatchRunning.json",
+      "counts": {
+        "inspect_screens": 5,
+        "owner_screens": 5,
+        "inspect_changed": 1,
+        "owner_changed": 1
+      },
+      "changes": [
+        {
+          "location": "lines[8].data",
+          "mode": "inspect",
+          "same_elements": true,
+          "labels_lost": 2,
+          "labels_gained": 0,
+          "labels_changed": 0
+        },
+        {
+          "location": "lines[8].data",
+          "mode": "owner",
+          "same_elements": true,
+          "labels_lost": 2,
+          "labels_gained": 0,
+          "labels_changed": 0
+        }
+      ]
+    },
+    {
+      "file": "20261107-023757_OpenAppTaskEval.json",
+      "counts": {
+        "inspect_screens": 3,
+        "owner_screens": 3,
+        "inspect_changed": 2,
+        "owner_changed": 2
+      },
+      "changes": [
+        {
+          "location": "lines[8].data",
+          "mode": "inspect",
+          "same_elements": true,
+          "labels_lost": 7,
+          "labels_gained": 0,
+          "labels_changed": 0
+        },
+        {
+          "location": "lines[8].data",
+          "mode": "owner",
+          "same_elements": true,
+          "labels_lost": 7,
+          "labels_gained": 0,
+          "labels_changed": 0
+        },
+        {
+          "location": "lines[12].data",
+          "mode": "inspect",
+          "same_elements": true,
+          "labels_lost": 7,
+          "labels_gained": 0,
+          "labels_changed": 0
+        },
+        {
+          "location": "lines[12].data",
+          "mode": "owner",
+          "same_elements": true,
+          "labels_lost": 7,
+          "labels_gained": 0,
+          "labels_changed": 0
+        }
+      ]
+    },
+    {
+      "file": "20261107-024001_SystemWifiTurnOff.json",
+      "counts": {
+        "inspect_screens": 4,
+        "owner_screens": 4,
+        "inspect_changed": 1,
+        "owner_changed": 1
+      },
+      "changes": [
+        {
+          "location": "lines[8].data",
+          "mode": "inspect",
+          "same_elements": true,
+          "labels_lost": 7,
+          "labels_gained": 0,
+          "labels_changed": 0
+        },
+        {
+          "location": "lines[8].data",
+          "mode": "owner",
+          "same_elements": true,
+          "labels_lost": 7,
+          "labels_gained": 0,
+          "labels_changed": 0
+        }
+      ]
+    },
+    {
+      "file": "20261107-024148_SystemBluetoothTurnOn.json",
+      "counts": {
+        "inspect_screens": 5,
+        "owner_screens": 5,
+        "inspect_changed": 1,
+        "owner_changed": 1
+      },
+      "changes": [
+        {
+          "location": "lines[8].data",
+          "mode": "inspect",
+          "same_elements": true,
+          "labels_lost": 7,
+          "labels_gained": 0,
+          "labels_changed": 0
+        },
+        {
+          "location": "lines[8].data",
+          "mode": "owner",
+          "same_elements": true,
+          "labels_lost": 7,
+          "labels_gained": 0,
+          "labels_changed": 0
+        }
+      ]
+    },
+    {
+      "file": "20261107-024334_SystemBrightnessMax.json",
+      "counts": {
+        "inspect_screens": 8,
+        "owner_screens": 8,
+        "inspect_changed": 2,
+        "owner_changed": 2
+      },
+      "changes": [
+        {
+          "location": "lines[8].data",
+          "mode": "inspect",
+          "same_elements": true,
+          "labels_lost": 7,
+          "labels_gained": 0,
+          "labels_changed": 0
+        },
+        {
+          "location": "lines[8].data",
+          "mode": "owner",
+          "same_elements": true,
+          "labels_lost": 7,
+          "labels_gained": 0,
+          "labels_changed": 0
+        },
+        {
+          "location": "lines[25].data",
+          "mode": "inspect",
+          "same_elements": true,
+          "labels_lost": 9,
+          "labels_gained": 0,
+          "labels_changed": 0
+        },
+        {
+          "location": "lines[25].data",
+          "mode": "owner",
+          "same_elements": true,
+          "labels_lost": 9,
+          "labels_gained": 0,
+          "labels_changed": 0
+        }
+      ]
+    },
+    {
+      "file": "20261107-024436_TurnOnWifiAndOpenApp.json",
+      "counts": {
+        "inspect_screens": 3,
+        "owner_screens": 3,
+        "inspect_changed": 1,
+        "owner_changed": 1
+      },
+      "changes": [
+        {
+          "location": "lines[8].data",
+          "mode": "inspect",
+          "same_elements": true,
+          "labels_lost": 7,
+          "labels_gained": 0,
+          "labels_changed": 0
+        },
+        {
+          "location": "lines[8].data",
+          "mode": "owner",
+          "same_elements": true,
+          "labels_lost": 7,
+          "labels_gained": 0,
+          "labels_changed": 0
+        }
+      ]
+    },
+    {
+      "file": "20261107-024706_SimpleSmsSend.json",
+      "counts": {
+        "inspect_screens": 5,
+        "owner_screens": 5,
+        "inspect_changed": 1,
+        "owner_changed": 1
+      },
+      "changes": [
+        {
+          "location": "lines[15].data",
+          "mode": "inspect",
+          "same_elements": true,
+          "labels_lost": 1,
+          "labels_gained": 0,
+          "labels_changed": 0
+        },
+        {
+          "location": "lines[15].data",
+          "mode": "owner",
+          "same_elements": true,
+          "labels_lost": 1,
+          "labels_gained": 0,
+          "labels_changed": 0
+        }
+      ]
+    },
+    {
+      "file": "20261107-024846_SimpleSmsReplyMostRecent.json",
+      "counts": {
+        "inspect_screens": 5,
+        "owner_screens": 5,
+        "inspect_changed": 3,
+        "owner_changed": 3
+      },
+      "changes": [
+        {
+          "location": "lines[20].data",
+          "mode": "inspect",
+          "same_elements": true,
+          "labels_lost": 1,
+          "labels_gained": 0,
+          "labels_changed": 0
+        },
+        {
+          "location": "lines[20].data",
+          "mode": "owner",
+          "same_elements": true,
+          "labels_lost": 1,
+          "labels_gained": 0,
+          "labels_changed": 0
+        },
+        {
+          "location": "lines[27].data",
+          "mode": "inspect",
+          "same_elements": true,
+          "labels_lost": 1,
+          "labels_gained": 0,
+          "labels_changed": 0
+        },
+        {
+          "location": "lines[27].data",
+          "mode": "owner",
+          "same_elements": true,
+          "labels_lost": 1,
+          "labels_gained": 0,
+          "labels_changed": 0
+        },
+        {
+          "location": "lines[35].data",
+          "mode": "inspect",
+          "same_elements": true,
+          "labels_lost": 1,
+          "labels_gained": 0,
+          "labels_changed": 0
+        },
+        {
+          "location": "lines[35].data",
+          "mode": "owner",
+          "same_elements": true,
+          "labels_lost": 1,
+          "labels_gained": 0,
+          "labels_changed": 0
+        }
+      ]
+    },
+    {
+      "file": "20261107-025036_SimpleCalendarAddOneEvent.json",
+      "counts": {
+        "inspect_screens": 13,
+        "owner_screens": 13
+      },
+      "changes": []
+    },
+    {
+      "file": "20261107-025134_SimpleCalendarEventsOnDate.json",
+      "counts": {
+        "inspect_screens": 2,
+        "owner_screens": 2
+      },
+      "changes": []
+    },
+    {
+      "file": "20261107-025329_MarkorCreateNote.json",
+      "counts": {
+        "inspect_screens": 12,
+        "owner_screens": 12
+      },
+      "changes": []
+    },
+    {
+      "file": "20261107-025421_MarkorDeleteNote.json",
+      "counts": {
+        "inspect_screens": 2,
+        "owner_screens": 2
+      },
+      "changes": []
+    },
+    {
+      "file": "20261107-025609_MarkorCreateFolder.json",
+      "counts": {
+        "inspect_screens": 14,
+        "owner_screens": 14
+      },
+      "changes": []
+    },
+    {
+      "file": "20261107-025702_ExpenseAddSingle.json",
+      "counts": {
+        "inspect_screens": 3,
+        "owner_screens": 3
+      },
+      "changes": []
+    },
+    {
+      "file": "20261107-025815_ExpenseDeleteSingle.json",
+      "counts": {
+        "inspect_screens": 7,
+        "owner_screens": 7,
+        "inspect_changed": 2,
+        "owner_changed": 2
+      },
+      "changes": [
+        {
+          "location": "lines[8].data",
+          "mode": "inspect",
+          "same_elements": true,
+          "labels_lost": 2,
+          "labels_gained": 0,
+          "labels_changed": 0
+        },
+        {
+          "location": "lines[8].data",
+          "mode": "owner",
+          "same_elements": true,
+          "labels_lost": 2,
+          "labels_gained": 0,
+          "labels_changed": 0
+        },
+        {
+          "location": "lines[15].data",
+          "mode": "inspect",
+          "same_elements": true,
+          "labels_lost": 2,
+          "labels_gained": 0,
+          "labels_changed": 0
+        },
+        {
+          "location": "lines[15].data",
+          "mode": "owner",
+          "same_elements": true,
+          "labels_lost": 2,
+          "labels_gained": 0,
+          "labels_changed": 0
+        }
+      ]
+    },
+    {
+      "file": "20261107-030024_RecipeAddSingleRecipe.json",
+      "counts": {
+        "inspect_screens": 12,
+        "owner_screens": 12
+      },
+      "changes": []
+    },
+    {
+      "file": "20261107-030118_FilesDeleteFile.json",
+      "counts": {
+        "inspect_screens": 2,
+        "owner_screens": 2
+      },
+      "changes": []
+    },
+    {
+      "file": "20261107-030244_CameraTakePhoto.json",
+      "counts": {
+        "inspect_screens": 10,
+        "owner_screens": 10
+      },
+      "changes": []
+    }
+  ],
+  "fixtures": [
+    {
+      "file": "ContactsAddContact/01.json",
+      "counts": {
+        "inspect_screens": 1,
+        "owner_screens": 1
+      },
+      "changes": []
+    },
+    {
+      "file": "ContactsAddContact/02.json",
+      "counts": {
+        "inspect_screens": 1,
+        "owner_screens": 1
+      },
+      "changes": []
+    },
+    {
+      "file": "ContactsAddContact/03.json",
+      "counts": {
+        "inspect_screens": 1,
+        "owner_screens": 1
+      },
+      "changes": []
+    },
+    {
+      "file": "ContactsAddContact/04.json",
+      "counts": {
+        "inspect_screens": 1,
+        "owner_screens": 1
+      },
+      "changes": []
+    },
+    {
+      "file": "ContactsAddContact/05.json",
+      "counts": {
+        "inspect_screens": 1,
+        "owner_screens": 1
+      },
+      "changes": []
+    },
+    {
+      "file": "ContactsAddContact/06.json",
+      "counts": {
+        "inspect_screens": 1,
+        "owner_screens": 1
+      },
+      "changes": []
+    },
+    {
+      "file": "ContactsAddContact/07.json",
+      "counts": {
+        "inspect_screens": 1,
+        "owner_screens": 1
+      },
+      "changes": []
+    },
+    {
+      "file": "ContactsAddContact/08.json",
+      "counts": {
+        "inspect_screens": 1,
+        "inspect_changed": 1,
+        "owner_screens": 1,
+        "owner_changed": 1
+      },
+      "changes": [
+        {
+          "location": "screen",
+          "mode": "inspect",
+          "same_elements": true,
+          "labels_lost": 2,
+          "labels_gained": 0,
+          "labels_changed": 0
+        },
+        {
+          "location": "screen",
+          "mode": "owner",
+          "same_elements": true,
+          "labels_lost": 2,
+          "labels_gained": 0,
+          "labels_changed": 0
+        }
+      ]
+    },
+    {
+      "file": "benchmark_regressions/core4_wifi_false_done.json",
+      "counts": {
+        "inspect_screens": 1,
+        "owner_screens": 1
+      },
+      "changes": []
+    },
+    {
+      "file": "benchmark_regressions/quick_settings.json",
+      "counts": {
+        "inspect_screens": 1,
+        "owner_screens": 1
+      },
+      "changes": []
+    },
+    {
+      "file": "benchmark_regressions/sms_after_send.json",
+      "counts": {
+        "inspect_screens": 1,
+        "owner_screens": 1
+      },
+      "changes": []
+    },
+    {
+      "file": "benchmark_regressions/sms_before_send.json",
+      "counts": {
+        "inspect_screens": 1,
+        "owner_screens": 1
+      },
+      "changes": []
+    },
+    {
+      "file": "benchmark_regressions/sms_conversations.json",
+      "counts": {
+        "inspect_screens": 1,
+        "owner_screens": 1
+      },
+      "changes": []
+    },
+    {
+      "file": "collection_rows/expense_small.json",
+      "counts": {
+        "inspect_screens": 1,
+        "inspect_changed": 1,
+        "owner_screens": 1,
+        "owner_changed": 1
+      },
+      "changes": [
+        {
+          "location": "screen",
+          "mode": "inspect",
+          "same_elements": true,
+          "labels_lost": 2,
+          "labels_gained": 0,
+          "labels_changed": 0
+        },
+        {
+          "location": "screen",
+          "mode": "owner",
+          "same_elements": true,
+          "labels_lost": 2,
+          "labels_gained": 0,
+          "labels_changed": 0
+        }
+      ]
+    },
+    {
+      "file": "known_controls/brightness_dialog.json",
+      "counts": {
+        "inspect_screens": 1,
+        "owner_screens": 1
+      },
+      "changes": []
+    },
+    {
+      "file": "known_controls/calendar_event_form.json",
+      "counts": {
+        "inspect_screens": 1,
+        "owner_screens": 1
+      },
+      "changes": []
+    },
+    {
+      "file": "known_controls/calendar_month.json",
+      "counts": {
+        "inspect_screens": 1,
+        "owner_screens": 1
+      },
+      "changes": []
+    },
+    {
+      "file": "known_controls/camera_after_shutter.json",
+      "counts": {
+        "inspect_screens": 1,
+        "owner_screens": 1
+      },
+      "changes": []
+    },
+    {
+      "file": "known_controls/expense_detail.json",
+      "counts": {
+        "inspect_screens": 1,
+        "owner_screens": 1
+      },
+      "changes": []
+    },
+    {
+      "file": "known_controls/expense_home.json",
+      "counts": {
+        "inspect_screens": 1,
+        "owner_screens": 1
+      },
+      "changes": []
+    },
+    {
+      "file": "known_controls/markor_editor.json",
+      "counts": {
+        "inspect_screens": 1,
+        "owner_screens": 1
+      },
+      "changes": []
+    },
+    {
+      "file": "known_controls/timer_digits.json",
+      "counts": {
+        "inspect_screens": 1,
+        "owner_screens": 1
+      },
+      "changes": []
+    },
+    {
+      "file": "settings_static/bluetooth_off.json",
+      "counts": {
+        "inspect_screens": 1,
+        "owner_screens": 1
+      },
+      "changes": []
+    },
+    {
+      "file": "settings_static/bluetooth_on.json",
+      "counts": {
+        "inspect_screens": 1,
+        "owner_screens": 1
+      },
+      "changes": []
+    },
+    {
+      "file": "settings_static/connected.json",
+      "counts": {
+        "inspect_screens": 1,
+        "owner_screens": 1
+      },
+      "changes": []
+    },
+    {
+      "file": "settings_static/connected_direct.json",
+      "counts": {
+        "inspect_screens": 1,
+        "owner_screens": 1
+      },
+      "changes": []
+    },
+    {
+      "file": "settings_static/connection_preferences.json",
+      "counts": {
+        "inspect_screens": 1,
+        "owner_screens": 1
+      },
+      "changes": []
+    },
+    {
+      "file": "settings_static/display.json",
+      "counts": {
+        "inspect_screens": 1,
+        "owner_screens": 1
+      },
+      "changes": []
+    },
+    {
+      "file": "settings_static/display_recorded.json",
+      "counts": {
+        "inspect_screens": 1,
+        "owner_screens": 1
+      },
+      "changes": []
+    },
+    {
+      "file": "settings_static/internet_off.json",
+      "counts": {
+        "inspect_screens": 1,
+        "owner_screens": 1
+      },
+      "changes": []
+    },
+    {
+      "file": "settings_static/internet_on.json",
+      "counts": {
+        "inspect_screens": 1,
+        "owner_screens": 1
+      },
+      "changes": []
+    },
+    {
+      "file": "settings_static/network.json",
+      "counts": {
+        "inspect_screens": 1,
+        "owner_screens": 1
+      },
+      "changes": []
+    },
+    {
+      "file": "settings_static/network_direct.json",
+      "counts": {
+        "inspect_screens": 1,
+        "owner_screens": 1
+      },
+      "changes": []
+    },
+    {
+      "file": "settings_static/pairing.json",
+      "counts": {
+        "inspect_screens": 1,
+        "owner_screens": 1
+      },
+      "changes": []
+    }
+  ]
+}

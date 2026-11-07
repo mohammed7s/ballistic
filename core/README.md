@@ -224,6 +224,19 @@ Source grammar, frozen cases, offline comparison and limits: [`TYPED_VALUES_2026
 Everything else the planner needs from content (the newest thread, the message from the dentist)
 it gets through `read` (§6) as a typed answer.
 
+**Collection content independent of viewport size** (7 Nov 2026). A raw `list` with an exact
+Android RecyclerView/ListView/ExpandableListView/GridView class establishes content for its
+same-package descendants, including rows the host calls `button`. This is computed before
+container pruning; the content classification follows strings through folding. Host roles,
+code-owned identities, owner whole-string matching and the existing reader-pick policy remain
+unchanged. ScrollView, NestedScrollView and pagers do not establish this new inference; the
+older role/scrollability restrictions remain in place. Unknown/missing classes or packages and
+malformed ancestry receive no new inference, not a certificate that their strings are safe.
+Raw Settings-home labels, Clock city-list values and Expense's nested MORE button consequently
+become opaque where no code-owned identity exists. Existing Settings profiles remain intact.
+Frozen tests, scripted prompt evidence, compatibility counts and limits:
+[`COLLECTION_CONTENT_20261107.md`](../docs/COLLECTION_CONTENT_20261107.md).
+
 Measurement plan: record the raw screens of one task (ContactsAddContact, the baseline's
 reference task), then count prompt tokens for T3A's format and for ours on the same screens.
 Also report it live per step in the run JSON, as today.

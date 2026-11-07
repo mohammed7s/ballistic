@@ -313,7 +313,7 @@ enum PieceKind {
     FileCaption,
     /// Original bytes from a dedicated value slot, always retained for reader freshness.
     ValueContent,
-    /// Calendar item strings remain content if the host reports a row as a button.
+    /// Collection/calendar strings remain content through folding, whatever the host role.
     ItemContent,
 }
 
@@ -340,6 +340,16 @@ fn on_screen(b: &Bounds, w: i32, h: i32) -> bool {
 
 fn is_toggle_role(r: Role) -> bool {
     matches!(r, Role::Switch | Role::Checkbox)
+}
+
+/// Collection semantics do not depend on whether the current viewport can scroll. ScrollView,
+/// NestedScrollView and pagers also host forms/control panels, so their class alone is not
+/// evidence of data rows. Keep host roles intact (in particular for exact Settings profiles).
+fn is_collection(n: &Node) -> bool {
+    n.role == Role::List && !n.flags.editable && !n.flags.checkable
+        && matches!(n.class_name.as_deref(),
+            Some("androidx.recyclerview.widget.RecyclerView" | "android.support.v7.widget.RecyclerView"
+                | "android.widget.ListView" | "android.widget.ExpandableListView" | "android.widget.GridView"))
 }
 
 const MARKOR_ROW: &str = "net.gsantner.markor:id/opoc_filesystem_item__root";
@@ -419,6 +429,24 @@ pub fn filter(screen: &ScreenState, ctx: &FilterContext) -> FilteredScreen {
         nodes.iter().enumerate().map(|(i, n)| (n.id, i)).collect();
     let raw_parent = |i: usize| nodes[i].parent.and_then(|p| index.get(&p).copied()).filter(|p| *p < i);
 
+    // Infer content on the raw tree, before pure collections/wrappers can be pruned. Require
+    // unique IDs and a complete parent-before-child ancestry: missing/forward/cyclic edges
+    // cannot establish membership. Propagation stops at every explicit package boundary.
+    let mut seen = HashSet::new();
+    let duplicates: HashSet<_> = nodes.iter().filter(|n| !seen.insert(n.id)).map(|n| n.id).collect();
+    let mut valid_ancestry = vec![false; nodes.len()];
+    let mut collection_roots = vec![None; nodes.len()];
+    for (i, n) in nodes.iter().enumerate() {
+        let p = raw_parent(i);
+        valid_ancestry[i] = !duplicates.contains(&n.id)
+            && (n.parent.is_none() || p.is_some_and(|p| valid_ancestry[p]));
+        if let Some(p) = p.filter(|_| valid_ancestry[i]) {
+            if non_empty(&n.package).is_some() && n.package == nodes[p].package {
+                collection_roots[i] = if is_collection(&nodes[p]) { Some(i) } else { collection_roots[p] };
+            }
+        }
+    }
+
     // Rules 1 and 2. Parents come before children, so one forward pass sees every parent first.
     let mut work: Vec<Work> = Vec::with_capacity(nodes.len());
     for (i, n) in nodes.iter().enumerate() {
@@ -427,21 +455,22 @@ pub fn filter(screen: &ScreenState, ctx: &FilterContext) -> FilteredScreen {
         // Preserve captions and dedicated value slots byte-for-byte for reader identity.
         let value_slot = crate::typed_value::is_value_slot(n);
         let item_content = crate::typed_value::is_item_content(n);
+        let collection_content = collection_roots[i].is_some();
         let label = if value_slot || item_content {
             n.label.as_deref()
         } else if n.resource_id.as_deref() == Some(MARKOR_ROW) {
             n.label.as_deref().filter(|s| !s.trim().is_empty())
         } else { non_empty(&n.label) };
         if let Some(l) = label {
-            let kind = if value_slot { PieceKind::ValueContent } else if item_content { PieceKind::ItemContent } else if n.resource_id.as_deref() == Some(MARKOR_ROW) {
+            let kind = if value_slot { PieceKind::ValueContent } else if n.resource_id.as_deref() == Some(MARKOR_ROW) {
                 PieceKind::FileCaption
-            } else { PieceKind::Label };
+            } else if item_content || collection_content { PieceKind::ItemContent } else { PieceKind::Label };
             pieces.push(Piece { text: l.to_string(), kind });
         }
         if let Some(t) = if value_slot || item_content { n.text.as_deref() } else { non_empty(&n.text) } {
             // An empty edit field reports its hint as its text; that is the label, not content.
             if value_slot || item_content || pieces.iter().all(|p| p.text != t) {
-                pieces.push(Piece { text: t.to_string(), kind: if value_slot { PieceKind::ValueContent } else if item_content { PieceKind::ItemContent } else { PieceKind::Text } });
+                pieces.push(Piece { text: t.to_string(), kind: if value_slot { PieceKind::ValueContent } else if item_content || collection_content { PieceKind::ItemContent } else { PieceKind::Text } });
             }
         }
         if n.flags.checkable {
@@ -455,9 +484,13 @@ pub fn filter(screen: &ScreenState, ctx: &FilterContext) -> FilteredScreen {
             Some(p) => work[p].parent,
             None => None,
         };
+        // Retain the older host-role/scrollability restriction as well: this inference only
+        // withholds more content, never grants identity to a previously unidentified control.
         let is_item = n.role == Role::Item
             || (n.flags.clickable && parent.is_some_and(|p| nodes[p].flags.scrollable));
-        let item_root = if is_item { Some(i) } else { raw_parent(i).and_then(|p| work[p].item_root) };
+        let item_root = collection_roots[i].or_else(|| if is_item { Some(i) } else {
+            raw_parent(i).and_then(|p| work[p].item_root)
+        });
         work.push(Work {
             keep: visible && !pure_container,
             parent,
