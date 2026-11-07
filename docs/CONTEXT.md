@@ -252,6 +252,19 @@ DRM; a Linux-based phone; upstreaming the agent itself.
   Cloud signing log: `/home/build/logs/sign-cloud-test.log`; key procedure and exception
   recorded in `ballistic-os/docs/keys.md`. Phone flashing still needs the final backup/go
   confirmation. This build omits Updater; signed OTA sideloading is the update path.
+- **First patched OS build launched (7 Nov 2026, verified):** at 00:33:48 UTC (03:33:48
+  Amman), after baseline signing finished, the OS patch thread started build `2026110700`
+  on existing instance `59466158`. All eleven patches from `ballistic-os` commit `6b936cf`
+  (patch contents unchanged from `d02b997`) applied to the three clean repositories at tag
+  `2026110200`; resulting trees match the reviewed local implementations. Incremental
+  `blazer-cur-user`, `m -j32 target-files-package otatools-package`, preserves `out/`, vendor
+  files and baseline `releases/2026110600/`; no signing or phone operations by this thread.
+  Supervisor job `ballistic-patched-2026110700` runs as `build`, without automatic restart.
+  `/home/build/ballistic-patch-build-2026110700/` holds `build.log`, `status.txt`,
+  `build-identity.txt`, patch snapshot, hashes and applied revisions. Successful completion
+  finalizes unsigned packages into `/home/build/gos/releases/2026110700/` and writes checksums.
+  Soong regeneration observed running; compilation success and Android tests remain unverified.
+  Owner requested a prompt to hand monitoring and subsequent build work back to the build agent.
 - **Hardware (6 Nov 2026, corrected same day):** the owner's phone is a **Pixel 10 Pro**
   (`blazer`, SKU GEHN3, serial 56181FDCH0070R, stock Android 17 `CP2A.260805.005`), not a Pixel 10.
   **It cannot be bootloader-unlocked, so it cannot run GrapheneOS or Ballistic as it stands.**
