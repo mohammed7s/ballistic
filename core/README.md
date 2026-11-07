@@ -9,8 +9,8 @@ ownership through filtering and supplies code-owned labels from exact control id
 **readback** and an **idempotency guard** (§10): core observes once, compares the two screens in
 code, records `changed` / `unchanged` / `unreadable` and continues; the same guarded input again
 needs a fresh confirmation saying it may already have been sent, and a second acknowledgement on
-the same control stops the run. The reader's **`element` shape** is implemented (§7); `facts`
-and `summary` are not. Code-owned labels now cover the recorded anonymous controls of the
+the same control stops the run. The reader's **`element` shape** and a terminal, owner-only
+**extractive `summary`** are implemented (§7); general `facts` are not. Code-owned labels now cover the recorded anonymous controls of the
 20-task suite, including two Quick Settings tiles (§5). Keyboard suggestion-strip text (the
 clipboard) is content. Taint rule, Rule of Two as code, deny-only judge, full
 policy/configuration and skill execution below are the **design still to implement**.
@@ -256,7 +256,7 @@ validation is rejected and counted; the model gets one retry with the error.
 | `swipe` | `target`, `direction` | for sliders and carousels; T3A had no way to drag (brightness failure) |
 | `back`, `home` | | |
 | `wait` | | screen still loading |
-| `read` | `targets` (c-ids), `question`, `shape` | hands content to the reader (§7); `shape` is `summary`, `element` or `facts`; the typed result comes back next step |
+| `read` | `targets` (c-ids), `question`, `shape` | `element` returns an id next step; `summary` terminates with owner-only excerpts; `facts` unsupported (§7) |
 | `answer` | `text` | for questions the owner asked; text goes through the taint rule |
 | `done` | `evidence` | triggers the done check (§10) |
 | `give_up` | `reason` | |
@@ -287,7 +287,7 @@ for:
 |---|---|---|
 | `element` | one e-id from the ids on screen, or `none` | "which item is the thread with Nora?" |
 | `facts` | a fixed set of fields: `sender`, `when`, `phone_numbers[]`, `amounts[]`, `urls[]`, `summary` | "what does the newest message say?" |
-| `summary` | `summary` text for the owner, not for the planner | "what did I miss?" |
+| `summary` | bounded source excerpts for the owner only; ends the run | "summarise the visible note" |
 
 Anything outside the shape is dropped. The planner never receives reader prose; it receives the
 `element` id or the field values, each tagged with its source. The `summary` goes to the owner,
@@ -306,8 +306,64 @@ dispatches nothing and the next step reuses the same screen. Core keeps the pick
 (package, resource id, role, bounds and withheld text, compared in code) and re-locates it on
 later screens; it disappears when the row changes. A pick authorizes one plain `tap` on that
 element (not a field, slider, long press or anything in the shade); if its withheld text contains
-a guarded word (§9) the tap needs the owner's confirmation. `facts` and `summary` are not
-implemented; such a read is refused without a model call and the run continues.
+a guarded word (§9) the tap needs the owner's confirmation. `facts` is not implemented;
+such a read is refused without a model call and the run continues.
+
+**Implemented: terminal owner `summary` (7 Nov 2026, `reader/summary.rs`).** This is a distinct
+display channel, not `Action::Answer` or a planner fact. The owner opts in with an English
+sentence starting `[please ]summarize <subject>` or `[please ]summarise <subject>` (case
+insensitive, sentence boundaries `.?!` or newline). This is a narrow syntactic display request,
+not a semantic task recognizer. Compound requests can opt in; nothing in this path establishes
+that their other requirements have been met. Other wording is unsupported, not inferred from
+fixture strings, app names or model judgment.
+
+The planner chooses one to four current cN refs. Core requires distinct refs and current grants
+for their actual source packages. Only the separate reader sees their content, with the owner's
+request (the planner's question is not used). The reply must be exactly
+`{"items":[{"ref":"c1","text":"An exact short excerpt."}]}`, with every requested ref appearing
+once. No extra fields, model source labels, duplicate keys, missing/unknown/unrequested refs,
+fences or trailing prose. Excerpts must be nonempty, at most 240 characters, contain no control
+characters or JSON braces/brackets, and match a contiguous source substring bounded by
+whitespace or the source edges. Thus numbers and links cannot be invented or cut mid-token;
+each is attributable to the full cited source evidence. JSON action/tool directives in excerpts
+are rejected; natural-language instructions may still be quoted as untrusted evidence. Code
+does not claim to recognize all hostile prose or prove semantic relevance or source truth.
+
+Limits: at most 4,096 characters per source, 8,192 total source characters, 2,048 reply bytes,
+and the existing **64 reader tokens per attempt**. Core makes one reader port call with no
+correction/continuation; the host may perform its existing bounded transport/eligible-empty
+retries within that call. No retry policy changes here. Oversized input is unsupported;
+empty, malformed or truncated replies are rejected. No source text is silently truncated by
+this channel. The screen may itself contain only a preview or partial document; complete-note,
+latest-message and all-notes coverage cannot be established. Even four short sources may not
+fit the token cap. This is model-selected extraction, not general abstractive summarization.
+
+After parsing, core observes once and requires the same raw nodes (including untrimmed text),
+package, activity, dimensions and continued source grants. This is deliberately conservative:
+even an unrelated raw-node change rejects. It detects observed changes, not dishonest/stale
+hosts, earlier/later unseen changes or text omitted by the host. Provenance comes from the
+actual filter `ContentRef.source` and node, currently `app:<package>`; the model cannot invent
+a sender, filename, source type or source name.
+
+Every summary attempt is terminal, including refusal/error. Before/after the reader, before
+fresh observation, after observation, before logging and immediately before final publication,
+core checks Stop. No planner, correction, verifier, judge, confirmation, Hands or Tools call
+follows the summary reader. No excerpt or evidence is added to step events/history or element
+picks. The final report has `owner_output.status` (`available`, `rejected`, `failed`, `stale`,
+`unsupported`); only `available` has items with `ref`, `text`, `node`, code-owned `source` and
+full filter `evidence`. The generic `reason` renders quoted excerpts and evidence as plain
+text for existing hosts. Hosts must never reuse that display text in future model context or
+turn links into automatic actions. The CLI escapes terminal controls and preserves full owner
+output; Android uses its existing plain `Text` report rendering, with an honest evidence label.
+No FFI change or executable handle is needed.
+
+An available report keeps `done:false`, `task_status:pending`, verification `unknown` with
+`evidence_basis:model_selected_source_excerpt`, and the actual prior execution status. This
+distinguishes available display content from failed/unsupported summaries without claiming
+independent verification or completion of any request, including unrelated action requirements.
+Citation checks establish source membership only: even exact quotations can be selected out of
+context, omit negation, repeat false claims, or be irrelevant. No live quality uplift is claimed.
+Frozen baseline, scripted drive/bridge tests and limits: [development record](../docs/OWNER_SUMMARY_20261107.md).
 
 **Provenance.** Every value core handles carries a source tag: `owner:request`, `owner:contacts`,
 `screen:label`, `sms:<sender>`, `note:<file>`, `web:<host>`, `app:<package>`. Tags are set by the
@@ -323,6 +379,11 @@ remain unfinished; see the implementation status at the top):
    argument whose source is not `owner:*` or `screen:label` needs a hard confirmation that shows
    the value and its source. "Send to the number in the message" is allowed to be *proposed*;
    the fingerprint decides.
+   **Display-only exception:** a directly requested terminal reader summary (§7 above) is a
+   separate owner-output channel, not arbitrary planner `Answer`. It requires no confirmation
+   because it grants no mutation, third-party send or future action argument and ends the action
+   loop. Arbitrary `Answer` remains unsupported. This does not implement general provenance,
+   taint propagation, Rule of Two or the deny-only judge.
 3. **Rule of Two** (Meta, Oct 2025, as code): once a session has read untrusted content, no send,
    pay, delete or install happens in it without a confirmation in between.
 4. Policy check before every action (§9); confirmation where required.
@@ -518,6 +579,14 @@ model planning failures; classify a deliberate denial as policy denial, not exec
 
 ## 14. Tests
 
+Terminal summaries have frozen offline development cases in `tests/cases/owner_summaries.json`
+and actual drive/bridge coverage in `tests/owner_summary.rs`: hostile and legitimate source
+text, exact source reporting, strict malformed/directive/citation rejection, stale raw content,
+Stop at reader/observation/publication boundaries, compound-task noncompletion, unsupported
+Answer, grant/input/output limits and isolation from correction prompts. See the development
+record linked in §7 for baseline failures and final validation; these are not live injection
+scores, model quality measurements or a comprehensive security evaluation.
+
 - **Unit tests, no emulator**: recorded screens (`core/tests/screens/*.json`) → filter output,
   match-only titles, action validation, taint rule, Rule of Two, policy decisions, skill
   matching, reader shape enforcement. Today (`cargo test`, 64 tests): `agent_checks.rs`,
@@ -682,8 +751,8 @@ The generated file is committed and must be regenerated whenever `ffi.rs` change
 checksum of every exported function against the loaded library, so a stale binding fails at load.
 The harness build (`cargo build`, no feature) contains none of this.
 
-**What remains in core for the app**: reader facts/summary and answer provenance (the element
-reader is implemented), policy and routing moving into core from the shell's `ConfirmFloor`, core
+**What remains in core for the app**: reader facts, general abstractive summary and answer
+provenance (element and terminal source excerpts are implemented), policy and routing moving into core from the shell's `ConfirmFloor`, core
 contracts for notification reply, dial and alarm, and checking the hard-approval signature.
 
 The element reader stops repeated identical queries on the same observation and allows at most
@@ -702,7 +771,8 @@ still cannot prove that every requested field or value was satisfied merely from
    comparison in `docs/BENCHMARK_RUNS.md`.*
 5. Reader with typed shapes, provenance tags; injection tests 1, 2, 4, 6. *`element` shape
    with source tags done 7 Nov (unit tests with a hostile row and reader prose, §14 case 6 at
-   unit level); `facts`, `summary` and the emulator injection tests open.*
+   unit level); terminal extractive `summary` implemented offline; `facts`, abstractive summary
+   and the emulator injection tests open.*
 6. Taint rule, Rule of Two, policy, confirmation; injection tests 3, 5.
 7. Judge.
 8. Shipped capability descriptions loaded by relevance/on demand; skills recorded on PASS,

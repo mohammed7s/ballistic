@@ -42,6 +42,7 @@ import requests
 
 import core_bridge  # local module, same directory
 from outcomes import evaluate_benchmark, combined_verdict, failure_category
+from reporting import print_core_event
 from android_world import registry
 from android_world.agents import infer, m3a, t3a
 from android_world.env import env_launcher
@@ -246,14 +247,6 @@ def core_models() -> core_bridge.ModelClient:
         routes[role] = (FLAGS.base_url, model or FLAGS.model, key)
     return core_bridge.ModelClient(routes, FLAGS.temperature, FLAGS.timeout,
                                    min_interval_seconds=FLAGS.core_model_min_interval)
-
-
-def print_core_event(ev: dict[str, Any]) -> None:
-    """One line per step from core's log events, and the finished report."""
-    if "step" in ev:
-        print(f"step {ev.get('step'):>2}  {ev.get('seconds', 0):5.1f}s  {str(ev.get('action'))[:110]}")
-    elif ev.get("finished"):
-        print("finished:", json.dumps(ev.get("report") or ev.get("error"))[:300])
 
 
 def serve_core(host: core_bridge.CoreHost, args: list[str]) -> dict[str, Any]:

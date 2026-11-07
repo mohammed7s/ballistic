@@ -276,6 +276,13 @@ actual phone before selecting a backend. See `docs/PIXEL10PRO_MODELS.md` for dat
    facts the reader extracts are tagged with their source and the planner may not use a tagged
    fact as an action parameter without a hard confirmation that shows the fact and its source;
    the confirmation dialog always shows the resolved target, not the label.
+   **Owner display clarification (7 Nov 2026):** a directly requested reader summary may return
+   source-bound display content to the owner without confirmation through a distinct terminal
+   output channel. It grants no mutation, third-party send or action argument, and no model or
+   action dispatch follows it. This does not relax the restriction on arbitrary planner Answer.
+   The initial implementation is short exact source excerpts with unknown truth/coverage and
+   no whole-task completion claim (`core/README.md` §7). General taint propagation, Rule of Two
+   and the deny-only judge remain unfinished.
 4. **Per-app grants** with GrapheneOS-style defaults: messaging = observe + act, confirm sends;
    banking category = notifications only, device-only, never automate; others = observe + act with
    the default confirmation list.

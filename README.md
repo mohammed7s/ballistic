@@ -9,9 +9,11 @@ the device, and a confirmation step the agent can raise but never press. The nam
 itself: electrons move through it *ballistically*, fast and straight, without scattering.
 
 Status: **design and harness stage** (November 2026). The agent loop runs on an emulator; nothing
-ships yet. The Rust core has an initial tree agent, confirmation hooks and verifier; typed reader,
-provenance rules, deny-only judge and recorded skills are still planned. The terminal prompt is
-the current interface, followed later by a native Android app; no localhost/browser UI is planned.
+ships yet. The Rust core has an initial tree agent, confirmation hooks, verifier, element reader
+and terminal owner-only source excerpts; general reader facts, provenance rules, deny-only judge
+and recorded skills are still planned. The terminal prompt drives the harness. A native prototype
+APK has demonstrated Clock launch and Stop; other-app observation and the latest-core rebuild
+remain unfinished. No localhost/browser UI is planned.
 Apache 2.0. Not affiliated with or endorsed by GrapheneOS.
 
 ## Why
@@ -107,7 +109,7 @@ land. The agent itself is not proposed for upstream.
 | Step | State |
 |---|---|
 | 1. Harness: emulator + [AndroidWorld](https://github.com/google-research/android_world) + local models, agent loop driving a phone | **Running.** First full task completed end to end (failed on quality, not plumbing). |
-| 2. Core library: filtered UI tree, planner/reader split with source tags, deny-only judge, skills, routing, injection tests | **Initial Rust implementation.** Contracts, evidence and exact-operation approval refinements agreed 7 Nov; reader/provenance/judge/skills pending (`core/README.md`). |
+| 2. Core library: filtered UI tree, planner/reader split with source tags, deny-only judge, skills, routing, injection tests | **Initial Rust implementation.** Element reader and terminal owner excerpts implemented offline; general facts/provenance/judge/skills pending (`core/README.md`). |
 | 3. Assistant as an ordinary app (no privileges) on any Android phone | |
 | 4. Own GrapheneOS build, own keys, own OTA | |
 | 5. Computer Control gate; assistant runs through `ComputerControlSession` on a Pixel | |

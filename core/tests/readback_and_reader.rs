@@ -270,14 +270,14 @@ fn a_pick_authorizes_a_tap_only() {
 }
 
 #[test]
-fn other_reader_shapes_are_refused_without_a_model_call() {
+fn general_reader_facts_are_refused_without_a_model_call() {
     let s = fixture("conversations");
     let view = filtered(&s, REPLY_REQUEST);
     let c = rows(&view)[0].1;
-    let (_, calls) = run(vec![json!(s), completion(json!({"action":"read","targets":[format!("c{c}")],"question":"what does it say?","shape":"summary"})),
+    let (_, calls) = run(vec![json!(s), completion(json!({"action":"read","targets":[format!("c{c}")],"question":"what does it say?","shape":"facts"})),
         give_up()], REPLY_REQUEST);
     assert!(!calls.iter().any(|c| c["role"] == "reader"));
-    assert!(planner_calls(&calls)[1]["messages"].to_string().contains("only the reader's element shape is available"));
+    assert!(planner_calls(&calls)[1]["messages"].to_string().contains("reader facts are not implemented"));
 }
 
 

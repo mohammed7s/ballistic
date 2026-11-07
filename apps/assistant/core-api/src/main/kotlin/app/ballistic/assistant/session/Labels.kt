@@ -14,6 +14,7 @@ import kotlinx.serialization.json.jsonPrimitive
 fun resultLabel(result: RunResult): String = when {
     result.stopped -> if (result.executionStatus == ExecutionStatus.NotExecuted) "Stopped; nothing was done" else "Stopped; earlier steps may have taken effect"
     result.executionStatus == ExecutionStatus.Unknown -> "Unresolved: an action may or may not have taken effect"
+    result.verification.evidenceBasis == "model_selected_source_excerpt" -> "Source excerpts available; task completion is not confirmed"
     result.taskStatus == TaskStatus.Completed -> "Completed"
     result.taskStatus == TaskStatus.OpenedUi -> "Opened the app; the task itself is not confirmed"
     result.taskStatus == TaskStatus.Pending -> "Unresolved: input was accepted, the effect is not confirmed"
@@ -25,6 +26,7 @@ fun resultLabel(result: RunResult): String = when {
 fun evidenceLabel(result: RunResult): String = when (result.verification.evidenceBasis) {
     "none" -> "no evidence"
     "model_assessment" -> "a model's reading of the screen"
+    "model_selected_source_excerpt" -> "model-selected quotations; truth and coverage are unverified"
     "visible_ui" -> "a check of the visible screen"
     else -> result.verification.evidenceBasis
 }

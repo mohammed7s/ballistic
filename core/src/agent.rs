@@ -1,11 +1,11 @@
 //! Initial tree-only loop with the reader's `element` shape and guarded-input readback.
-//! Facts/summary reader shapes, provenance policy and skills remain unfinished.
+//! Terminal owner excerpts are separate from the planner; facts/provenance/skills remain unfinished.
 //! The harness Bridge and the UniFFI host share this cancellable loop.
 use std::io::{BufRead, Write};
 use std::time::Instant;
 use serde_json::{json, Value};
 use crate::{capabilities, verification, launch_completion, actions, bridge::Bridge, ports::*, run::Host,
-    readback::{self, Readback}, reader::{self, ElementAnswer, ReaderPick},
+    readback::{self, Readback}, reader::{self, summary, ElementAnswer, ReaderPick},
     screen_filter::{self, FilterContext, FilteredScreen}, types::*};
 
 const RULES: &str = include_str!("../prompts/planner.txt");
@@ -130,6 +130,8 @@ pub(crate) fn drive<H: Host>(host: &mut H, request:&str, max_steps:u32) -> PortR
         let mut step_execution_status = ExecutionStatus::NotExecuted;
         let mut readback_event: Option<Readback> = None;
         let mut reader_event: Option<Value> = None;
+        // Only final report publication may consume this. Never history, events or prompts.
+        let mut owner_output: Option<summary::Output> = None;
         match &action {
             Action::Done{..}=> {
                 stop_if_cancelled!(step-1);
@@ -184,6 +186,7 @@ pub(crate) fn drive<H: Host>(host: &mut H, request:&str, max_steps:u32) -> PortR
                 read_queries.push(query);
                 stop_if_cancelled!(step-1);
                 let answer=host.complete(ModelRole::Reader,&reader_messages,64)?;
+                stop_if_cancelled!(step-1);
                 picks.clear();
                 outcome=match reader::parse_element(&answer.text,&allowed) {
                     ElementAnswer::Element(id)=> match ReaderPick::new(&view,id) {
@@ -199,7 +202,50 @@ pub(crate) fn drive<H: Host>(host: &mut H, request:&str, max_steps:u32) -> PortR
                 next_screen=Some(screen.clone());
                 }
             },
-            Action::Read{..}=> {outcome="only the reader's element shape is available".into();next_screen=Some(screen.clone());},
+            Action::Read{targets,shape:ReadShape::Summary,..}=> {
+                terminal=true;
+                task_status="pending";
+                verification=Verification::default();
+                stop_if_cancelled!(step-1);
+                let input=summary::requested(request).then(|| summary::Input::new(&view,targets,&screen)).flatten();
+                let result=if let Some(input)=input {
+                    // Use the owner's request, not a planner-authored instruction. One existing
+                    // 64-token reader port call; no core retry/correction or planner continuation.
+                    // The host retains its existing bounded transport retry policy.
+                    stop_if_cancelled!(step-1);
+                    let answer=host.complete(ModelRole::Reader,&input.messages(request),64);
+                    stop_if_cancelled!(step-1);
+                    match answer {
+                        Err(_)=>summary::Output::unavailable(summary::Status::Failed),
+                        Ok(answer)=>match input.parse(&answer.text) {
+                            None=>summary::Output::unavailable(summary::Status::Rejected),
+                            Some(items)=> {
+                                stop_if_cancelled!(step-1);
+                                let fresh=host.observe();
+                                stop_if_cancelled!(step-1);
+                                match fresh {
+                                    Ok(fresh) if input.fresh(&screen,&fresh)=>summary::Output::available(items),
+                                    Ok(_)=>summary::Output::unavailable(summary::Status::Stale),
+                                    Err(_)=>summary::Output::unavailable(summary::Status::Failed),
+                                }
+                            },
+                        },
+                    }
+                } else { summary::Output::unavailable(summary::Status::Unsupported) };
+                if result.is_available() {
+                    verification.evidence_basis="model_selected_source_excerpt".into();
+                    outcome="owner excerpts available; task completion is not established".into();
+                } else {
+                    failure_category=Some("reader_summary");
+                    task_status=if matches!(result.status,summary::Status::Unsupported) {"unsupported"} else {"failed"};
+                    outcome="owner summary unavailable; stopped".into();
+                }
+                // Status only in the step log. The source text and excerpts stay local until
+                // after the last cancellation check and are never added to the action history.
+                reader_event=Some(json!({"summary_status":result.status}));
+                owner_output=Some(result);
+            },
+            Action::Read{..}=> {outcome="reader facts are not implemented".into();next_screen=Some(screen.clone());},
             Action::Answer{..}=> {outcome="answer provenance is not implemented".into();task_status="unsupported";failure_category=Some("planning");terminal=true;},
             _=> {
                 let op=actions::resolve(&action,&view,&screen,&apps).map_err(|e|PortError::Malformed(e.to_string()))?.ok_or_else(||PortError::Malformed("no hands operation".into()))?;
@@ -276,7 +322,14 @@ pub(crate) fn drive<H: Host>(host: &mut H, request:&str, max_steps:u32) -> PortR
 
             }
         }
+        stop_if_cancelled!(step-1);
         host.log(&json!({"step":step,"action":actions::to_json(&action),"why":reply.why,"outcome":outcome,"task_status":task_status,"execution_status":execution_status,"verification":verification,"failure_category":failure_category,"step_execution_status":step_execution_status,"readback":readback_event,"reader":reader_event,"capability_mode":if screen.capabilities.is_some(){"advertised"}else{"missing_denied"},"seconds":start.elapsed().as_secs_f64()}))?;
+        if let Some(output)=owner_output {
+            let reason=if output.is_available() {output.display()} else {outcome};
+            let report=json!({"done":false,"reason":reason,"steps":step,"task_status":task_status,"execution_status":execution_status,"verification":verification,"failure_category":failure_category,"owner_output":output});
+            stop_if_cancelled!(step);
+            return Ok(report);
+        }
         let line=format!("{}: {}",actions::describe(&action),outcome);
         if step_execution_status==ExecutionStatus::Executed && readback_event.is_none() && !terminal {
             pending_line=Some((line,screen,target_node(&action,&view)));

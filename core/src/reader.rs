@@ -15,6 +15,9 @@ use serde_json::json;
 use crate::screen_filter::{Element, FilteredScreen};
 use crate::types::*;
 
+/// Terminal, display-only excerpts. They never become element picks or planner facts.
+pub mod summary;
+
 /// Fixed reader rules, shipped with the build.
 pub const READER_PROMPT: &str = include_str!("../prompts/reader.txt");
 

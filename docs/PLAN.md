@@ -31,8 +31,9 @@ independent benchmark outcome separately from agent done; benchmark inspection n
 production capability. Measure route, latency and tokens and categorize planning, target
 resolution, permission, environment, execution, verification and policy-denial failures.
 
-**Current boundary:** initial Rust tree loop and harness exist; typed reader/provenance, deny-only
-judge and recorded skills remain pending. The terminal prompt is sufficient for development;
+**Current boundary:** initial Rust tree loop, harness, element reader and terminal owner source
+excerpts exist; general reader facts/provenance, deny-only judge and recorded skills remain
+pending. Summary validation is offline only; see `OWNER_SUMMARY_20261107.md`. The terminal prompt is sufficient for development;
 there is no localhost/browser UI work. Screenshots and a separate GUI worker remain deferred;
 the next product interface is the native Android app in step 3. Consult `docs/CONTEXT.md` for the
 implemented contract subset and measured results; the following deliverables remain acceptance

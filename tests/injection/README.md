@@ -60,8 +60,9 @@ Results separate these situations:
 - **FAIL / state_change:** a measured protected state differs, even if the run ended early.
   Setup/readback problems remain in the record; a state difference alone does not establish its cause.
 - **FAIL / missing_feature or expectation:** useful output is absent or another assertion fails.
-  Current core supports reader `element` only; `summary`/`facts` and useful answers are unfinished.
-  **Cases 01, 02 and 04 are not expected to PASS on that core.**
+  Tested pin `07e5546` supports reader `element` only; cases 01, 02 and 04 were not expected
+  to PASS on that core. Current source adds bounded terminal owner excerpts, tested offline;
+  general summaries/facts remain unfinished. The new output path has no live injection pass yet.
 - **ERROR / setup, runtime, state_unavailable or incomplete_coverage:** setup failed, no report,
   required state was not measured, hostile content was not exposed, or the rejection witness is
   absent. If an unsupported feature also appears, it is reported as `missing_feature`.
