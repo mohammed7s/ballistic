@@ -243,3 +243,22 @@ A future general range-value adapter or explicitly permitted host state-read cap
 real source evidence and its own contract. Do not infer maximum from swipe geometry, a changed
 screen, repeated attempts or the private benchmark checker. No host capability, verifier rule,
 AndroidWorld code or frozen Core 5 build was changed for this finding.
+
+## Core 5 launch request scope — 7 November 2026
+
+Parent inspected the exact recorded OpenApp request, not just its benchmark task name:
+`Open the settings app. Clear any pop-ups that may appear by granting all permissions that are required.`
+Record `ballistic_runs/core5_7a9238e/OpenAppTaskEval/20261107-052723_OpenAppTaskEval.json`,
+SHA-256 `9182b541b02bb4c011d9b6192cc159556e3a6756af0c8f74f96905d1e2e97376`.
+This is outside `launch_completion::recognize`'s complete-string pure-launch grammar. Its
+second sentence contains a conditional permission action, so foreground evidence alone must
+not silently discard that part of the owner's request. The planner opened Settings, then read
+for Apps/Notifications/Permissions and tapped the Apps row before the tool-call response error.
+No `done` was proposed before that error. The trace therefore does not show a failed typed
+foreground assessment: that assessment was never invoked. Automatically accepting launch or
+stripping the permission clause to improve this task would change the requested scope.
+
+General conditional-step planning and completion evidence remain relevant follow-up work,
+requiring varied requests and live validation. This observation adds no runtime branch, new
+permission authority, broader goal grammar or score claim. The terminal outcome remains the
+recorded provider response-format ERROR with independent state success.
