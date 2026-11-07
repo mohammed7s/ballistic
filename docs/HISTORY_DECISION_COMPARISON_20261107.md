@@ -134,3 +134,45 @@ outcome separately, plus acknowledged Shutter-targeted inputs, verifier evidence
 tokens and timings. Acknowledged taps do not establish exact photo count. Preserve the dirty
 remote main and original visible emulator; release and independently verify ownership at end.
 This small familiar-task experiment cannot establish a full-suite gain or >=13/20 result.
+
+## Camera execution result — 7 November 2026
+
+Exactly A then B ran once, seed 0, at the pinned commits above. Both finished with no
+Done proposal, no verifier call, independent state failed and combined FAIL. A gave up at
+step 2 because its raw Camera observation lacked a Shutter node. B saw Shutter, dispatched
+two acknowledged taps, waited four times and gave up at step 8. At its second tap the current
+Shutter explicitly carried the same history handle as the first acknowledged tap. A new
+last-photo thumbnail was visible, but B did not inspect it. The earlier recorded-state
+repeat-to-Done change did not recur in this fresh B trajectory.
+
+The unchanged checker tests for exactly one new photo-directory filename. Neither run
+retained the private before/after filename sets, so actual photo counts remain unknown.
+Two acknowledged inputs are not proof of two photos. A never reached the post-Shutter
+comparison state; unequal starting observations, missing Camera snapshots in normal AW
+setup/teardown and one fixed-order sample prevent causal attribution.
+
+A used 2 calls, 5,191 prompt/89 output tokens, 14.8 s agent and 0.048 s checker. B used
+8 calls, 21,284 prompt/236 output tokens, 45.3 s agent and 0.027 s checker. All ten attempts
+returned HTTP 200, no retries/errors/unknown prompt-output usage. The configured five-second
+pacing contributed 0.967 s inside agent time; per-attempt start timestamps were unavailable
+for an independent measured minimum-gap claim. Early give-up prevents speed comparisons.
+
+Fresh remote gates passed: A 285 Rust/95 Python, B 303 Rust/102 Python, zero failures/skips.
+An ignored wrapper called unchanged `_run_core` and added existing AW teardown in finally
+for both runs; source/core/checker/policy stayed unchanged. A fresh binary SHA-256 was
+`590274001a37f8cfb184f259246beccdfc352c988595f822928e5b0dc1deac75`; B was
+`e3f5b6e12821c17e299be69c2aa3b3b81ca49be1c265ab65d0849c12e3cff81a`.
+Manifest SHA-256: `c4cdf0399197069f699060b0b7d904fb30edd1619a4db219db715adff6d9afce`.
+
+Parent verified all 60 indexed files and independently checked raw outcomes, action sequences,
+usage and B's second-tap prompt. Evidence: ignored
+`ballistic_runs/history_camera_pair_20261107_b90500a5/`; report SHA-256
+`8c4cb3496c8b810bbb1c6fdfa55031ce882fa047a86433d4a6913eeef33ce06f`.
+Token-owned release at 11:00:03 UTC and independent checks confirm no lock/drivers and
+preservation of the original visible emulator, dirty main, AW, source and binaries.
+
+Decision: park the unmerged history candidate. Neither the decision comparison nor this
+execution round supplies evidence to deploy it. No full-suite rerun is justified by this
+feature. Continue separately with offline investigation of observation readiness and an
+owner-derived numeric-constraint prototype, as proposed in the planning audit; neither is
+yet a verified fix. Last complete suite remains **8/20 combined, 11/20 state**.

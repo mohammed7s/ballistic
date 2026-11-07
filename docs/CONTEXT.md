@@ -15,6 +15,14 @@ confirmation dialog.**
 
 ## 2. Decisions taken (and why)
 
+### 2026-11-07 — Camera pair failed; history candidate parked
+
+Fresh A(aaf0e6c) then B(5ff7d5), one CameraTakePhoto each, both FAIL with independent state failed, no Done proposals and no verifier calls. A gave up at step2: its raw camera tree lacked Shutter. B tapped Shutter twice despite explicit same-control history, waited four times and gave up at step8; the visible new thumbnail was not inspected. Exact photo counts were not recorded. Unequal initial observations and missing normal AW Camera snapshots prevent paired causal attribution. The prior one-step repeat-to-Done response did not recur.
+
+Parent verified all60 artifact hashes and raw outcomes/actions/usage plus B's repeated-tap context. A14.8s agent/0.048s checker, B45.3s/0.027s; ten HTTP200 attempts total, zero retries/errors,26,475 prompt/325 output tokens. Fresh remote gates A285Rust/95Python,B303Rust/102Python passed without skips. Evidence and caveats: `docs/HISTORY_DECISION_COMPARISON_20261107.md`, ignored `ballistic_runs/history_camera_pair_20261107_b90500a5/`. Lock released11:00:03UTC, independent absence/preservation checks passed.
+
+Decision: park unmerged grounded-history code; no deployment/full-suite rerun based on this feature. Continue offline with observation-readiness diagnosis and separate owner-derived numeric-constraint prototype, with fixed varied cases before implementation, no new authority or benchmark-specific shortcuts. Neither is a proven fix. Last complete suite remains8/20 combined,11/20 state, below13/20 objective. No active device/model owner after pair release.
+
 ### 2026-11-07 — Twelve-call history comparison completed; no broad gain
 
 The fixed recorded-state comparison completed all12 requests/12 attempts with HTTP200, zero retries/errors/format failures and no action/device execution. A was `aaf0e6c` (runtime4de7ade), B isolated `5ff7d5` (documentation HEAD bd8886b). Parent verified all785 indexed artifact files and independently read all12 raw answers. Final freeze SHA `710199088eca748247bf85dea7e239931f315fe8b53169a35dd8952eb27884b8`; artifacts ignored `ballistic_runs/history_decision_5ff7d_20261107_d96f0cee/`. Baseline historical build provenance limitations and same-reviewer label blinding are recorded in `docs/HISTORY_DECISION_COMPARISON_20261107.md`.
