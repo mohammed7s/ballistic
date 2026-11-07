@@ -741,8 +741,11 @@ prompt UI is planned. Subagents use GPT-6-Astra at the owner's request.
 Verified 7 Nov, 01:18 UTC (build track): baseline 2026110600 factory ZIP on the
 ThinkPad passed SHA-256, pinned factory signature, extraction and AVB key checks;
 transfer ended rc=0 at 01:16:54 UTC. Pixel USB absent, no flash/unlock performed.
-Patched test packages compiled successfully; focused Settings host tests started
-at 01:17:37 UTC. Patched signing remains active. Cloud credit $5.29.
+Patched test packages compiled successfully. Focused Settings host retry completed
+at 01:22:38 UTC: 11 passed, 0 failed, 3 assumption skips (per-app-consent-disabled
+summary tests). Original runner failed on missing adb; building adb fixed startup.
+No OS source change. On-device instrumentation remains pending. Patched signing
+is generating the OTA; cloud credit $5.18 at approximately 01:26 UTC.
 
 ## 7. Questions to put to the GrapheneOS team
 
