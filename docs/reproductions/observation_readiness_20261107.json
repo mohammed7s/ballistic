@@ -1,0 +1,98 @@
+{
+  "description": "Frozen extracts of accepted normalized host replies, not original accessibility protos or acquisition sequences. No reconstructed window flags are recorded facts.",
+  "parent_head": "389579429663f44abbb3fcea73fd6f302e861311",
+  "pair_root": "history_camera_pair_20261107_b90500a5",
+  "arms": {
+    "A": {
+      "record": "A/live/20261107-105849_CameraTakePhoto.json",
+      "record_sha256": "8f13cee95d966f66c5431b22b6db6a3e2224e1d2eab91457116e0fa7e656c48e",
+      "extract": {
+        "reply_line_index": 8,
+        "reply_id": 4,
+        "screen": {
+          "package": "com.android.camera2",
+          "activity": "com.android.camera.CameraLauncher",
+          "width": 1080,
+          "height": 2400,
+          "foreground": {
+            "package": "com.android.camera2",
+            "activity": "com.android.camera.CameraLauncher",
+            "sequence": 2
+          },
+          "nodes": [
+            {"id": 1, "parent": null, "role": "container", "class_name": "android.widget.FrameLayout", "label": null, "text": null, "resource_id": null, "package": "com.android.camera2", "bounds": {"x1": 0, "y1": 128, "x2": 1080, "y2": 2400}, "flags": {"clickable": false, "long_clickable": false, "editable": false, "scrollable": false, "checkable": false, "checked": false, "selected": false, "enabled": true, "focused": false, "visible": true}},
+            {"id": 2, "parent": 1, "role": "container", "class_name": "android.view.View", "label": null, "text": null, "resource_id": "com.android.camera2:id/preview_overlay", "package": "com.android.camera2", "bounds": {"x1": 0, "y1": 128, "x2": 1080, "y2": 2337}, "flags": {"clickable": false, "long_clickable": false, "editable": false, "scrollable": false, "checkable": false, "checked": false, "selected": false, "enabled": true, "focused": false, "visible": true}},
+            {"id": 3, "parent": 1, "role": "button", "class_name": "android.widget.LinearLayout", "label": "Options", "text": null, "resource_id": "com.android.camera2:id/mode_options_toggle", "package": "com.android.camera2", "bounds": {"x1": 921, "y1": 1862, "x2": 1048, "y2": 1990}, "flags": {"clickable": true, "long_clickable": false, "editable": false, "scrollable": false, "checkable": false, "checked": false, "selected": false, "enabled": true, "focused": false, "visible": true}},
+            {"id": 4, "parent": 3, "role": "image", "class_name": "android.widget.ImageView", "label": "Options", "text": null, "resource_id": "com.android.camera2:id/three_dots", "package": "com.android.camera2", "bounds": {"x1": 953, "y1": 1894, "x2": 1016, "y2": 1957}, "flags": {"clickable": false, "long_clickable": false, "editable": false, "scrollable": false, "checkable": false, "checked": false, "selected": false, "enabled": true, "focused": false, "visible": true}},
+            {"id": 5, "parent": 1, "role": "button", "class_name": "android.widget.Button", "label": "Toggle mode list", "text": "MODE LIST", "resource_id": "com.android.camera2:id/accessibility_mode_toggle_button", "package": "com.android.camera2", "bounds": {"x1": 0, "y1": 128, "x2": 248, "y2": 254}, "flags": {"clickable": true, "long_clickable": false, "editable": false, "scrollable": false, "checkable": false, "checked": false, "selected": false, "enabled": true, "focused": false, "visible": true}},
+            {"id": 6, "parent": 1, "role": "button", "class_name": "android.widget.Button", "label": "Toggle filmstrip", "text": "FILMSTRIP", "resource_id": "com.android.camera2:id/accessibility_filmstrip_toggle_button", "package": "com.android.camera2", "bounds": {"x1": 248, "y1": 128, "x2": 494, "y2": 254}, "flags": {"clickable": true, "long_clickable": false, "editable": false, "scrollable": false, "checkable": false, "checked": false, "selected": false, "enabled": true, "focused": false, "visible": true}},
+            {"id": 7, "parent": 1, "role": "button", "class_name": "android.widget.Button", "label": "Zoom out", "text": "Z-", "resource_id": "com.android.camera2:id/accessibility_zoom_minus_button", "package": "com.android.camera2", "bounds": {"x1": 494, "y1": 128, "x2": 725, "y2": 254}, "flags": {"clickable": true, "long_clickable": false, "editable": false, "scrollable": false, "checkable": false, "checked": false, "selected": false, "enabled": false, "focused": false, "visible": true}},
+            {"id": 8, "parent": 1, "role": "button", "class_name": "android.widget.Button", "label": "Zoom in", "text": "Z+", "resource_id": "com.android.camera2:id/accessibility_zoom_plus_button", "package": "com.android.camera2", "bounds": {"x1": 725, "y1": 128, "x2": 956, "y2": 254}, "flags": {"clickable": true, "long_clickable": false, "editable": false, "scrollable": false, "checkable": false, "checked": false, "selected": false, "enabled": true, "focused": false, "visible": true}}
+          ]
+        },
+        "planner_screen": "com.android.camera2 / com.android.camera.CameraLauncher:\ne1 button \"Options\" [clickable]\ne2 button \"Toggle mode list \u00b7 MODE LIST\" [clickable]\ne3 button \"Toggle filmstrip \u00b7 FILMSTRIP\" [clickable]\ne4 button \"Zoom out \u00b7 Z-\" [clickable] [disabled]\ne5 button \"Zoom in \u00b7 Z+\" [clickable]"
+      },
+      "log_sha256": "951dfa7274de1121ede3f2b46d16db383ff840af50d9d1d39a34eb59507f2d6f",
+      "lifecycle_and_warning_lines": [
+        "PAIR_LIFECYCLE {\"event\": \"environment_setup_start\", \"unix_seconds\": 1794049095.1144638}",
+        "W1107 10:58:33.180879 137407598293120 android_world_controller.py:98] Could not get a11y tree, retrying.",
+        "PAIR_LIFECYCLE {\"event\": \"task_setup_start\", \"unix_seconds\": 1794049114.181823}",
+        "W1107 10:58:34.472005 137407598293120 task_eval.py:125] Skipping app snapshot loading : Snapshot not found in /data/data/android_world/snapshots/com.android.camera2.",
+        "PAIR_LIFECYCLE {\"event\": \"agent_and_checker_start\", \"unix_seconds\": 1794049114.6672432}",
+        "PAIR_LIFECYCLE {\"event\": \"agent_and_checker_end\", \"unix_seconds\": 1794049129.5236495}",
+        "PAIR_LIFECYCLE {\"event\": \"task_teardown_start\", \"unix_seconds\": 1794049129.5236964}",
+        "W1107 10:58:49.778767 137407598293120 task_eval.py:125] Skipping app snapshot loading : Snapshot not found in /data/data/android_world/snapshots/com.android.camera2.",
+        "PAIR_LIFECYCLE {\"event\": \"task_teardown_end\", \"unix_seconds\": 1794049131.818039}",
+        "PAIR_LIFECYCLE {\"event\": \"environment_closed\", \"unix_seconds\": 1794049131.8196774}"
+      ]
+    },
+    "B": {
+      "record": "B/live/20261107-110002_CameraTakePhoto.json",
+      "record_sha256": "bf0ec196451ce0343eea2eada2ca52ca6c30cbdd32f655a40c6b5cc9c18ac785",
+      "extract": {
+        "reply_line_index": 8,
+        "reply_id": 4,
+        "screen": {
+          "package": "com.android.camera2",
+          "activity": "com.android.camera.CameraLauncher",
+          "width": 1080,
+          "height": 2400,
+          "foreground": {
+            "package": "com.android.camera2",
+            "activity": "com.android.camera.CameraLauncher",
+            "sequence": 2
+          },
+          "nodes": [
+            {"id": 1, "parent": null, "role": "container", "class_name": "android.widget.FrameLayout", "label": null, "text": null, "resource_id": null, "package": "com.android.camera2", "bounds": {"x1": 0, "y1": 128, "x2": 1080, "y2": 2400}, "flags": {"clickable": false, "long_clickable": false, "editable": false, "scrollable": false, "checkable": false, "checked": false, "selected": false, "enabled": true, "focused": false, "visible": true}},
+            {"id": 2, "parent": 1, "role": "container", "class_name": "android.view.View", "label": null, "text": null, "resource_id": "com.android.camera2:id/preview_overlay", "package": "com.android.camera2", "bounds": {"x1": 0, "y1": 128, "x2": 1080, "y2": 2337}, "flags": {"clickable": false, "long_clickable": false, "editable": false, "scrollable": false, "checkable": false, "checked": false, "selected": false, "enabled": true, "focused": false, "visible": true}},
+            {"id": 3, "parent": 1, "role": "button", "class_name": "android.widget.LinearLayout", "label": "Options", "text": null, "resource_id": "com.android.camera2:id/mode_options_toggle", "package": "com.android.camera2", "bounds": {"x1": 921, "y1": 1862, "x2": 1048, "y2": 1990}, "flags": {"clickable": true, "long_clickable": false, "editable": false, "scrollable": false, "checkable": false, "checked": false, "selected": false, "enabled": true, "focused": false, "visible": true}},
+            {"id": 4, "parent": 3, "role": "image", "class_name": "android.widget.ImageView", "label": "Options", "text": null, "resource_id": "com.android.camera2:id/three_dots", "package": "com.android.camera2", "bounds": {"x1": 953, "y1": 1894, "x2": 1016, "y2": 1957}, "flags": {"clickable": false, "long_clickable": false, "editable": false, "scrollable": false, "checkable": false, "checked": false, "selected": false, "enabled": true, "focused": false, "visible": true}},
+            {"id": 5, "parent": 1, "role": "image", "class_name": "android.widget.ImageView", "label": "Shutter", "text": null, "resource_id": "com.android.camera2:id/shutter_button", "package": "com.android.camera2", "bounds": {"x1": 0, "y1": 2022, "x2": 1080, "y2": 2337}, "flags": {"clickable": true, "long_clickable": false, "editable": false, "scrollable": false, "checkable": false, "checked": false, "selected": false, "enabled": true, "focused": false, "visible": true}},
+            {"id": 6, "parent": 1, "role": "button", "class_name": "android.widget.Button", "label": "Toggle mode list", "text": "MODE LIST", "resource_id": "com.android.camera2:id/accessibility_mode_toggle_button", "package": "com.android.camera2", "bounds": {"x1": 0, "y1": 128, "x2": 248, "y2": 254}, "flags": {"clickable": true, "long_clickable": false, "editable": false, "scrollable": false, "checkable": false, "checked": false, "selected": false, "enabled": true, "focused": false, "visible": true}},
+            {"id": 7, "parent": 1, "role": "button", "class_name": "android.widget.Button", "label": "Toggle filmstrip", "text": "FILMSTRIP", "resource_id": "com.android.camera2:id/accessibility_filmstrip_toggle_button", "package": "com.android.camera2", "bounds": {"x1": 248, "y1": 128, "x2": 494, "y2": 254}, "flags": {"clickable": true, "long_clickable": false, "editable": false, "scrollable": false, "checkable": false, "checked": false, "selected": false, "enabled": true, "focused": false, "visible": true}},
+            {"id": 8, "parent": 1, "role": "button", "class_name": "android.widget.Button", "label": "Zoom out", "text": "Z-", "resource_id": "com.android.camera2:id/accessibility_zoom_minus_button", "package": "com.android.camera2", "bounds": {"x1": 494, "y1": 128, "x2": 725, "y2": 254}, "flags": {"clickable": true, "long_clickable": false, "editable": false, "scrollable": false, "checkable": false, "checked": false, "selected": false, "enabled": false, "focused": false, "visible": true}},
+            {"id": 9, "parent": 1, "role": "button", "class_name": "android.widget.Button", "label": "Zoom in", "text": "Z+", "resource_id": "com.android.camera2:id/accessibility_zoom_plus_button", "package": "com.android.camera2", "bounds": {"x1": 725, "y1": 128, "x2": 956, "y2": 254}, "flags": {"clickable": true, "long_clickable": false, "editable": false, "scrollable": false, "checkable": false, "checked": false, "selected": false, "enabled": true, "focused": false, "visible": true}}
+          ]
+        },
+        "planner_screen": "com.android.camera2 / com.android.camera.CameraLauncher:\ne1 button \"Options\" [clickable]\ne2 image \"Shutter\" [clickable]\ne3 button \"Toggle mode list \u00b7 MODE LIST\" [clickable]\ne4 button \"Toggle filmstrip \u00b7 FILMSTRIP\" [clickable]\ne5 button \"Zoom out \u00b7 Z-\" [clickable] [disabled]\ne6 button \"Zoom in \u00b7 Z+\" [clickable]"
+      },
+      "log_sha256": "acee26a370c5fcabcfe8e154f8df414f251c76f419032ebae44d9d15c9578921",
+      "lifecycle_and_warning_lines": [
+        "PAIR_LIFECYCLE {\"event\": \"environment_setup_start\", \"unix_seconds\": 1794049138.3609045}",
+        "PAIR_LIFECYCLE {\"event\": \"task_setup_start\", \"unix_seconds\": 1794049156.455101}",
+        "W1107 10:59:16.722229 134788444807296 task_eval.py:125] Skipping app snapshot loading : Snapshot not found in /data/data/android_world/snapshots/com.android.camera2.",
+        "PAIR_LIFECYCLE {\"event\": \"agent_and_checker_start\", \"unix_seconds\": 1794049156.9077694}",
+        "PAIR_LIFECYCLE {\"event\": \"agent_and_checker_end\", \"unix_seconds\": 1794049202.2068696}",
+        "PAIR_LIFECYCLE {\"event\": \"task_teardown_start\", \"unix_seconds\": 1794049202.2069132}",
+        "W1107 11:00:02.363899 134788444807296 task_eval.py:125] Skipping app snapshot loading : Snapshot not found in /data/data/android_world/snapshots/com.android.camera2.",
+        "PAIR_LIFECYCLE {\"event\": \"task_teardown_end\", \"unix_seconds\": 1794049203.1407533}",
+        "PAIR_LIFECYCLE {\"event\": \"environment_closed\", \"unix_seconds\": 1794049203.142148}"
+      ]
+    }
+  },
+  "source_sha256": {
+    "harness/core_bridge.py": "c15a7391b60cc17f11658638056189f68a502c23fddc8f0c4a47c56df5bb7970",
+    "harness/run_task.py": "2c5cfb8e8bac6e0440484c0ac01a26365490b115f7c68119819e6f70f4be91f2"
+  },
+  "wrapper_sha256": "ae9b1ba4dbf36cc9ce3d74d215991c3ac51a14ff6b6f4775d952b7bdb16e506f"
+}
