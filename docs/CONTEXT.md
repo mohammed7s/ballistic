@@ -1380,3 +1380,12 @@ The model-setup debug APK was transferred through the ThinkPad, hash-verified, i
 the owner's USB-connected Pixel 10 Pro (Android 17, ARM64), and launched successfully as far
 as Android's notification permission prompt. Biometric unlock, model setup/inference and an
 agent task on this phone are still unverified. See [installation evidence](log/2026-11-07-phone-install.md).
+
+## Phone setup diagnosis — 7 November 2026
+
+The first physical-phone model download failed because the Pixel had no active internet
+connection, despite Ballistic having network permission. After the owner connected Wi-Fi, the
+download progressed. Authentication and platform permission are distinct; no Computer Control
+grant is needed for model setup. Direct setup authentication and clearer wording were installed;
+adjacent download errors, MB/percent progress and setup screen-awake handling were built, with
+installation deferred to avoid interrupting the active download. See [setup evidence](log/2026-11-07-phone-setup-ux.md).

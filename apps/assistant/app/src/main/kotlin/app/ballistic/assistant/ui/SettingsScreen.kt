@@ -59,6 +59,11 @@ fun SettingsScreen(graph: AppGraph, activity: Activity) {
     val apps = remember { InstalledApps.list(activity) }
 
     LazyColumn(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        item { SessionAccess(graph, activity) }
+        item {
+            Text("Phone permissions are separate. Notification access allows reading notifications; it does not enable taps or screen control. This build has no Computer Control integration.",
+                style = MaterialTheme.typography.bodySmall)
+        }
         item { Section("Engine") }
         item { Text(graph.engine.description) }
         if (DebugTools.AVAILABLE) {
@@ -71,7 +76,7 @@ fun SettingsScreen(graph: AppGraph, activity: Activity) {
         item { Section("Notification access") }
         item {
             Column {
-                Text(if (NotificationScreenService.connected != null) "Granted: Ballistic can read notifications." else "Not granted: Ballistic cannot see anything.")
+                Text(if (NotificationScreenService.connected != null) "Granted: Ballistic can read notifications." else "Not granted: Ballistic cannot read notifications. Local model setup does not need this permission.")
                 OutlinedButton(onClick = { activity.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)) }) { Text("Open system settings") }
             }
         }
@@ -87,7 +92,7 @@ fun SettingsScreen(graph: AppGraph, activity: Activity) {
         item { Section("Apps") }
         item {
             Column {
-                if (!unlocked) Text("Unlock on the Ask tab to change these.", color = MaterialTheme.colorScheme.error)
+                if (!unlocked) Text("Authenticate above to change these.", color = MaterialTheme.colorScheme.error)
                 Text("Send, pay, delete, post, install and grant always need your fingerprint, whatever is set here.", style = MaterialTheme.typography.bodySmall)
             }
         }

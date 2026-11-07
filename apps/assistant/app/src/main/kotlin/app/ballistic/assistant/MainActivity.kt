@@ -5,6 +5,7 @@ package app.ballistic.assistant
 
 import android.Manifest
 import android.os.Bundle
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -20,6 +21,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -45,6 +48,14 @@ class MainActivity : ComponentActivity() {
         askNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
         val appGraph = graph
         setContent {
+            val localBusy by appGraph.localAi.busy.collectAsState()
+            DisposableEffect(localBusy) {
+                val alreadyKeptAwake = window.attributes.flags and WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON != 0
+                if (localBusy) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                onDispose {
+                    if (localBusy && !alreadyKeptAwake) window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                }
+            }
             BallisticTheme {
                 Surface(Modifier.fillMaxSize()) {
                     var tab by rememberSaveable { mutableIntStateOf(0) }
@@ -59,7 +70,7 @@ class MainActivity : ComponentActivity() {
                         HorizontalDivider()
                         when (tab) {
                             0 -> PromptScreen(appGraph, activity = this@MainActivity, onOpenLocalAi = { tab = 1 })
-                            1 -> LocalAiScreen(appGraph, onOpenAsk = { tab = 0 }, onOpenSettings = { tab = 3 })
+                            1 -> LocalAiScreen(appGraph, activity = this@MainActivity, onOpenAsk = { tab = 0 }, onOpenSettings = { tab = 3 })
                             2 -> LogScreen(appGraph)
                             else -> SettingsScreen(appGraph, activity = this@MainActivity)
                         }

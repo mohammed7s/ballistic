@@ -1,8 +1,11 @@
 package app.ballistic.assistant.ui
 
+import android.app.Activity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -15,7 +18,7 @@ import kotlinx.coroutines.delay
 import java.util.Locale
 
 @Composable
-fun LocalAiScreen(graph: AppGraph, onOpenAsk: () -> Unit = {}, onOpenSettings: () -> Unit = {}) {
+fun LocalAiScreen(graph: AppGraph, activity: Activity, onOpenAsk: () -> Unit = {}, onOpenSettings: () -> Unit = {}) {
     val ai = graph.localAi
     val selected by ai.selection.collectAsState()
     val model by ai.model.collectAsState()
@@ -24,12 +27,22 @@ fun LocalAiScreen(graph: AppGraph, onOpenAsk: () -> Unit = {}, onOpenSettings: (
     val notice by ai.notice.collectAsState()
     val download by ai.downloadProgress.collectAsState()
     var showDownload by rememberSaveable { mutableStateOf(false) }
+    var authenticationError by remember { mutableStateOf<String?>(null) }
     val run by graph.session.state.collectAsState()
     val unlocked by graph.gate.unlocked.collectAsState()
     var details by rememberSaveable { mutableStateOf(false) }
     var memory by remember { mutableStateOf(ai.memory()) }
     LaunchedEffect(Unit) { while(true) { memory = ai.memory(); delay(3000) } }
     val enabled = unlocked && run.canSubmit && run.pendingRequest == null && !busy && !engine.busy
+    val canStartSetup = run.canSubmit && run.pendingRequest == null && !busy && !engine.busy
+    fun requestDownloadSetup() {
+        authenticationError = null
+        if (graph.gate.unlocked.value) showDownload = true
+        else graph.gate.authenticate(activity) { error ->
+            authenticationError = error
+            if (error == null) showDownload = true
+        }
+    }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         // The picker may have locked the gate on backgrounding. Keep the URI in the UI until
         // the owner returns and unlocks; importing must not relax the command gate.
@@ -40,7 +53,7 @@ fun LocalAiScreen(graph: AppGraph, onOpenAsk: () -> Unit = {}, onOpenSettings: (
     if (showDownload) AlertDialog(
         onDismissRequest = { showDownload = false },
         title = { Text("Set up on-device AI") },
-        text = { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        text = { Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("${ai.starter.name} · ${size(ai.starter.bytes)} download")
             Text("Downloads from Qwen on Hugging Face using your internet connection. Wi-Fi is recommended. License: ${ai.starter.license}.")
             Text("Ballistic will verify the file, select on-device AI and load it. ${size(ai.starter.bytes + ManagedModelStore.STORAGE_RESERVE)} free storage is needed; loading also needs available RAM.")
@@ -77,14 +90,11 @@ fun LocalAiScreen(graph: AppGraph, onOpenAsk: () -> Unit = {}, onOpenSettings: (
                     if(selected.backend == ModelBackend.Http) TextButton(onClick = onOpenSettings) { Text("Connection settings") }
                     if(busy || engine.busy) LinearProgressIndicator(Modifier.fillMaxWidth())
                     engine.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-                    notice?.let { Text(it) }
+                    if (download == null) notice?.let { Text(it) }
                 }
             }
         }
-        if(!unlocked) item {
-            Text("Unlock to set up or change models.")
-            OutlinedButton(onClick = onOpenAsk) { Text("Go to Ask to unlock") }
-        }
+        item { SessionAccess(graph, activity) }
         if(!run.canSubmit || run.pendingRequest != null) item { Text("Finish or stop the Ask run before changing models.") }
         item {
             Card(Modifier.fillMaxWidth()) {
@@ -95,10 +105,15 @@ fun LocalAiScreen(graph: AppGraph, onOpenAsk: () -> Unit = {}, onOpenSettings: (
                     if(model?.catalogueId == ai.starter.id && model?.sha256 == ai.starter.sha256) {
                         Text("Verified download installed")
                         if(engine.metadata == null) Button(onClick = ai::load, enabled = enabled) { Text("Load starter model") }
-                    } else Button(onClick = { showDownload = true }, enabled = enabled) { Text("Download & set up") }
+                    } else Button(onClick = ::requestDownloadSetup, enabled = canStartSetup) {
+                        Text(if (unlocked) "Download & set up" else "Authenticate & set up")
+                    }
+                    authenticationError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+                    if (!canStartSetup) Text("Finish or stop the current operation before starting setup.")
+                    if (download != null) notice?.let { Text(it) }
                     download?.let { p ->
                         LinearProgressIndicator(progress = { p.fraction }, modifier = Modifier.fillMaxWidth())
-                        Text("${size(p.received)} / ${size(p.total)}${if (p.received == p.total) " · download received" else ""}")
+                        Text("${transferSize(p.received)} / ${transferSize(p.total)} · ${(p.fraction * 100).toInt()}%${if (p.received == p.total) " · download received" else ""}")
                     }
                     Text("${ai.starter.license} · Qwen on Hugging Face. The file is verified before installation.", style = MaterialTheme.typography.bodySmall)
                 }
@@ -190,3 +205,4 @@ private fun LocalPhase.label() = when(this) {
 private fun decimal(n: Double) = String.format(Locale.ROOT,"%.1f",n)
 private fun duration(ms: Double) = "${decimal(ms / 1000)} s"
 private fun size(bytes: Long) = "${decimal(bytes / (1024.0*1024*1024))} GiB"
+private fun transferSize(bytes: Long) = "${decimal(bytes / 1_000_000.0)} MB"

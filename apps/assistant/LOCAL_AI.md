@@ -23,7 +23,8 @@ existing core safety limitations still apply. The judge role is not a completed 
 
 ## Using the app
 
-1. Unlock Ballistic, then open **Local AI → Download & set up**.
+1. Open **Local AI → Authenticate & set up**, or **Download & set up** if the session is
+   already authenticated. Authenticate with the device biometric when prompted.
 2. Review the starter, download size, storage requirement and replacement notice. Confirm
    **Download & use on device**. No transfer begins just by opening the screen.
 3. Ballistic downloads the pinned file, checks its byte count and SHA-256, selects local inference
@@ -42,6 +43,15 @@ no background download service or resumable transfers. Stop discards the partial
 restart cleans abandoned partials. Retry starts from byte zero. Existing managed weights survive
 network, size or digest failures. A completed verified replacement may remain installed if Stop
 arrives during loading.
+
+The phone needs its own internet connection; an ADB/USB debugging connection does not provide
+internet access. Transfer progress is shown in decimal MB and a percentage, with download errors
+beside the setup button. Ballistic keeps the screen awake during local setup while its activity
+is visible. Turning the screen off manually or leaving the app still locks the session.
+
+Session authentication verifies who may issue requests or change settings. It is available in
+Ask, Local AI and Settings. It does not grant Android notification access or Computer Control,
+and it does not replace approval for a sensitive operation. Those are separate checks.
 
 Manual **Import GGUF** remains available. Ballistic copies a compatible chat/instruct file into
 private storage and leaves the source untouched. Imported files are validated by native load;

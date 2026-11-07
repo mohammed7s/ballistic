@@ -80,11 +80,12 @@ fun PromptScreen(graph: AppGraph, activity: Activity, onOpenLocalAi: () -> Unit 
             OutlinedButton(onClick = onOpenLocalAi) { Text("Set up local model") }
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(if (unlocked) "Unlocked" else "Locked", fontWeight = FontWeight.Bold,
+            Text(if (unlocked) "Authenticated" else "Authentication needed", fontWeight = FontWeight.Bold,
                 color = if (unlocked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)
-            if (unlocked) OutlinedButton(onClick = { graph.gate.lock() }) { Text("Lock") }
-            else OutlinedButton(onClick = { unlock() }) { Text("Unlock") }
+            if (unlocked) OutlinedButton(onClick = { graph.gate.lock() }) { Text("Lock session") }
+            else OutlinedButton(onClick = { unlock() }) { Text("Authenticate") }
         }
+        Text("Verifies who may give requests. Locks when you leave Ballistic or turn off the screen; phone-control permissions are separate.", style = MaterialTheme.typography.bodySmall)
         gateMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
 
         LazyColumn(Modifier.weight(1f).fillMaxWidth(), state = list, verticalArrangement = Arrangement.spacedBy(8.dp)) {

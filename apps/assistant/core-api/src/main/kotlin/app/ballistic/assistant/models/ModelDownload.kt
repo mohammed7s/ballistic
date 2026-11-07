@@ -78,7 +78,12 @@ class HttpsModelDownloadSource : ModelDownloadSource {
                 connection.disconnect()
                 if (active === connection) active = null
                 if (e is LocalFailure) throw e
-                throw LocalFailure(if(cancelled()) "Download stopped" else "Cannot reach the model host. Check your connection and retry.")
+                throw LocalFailure(if(cancelled()) "Download stopped" else when (e) {
+                    is java.net.UnknownHostException -> "Cannot find the model host. Connect to Wi-Fi or mobile data, or check your DNS settings, then retry. USB debugging does not provide internet access."
+                    is java.net.SocketTimeoutException -> "The model host timed out. Check your internet connection and retry."
+                    is javax.net.ssl.SSLException -> "Could not establish a secure connection to the model host. Check the phone's date and network connection."
+                    else -> "Cannot reach the model host. Check your internet connection and Ballistic's network permission, then retry."
+                })
             }
         }
         throw LocalFailure("Model download could not start")
