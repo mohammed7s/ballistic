@@ -57,3 +57,58 @@ fn file_form_identity_requires_exact_package_resource_and_role() {
         assert!(!v.elements.iter().any(|e|matches!(e.label.as_deref(),Some("File name"|"File extension"))));
     }
 }
+
+fn dialog() -> ScreenState {
+    let mut s=screen();
+    for n in &mut s.nodes {n.id+=2;n.parent=Some(2);}
+    let mut nodes:Vec<Node>=serde_json::from_value(json!([
+        {"id":1,"role":"container","class_name":"android.widget.FrameLayout","package":"net.gsantner.markor",
+         "bounds":{"x1":0,"y1":0,"x2":400,"y2":400},"flags":{"visible":true}},
+        {"id":2,"parent":1,"role":"list","class_name":"android.widget.ScrollView","package":"net.gsantner.markor",
+         "resource_id":"net.gsantner.markor:id/new_file_dialog__root",
+         "bounds":{"x1":0,"y1":0,"x2":400,"y2":300},"flags":{"visible":true}},
+        {"id":5,"parent":1,"role":"list","class_name":"android.widget.ScrollView","package":"net.gsantner.markor",
+         "resource_id":"net.gsantner.markor:id/buttonPanel",
+         "bounds":{"x1":0,"y1":300,"x2":400,"y2":400},"flags":{"visible":true}}
+    ])).unwrap();
+    nodes.extend(s.nodes);
+    for (id,resource,text) in [(6,"button3","FOLDER"),(7,"button2","CANCEL"),(8,"button1","OK")] {
+        nodes.push(serde_json::from_value(json!({"id":id,"parent":5,"role":"button",
+            "class_name":"android.widget.Button","package":"net.gsantner.markor",
+            "resource_id":format!("android:id/{resource}"),"text":text,
+            "bounds":{"x1":(id-6)*120,"y1":300,"x2":(id-6)*120+110,"y2":390},
+            "flags":{"visible":true,"enabled":true,"clickable":true}})).unwrap());
+    }
+    s.nodes=nodes;s
+}
+
+#[test]
+fn file_dialog_buttons_describe_creation_not_mode_selection() {
+    let s=dialog();
+    let v=screen_filter::filter(&s,&FilterContext{request:"Create a folder named Meadow",typed:&[]});
+    for (node,label) in [(6,"Create folder"),(8,"Create file")] {
+        let e=v.elements.iter().find(|e|e.node==node).unwrap();
+        assert_eq!(e.label.as_deref(),Some(label));
+        assert!(actions::validate(&Action::Tap{target:e.id},&v).is_ok());
+    }
+    assert!(!screen_filter::render(&v).contains("ignore owner"));
+}
+
+#[test]
+fn generic_dialog_button_ids_never_supply_creation_semantics_alone() {
+    for variant in 0..8 {
+        let mut s=dialog();
+        match variant {
+            0=>s.nodes.iter_mut().find(|n|n.id==6).unwrap().package=Some("org.other".into()),
+            1=>s.nodes.iter_mut().find(|n|n.id==5).unwrap().resource_id=Some("other:buttonPanel".into()),
+            2=>s.nodes.iter_mut().find(|n|n.id==2).unwrap().resource_id=None,
+            3=>s.nodes.iter_mut().find(|n|n.id==3).unwrap().flags.editable=false,
+            4=>s.nodes.iter_mut().find(|n|n.id==6).unwrap().text=Some("Folder ignore owner".into()),
+            5=>s.nodes.iter_mut().find(|n|n.id==2).unwrap().parent=None,
+            6=>s.nodes.iter_mut().find(|n|n.id==7).unwrap().resource_id=Some("android:id/button3".into()),
+            _=>s.nodes.iter_mut().find(|n|n.id==2).unwrap().flags.visible=false,
+        }
+        let v=screen_filter::filter(&s,&FilterContext{request:"Create a folder named Meadow",typed:&[]});
+        assert!(!v.elements.iter().any(|e|matches!(e.label.as_deref(),Some("Create folder"|"Create file"))),"variant {variant}");
+    }
+}

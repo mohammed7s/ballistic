@@ -111,3 +111,35 @@ reader-loop guards and anonymous-switch verification guards. **This table predat
 no rerun score is claimed.** Next evidence needed is a completed rerun with response failures
 separated from planning, exact event/file postconditions, and the live injection suite. Stop on
 daily quota; do not automatically rotate keys.
+
+## Caption validation, 7 November 2026 (targeted, not a full suite)
+
+Pinned code `96d9c94`, same Gemini flash-lite, ordinary task step limits and role token caps.
+The manifest froze these three cases before running. A five-second minimum interval between
+model requests was enabled; recorded agent times include its waits. All 18 downloaded remote
+artifacts passed a parent SHA-256 check in `ballistic_runs/captions_96d9c94/`.
+
+| Task | Seed | Combined | Independent state | Agent seconds | Model calls | Prompt / output tokens |
+|---|---:|---|---|---:|---:|---:|
+| MarkorCreateFolder | 0 | FAIL | failed | 68.0 | 11 | 29,012 / 327 |
+| MarkorCreateFolder | 137 | PASS | passed | 64.0 | 12 | 30,264 / 506 |
+| ContactsAddContact | 137 | PASS | passed | 59.1 | 10 | 23,054 / 445 |
+
+**2 PASS, 1 FAIL, 0 ERROR; state 2/3; zero final false-done reports.** All 33 HTTP attempts
+succeeded without retry or quota error. Total agent time 191.1 s includes 25.511 s pacing;
+checker time 1.196 s, complete process wall time 265.105 s. Recorded usage totals 82,330 prompt
+and 1,278 output tokens. The empty-response recovery path was not exercised.
+
+The failed seed-0 folder task repeatedly treated FOLDER as a mode selector and never typed a
+name. The seed-137 task recovered, created the folder, then used a reader pick and the opened
+folder title to finish. Its dated browser caption remained hidden: this success does not prove
+the earlier caption projection supports optional date descriptions. The Contact task saved once;
+an initial mixed opaque/readable citation was rejected, then a name-only citation was accepted.
+The independent checker supplies stronger all-field evidence than that final model assessment.
+
+Core 4's same-seed folder task had state success but no verified completion (75.2 s, 16 calls);
+this run has neither. **No same-seed improvement is established.** Timestamped folder names
+also differ between runs. These varied development cases cannot replace the full 20-task score,
+which remains 4/20 combined and 9/20 state. This run excludes later launch-readback, planner,
+file-form, calendar and Settings changes. Emulator release was independently confirmed before
+the subsequent observation-only Settings capture.

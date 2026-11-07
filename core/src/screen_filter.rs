@@ -167,6 +167,46 @@ const KNOWN_CONTROLS: &[KnownControl] = &[
 /// or a third-party tile with a copied description in another slot stays unidentified.
 const QS_TILES: &[(usize, &str, &str)] = &[(0, "Internet", "Internet (Wi-Fi) tile"), (1, "Bluetooth.", "Bluetooth tile")];
 
+/// NewFileDialog v2.10.9 binds neutral FOLDER to directory creation and positive OK to file
+/// creation. Generic Android button IDs have that meaning only in this exact dialog envelope.
+/// No filename, template text or requested task participates in identifying these controls.
+fn markor_create_button_label(nodes: &[Node], node: &Node, parent: Option<&Node>) -> Option<&'static str> {
+    const PKG: &str = "net.gsantner.markor";
+    let shape = |n: &Node, role: Role, class: &str, rid: Option<&str>| {
+        n.package.as_deref() == Some(PKG) && n.role == role && n.class_name.as_deref() == Some(class)
+            && n.resource_id.as_deref() == rid && n.flags.visible && n.bounds.area() > 0
+    };
+    if node.role != Role::Button || node.package.as_deref() != Some(PKG) { return None; }
+    let panel=parent?;
+    if !shape(panel,Role::List,"android.widget.ScrollView",Some("net.gsantner.markor:id/buttonPanel")) {return None;}
+    let roots:Vec<_>=nodes.iter().filter(|n|Some(n.id)==panel.parent).collect();
+    let [root]=roots.as_slice() else {return None;};
+    if root.parent.is_some() || !shape(root,Role::Container,"android.widget.FrameLayout",None) {return None;}
+    let forms:Vec<_>=nodes.iter().filter(|n|n.parent==Some(root.id)
+        && n.resource_id.as_deref()==Some("net.gsantner.markor:id/new_file_dialog__root")).collect();
+    let [form]=forms.as_slice() else {return None;};
+    if !shape(form,Role::List,"android.widget.ScrollView",Some("net.gsantner.markor:id/new_file_dialog__root")) {return None;}
+    for rid in ["net.gsantner.markor:id/new_file_dialog__name","net.gsantner.markor:id/new_file_dialog__ext"] {
+        let fields:Vec<_>=nodes.iter().filter(|n|n.parent==Some(form.id) && n.resource_id.as_deref()==Some(rid)).collect();
+        let [field]=fields.as_slice() else {return None;};
+        if !shape(field,Role::Edit,"android.widget.EditText",Some(rid)) || !field.flags.editable {return None;}
+    }
+    let buttons:Vec<_>=nodes.iter().filter(|n|n.parent==Some(panel.id)).collect();
+    if buttons.len()!=3 {return None;}
+    for (rid,text) in [("android:id/button3","FOLDER"),("android:id/button2","CANCEL"),("android:id/button1","OK")] {
+        let matches:Vec<_>=buttons.iter().filter(|n|n.resource_id.as_deref()==Some(rid)).collect();
+        let [button]=matches.as_slice() else {return None;};
+        if !shape(button,Role::Button,"android.widget.Button",Some(rid)) || !button.flags.clickable
+            || button.flags.editable || button.flags.checkable || button.label.is_some()
+            || button.text.as_deref()!=Some(text) {return None;}
+    }
+    match node.resource_id.as_deref()? {
+        "android:id/button3"=>Some("Create folder"),
+        "android:id/button1"=>Some("Create file"),
+        _=>None,
+    }
+}
+
 /// Recorded controls whose identity does not depend on displayed text. Never use a caption,
 /// a generic switch id or a resource-id substring as an identity; positions only inside an
 /// exact parent (Quick Settings tiles, calendar month grid), never on their own.
@@ -174,6 +214,7 @@ fn code_owned_label(nodes: &[Node], i: usize, parent: Option<usize>) -> Option<S
     let node = &nodes[i];
     let package = node.package.as_deref()?;
     let parent_node = parent.map(|p| &nodes[p]);
+    if let Some(label)=markor_create_button_label(nodes,node,parent_node) { return Some(label.into()); }
     let parent_rid = parent_node.and_then(|p| p.resource_id.as_deref());
     let siblings = || nodes.iter().filter(move |n| n.parent.is_some() && n.parent == node.parent);
     let rid = node.resource_id.as_deref();

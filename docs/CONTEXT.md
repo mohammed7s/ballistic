@@ -15,6 +15,23 @@ confirmation dialog.**
 
 ## 2. Decisions taken (and why)
 
+### 7 November 2026 — targeted caption results and creation controls (verified)
+
+The three-case run at `96d9c94` finished **2 PASS, 1 FAIL, 0 ERROR**, state **2/3**:
+MarkorCreateFolder seed 0 FAIL (68.0 s, 11 calls), seed 137 PASS (64.0 s, 12 calls),
+ContactsAddContact seed 137 PASS (59.1 s, 10 calls). All 33 calls succeeded with no retry/429;
+82,330 prompt and 1,278 output tokens. Agent time includes 25.511 s request pacing. Parent
+verified all 18 downloaded artifact hashes. This is targeted development evidence, not a new
+full-suite result; last full score stays **4/20 combined, 9/20 state**. Same-seed folder state
+regressed; the varied-seed pass used a reader pick, not dated-caption projection. See
+`docs/BENCHMARK_RUNS.md` for timing definitions and limitations.
+
+The failed folder trace repeatedly treated FOLDER as a mode selector and never entered a name.
+Pinned app source establishes that it creates the folder immediately. Exact dialog structure
+now supplies `Create folder` / `Create file` control labels without using task values or trusting
+generic button IDs. Offline replay emits both labels on all four recorded dialog snapshots;
+116 Rust/UniFFI and 79 Python tests pass without skips. No live uplift claimed.
+
 **7 November 2026 — input semantics and planning guidance corrected:** the timer trace exposed
 misleading core feedback suggesting a tap on a non-editable display. Feedback now requires a
 real editable input. Planner rules clarify action-specific fields, numeric-keypad entry,

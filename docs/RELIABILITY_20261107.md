@@ -187,3 +187,21 @@ The planner rules grew from 1,661 to 2,489 characters (rough character/4 estimat
 tokens); actual provider token and behavior effects remain unmeasured. No model, budget,
 action schema, permission requirement or benchmark checker changed. The live caption round
 at `96d9c94` excludes these later changes; no full-suite uplift is claimed.
+
+## Markor creation button semantics (7 November 2026)
+
+The targeted seed-0 failure above exposes a concrete interpretation error: the FOLDER button
+creates a directory immediately; it does not select a folder mode. The pinned
+[NewFileDialog implementation](https://github.com/gsantner/markor/blob/ab2175460680eb4a914b6006b9c962756b2067d2/app/src/main/java/net/gsantner/markor/frontend/NewFileDialog.java)
+binds the neutral button to directory creation and the positive OK button to file creation.
+An exact package/class/role/parent/resource envelope, including both editable fields and the
+three expected buttons, now labels them `Create folder` and `Create file`. Generic Android
+button IDs alone, filenames, task names and requested values supply no identity. Unknown or
+localized layouts fall back. Displayed content remains subject to the existing filter.
+
+The two additional development tests (positive semantics and eight malformed envelopes) were
+written before implementation: the focused file-form tests improved from 3/4 to 4/4. On all
+four recorded dialog snapshots from the failed seed-0 run, offline filtering now emits both
+creation labels. This demonstrates the observation change, not new model behavior. Combined
+validation: **116 Rust tests with UniFFI and 79 Python tests pass, no skips**. No action guard,
+benchmark checker, model budget or external schema changed. Live uplift remains unmeasured.
