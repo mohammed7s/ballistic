@@ -22,6 +22,8 @@ fun LocalAiScreen(graph: AppGraph, onOpenAsk: () -> Unit = {}, onOpenSettings: (
     val engine by graph.localModels.state.collectAsState()
     val busy by ai.busy.collectAsState()
     val notice by ai.notice.collectAsState()
+    val download by ai.downloadProgress.collectAsState()
+    var showDownload by rememberSaveable { mutableStateOf(false) }
     val run by graph.session.state.collectAsState()
     val unlocked by graph.gate.unlocked.collectAsState()
     var details by rememberSaveable { mutableStateOf(false) }
@@ -35,6 +37,20 @@ fun LocalAiScreen(graph: AppGraph, onOpenAsk: () -> Unit = {}, onOpenSettings: (
     }
     val pending by graph.pendingModelImport.collectAsState()
 
+    if (showDownload) AlertDialog(
+        onDismissRequest = { showDownload = false },
+        title = { Text("Set up on-device AI") },
+        text = { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("${ai.starter.name} · ${size(ai.starter.bytes)} download")
+            Text("Downloads from Qwen on Hugging Face using your internet connection. Wi-Fi is recommended. License: ${ai.starter.license}.")
+            Text("Ballistic will verify the file, select on-device AI and load it. ${size(ai.starter.bytes + ManagedModelStore.STORAGE_RESERVE)} free storage is needed; loading also needs available RAM.")
+            if(model != null) Text("This replaces the managed model copy after verification. Your original imported document stays untouched.")
+            Text("Starter preview: phone performance and task quality are not yet validated. Keep Ballistic open while downloading. Interrupted downloads restart from the beginning.")
+        } },
+        confirmButton = { TextButton(onClick = { showDownload = false; ai.downloadStarter() }, enabled = enabled) { Text("Download & use on device") } },
+        dismissButton = { TextButton(onClick = { showDownload = false }) { Text("Cancel") } },
+    )
+
     LazyColumn(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item {
             Text("Your local AI", style = MaterialTheme.typography.headlineMedium)
@@ -45,7 +61,7 @@ fun LocalAiScreen(graph: AppGraph, onOpenAsk: () -> Unit = {}, onOpenSettings: (
                 engine.phase == LocalPhase.Generating -> "Your phone is generating a response."
                 engine.metadata != null -> "Your model is ready on this phone."
                 model != null -> "Your model is imported. Load it when you are ready."
-                else -> "Import a model to keep AI requests on your phone."
+                else -> "Set up a model to keep AI requests on your phone."
             }, style = MaterialTheme.typography.bodyMedium)
         }
         item {
@@ -71,8 +87,26 @@ fun LocalAiScreen(graph: AppGraph, onOpenAsk: () -> Unit = {}, onOpenSettings: (
         }
         if(!run.canSubmit || run.pendingRequest != null) item { Text("Finish or stop the Ask run before changing models.") }
         item {
+            Card(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Suggested starter · preview", style = MaterialTheme.typography.titleLarge)
+                    Text("${ai.starter.name} · ${size(ai.starter.bytes)} download")
+                    Text("A small model to get started. Phone performance and task quality still need validation.")
+                    if(model?.catalogueId == ai.starter.id && model?.sha256 == ai.starter.sha256) {
+                        Text("Verified download installed")
+                        if(engine.metadata == null) Button(onClick = ai::load, enabled = enabled) { Text("Load starter model") }
+                    } else Button(onClick = { showDownload = true }, enabled = enabled) { Text("Download & set up") }
+                    download?.let { p ->
+                        LinearProgressIndicator(progress = { p.fraction }, modifier = Modifier.fillMaxWidth())
+                        Text("${size(p.received)} / ${size(p.total)}${if (p.received == p.total) " · download received" else ""}")
+                    }
+                    Text("${ai.starter.license} · Qwen on Hugging Face. The file is verified before installation.", style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        }
+        item {
             Text("Model storage", style = MaterialTheme.typography.titleMedium)
-            Text(model?.let { "${size(it.bytes)} managed copy" } ?: "Choose a chat model in GGUF format that you have permission to use. No model is bundled or downloaded.")
+            Text(model?.let { "${size(it.bytes)} managed copy" } ?: "Or import your own compatible chat model in GGUF format. No model weights are bundled in the APK.")
             Text("${size(ai.availableStorage)} storage available", style = MaterialTheme.typography.bodySmall)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(onClick = { picker.launch(arrayOf("*/*")) }, enabled = enabled) { Text("Import GGUF") }
@@ -103,7 +137,7 @@ fun LocalAiScreen(graph: AppGraph, onOpenAsk: () -> Unit = {}, onOpenSettings: (
         }
         item {
             Text("Suggested for this phone", style = MaterialTheme.typography.titleMedium)
-            Text("Conservative starting settings, not measured performance. You choose which model to import.")
+            Text("Conservative starting settings, not measured performance. The starter above is optional; you can also import another model.")
             OutlinedButton(onClick = ai::applyProfile, enabled = enabled) { Text("Apply suggested settings") }
             Text("Applying settings unloads the model. It does not choose or download weights.", style = MaterialTheme.typography.bodySmall)
         }

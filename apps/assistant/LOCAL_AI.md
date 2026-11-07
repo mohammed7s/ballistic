@@ -12,7 +12,7 @@ When it needs text from a model, its Models port calls the selected backend:
 - **On device:** Kotlin routes the call through JNI to embedded llama.cpp and an imported GGUF.
 - **Connected model:** the existing OpenAI-compatible HTTP adapter uses the owner's endpoint.
 
-The runtime is packaged in the APK; model weights are a separate managed import. There is no
+The runtime is packaged in the APK; model weights are a separate verified download or managed import. There is no
 local server or Ollama process in this path. Android hosts Screen, Hands and Confirm separately;
 adding local inference does not grant screen access or additional action permissions.
 
@@ -23,11 +23,29 @@ existing core safety limitations still apply. The judge role is not a completed 
 
 ## Using the app
 
-1. Unlock Ballistic, then open **Local AI**.
-2. Import a compatible chat/instruct GGUF through the document picker. Ballistic copies it into
-   private storage; it does not delete the source document or download weights automatically.
-3. Load the model. Loading validates runtime support and reads its metadata.
+1. Unlock Ballistic, then open **Local AI → Download & set up**.
+2. Review the starter, download size, storage requirement and replacement notice. Confirm
+   **Download & use on device**. No transfer begins just by opening the screen.
+3. Ballistic downloads the pinned file, checks its byte count and SHA-256, selects local inference
+   and loads it. If loading fails, the verified file remains available to load later.
 4. Optionally run the short local speed check, then return to Ask.
+
+The first catalogue entry is **Qwen3 0.6B Q8**, a 639,446,688-byte official Qwen artifact,
+licensed Apache-2.0. It is a suggested starter **preview**, not a measured phone-agent winner.
+All phone profiles currently offer the same small starter; a device-specific quality/performance
+recommendation still requires target-phone testing.
+
+Downloads contact Hugging Face and its HTTPS CDN, not a model inference service. This transfers
+model files without sending prompts or API keys. The catalogue is shipped with the app and pins
+an immutable source revision and digest. Keep Ballistic open while downloading: this version has
+no background download service or resumable transfers. Stop discards the partial file; process
+restart cleans abandoned partials. Retry starts from byte zero. Existing managed weights survive
+network, size or digest failures. A completed verified replacement may remain installed if Stop
+arrives during loading.
+
+Manual **Import GGUF** remains available. Ballistic copies a compatible chat/instruct file into
+private storage and leaves the source untouched. Imported files are validated by native load;
+only catalogue downloads receive the expected publisher-artifact digest check.
 
 The initial local configuration may need a larger context for an agent request than for the
 short speed check. A context overflow fails explicitly; the runtime does not silently truncate
@@ -52,7 +70,7 @@ Unavailable values say **Not measured**. The short speed check measures model ex
 not task success, battery life or sustained thermal performance.
 
 Phone profiles are suggested CPU/context settings and candidate-model guidance. They are not
-validated performance ratings or automatic downloads. Pixel results require measurements on a
+validated performance ratings. Downloads require the owner to confirm setup. Pixel results require measurements on a
 Pixel; laptop and emulator results must be labeled separately.
 
 ## Current capability boundary

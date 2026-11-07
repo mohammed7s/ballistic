@@ -25,7 +25,12 @@ class LocalAiController(
     private val selectionStore: ModelSelectionStore,
     private val mayChange: () -> Boolean,
 ) {
-    private val store = ManagedModelStore(app.noBackupFilesDir.resolve("local-model"))
+    private val store = ManagedModelStore(app.noBackupFilesDir.resolve("local-model")).also { it.discardIncompleteImport() }
+    @Volatile private var activeDownloader: ModelDownloader? = null
+    private val mutableDownload = MutableStateFlow<DownloadProgress?>(null)
+    val downloadProgress = mutableDownload.asStateFlow()
+    val starter = CoreJson.decodeFromString(ListSerializer(DownloadableModel.serializer()),
+        app.assets.open("model_catalogue.json").bufferedReader().use { it.readText() }).single().validated()
     private val mutableSelection = MutableStateFlow(runCatching { selectionStore.initialize() }.getOrDefault(ModelSelection()))
     val selection = mutableSelection.asStateFlow()
     private val mutableModel = MutableStateFlow(store.current())
@@ -74,6 +79,7 @@ class LocalAiController(
         mutableBusy.value = true
         mutableNotice.value = null
         cancelled.set(false)
+        mutableDownload.value = null
         scope.launch {
             try { withContext(Dispatchers.IO) { block() } }
             catch (e: Exception) {
@@ -83,7 +89,8 @@ class LocalAiController(
                     else -> "Local operation failed. Check the file, free storage and available memory."
                 }
             } finally {
-                importSignal = null; importStream = null
+                importSignal = null; importStream = null; activeDownloader = null
+                mutableModel.value = store.current()
                 mutableBusy.value = false
             }
         }
@@ -109,12 +116,27 @@ class LocalAiController(
         }
         mutableNotice.value = "Imported a managed copy. Load to validate the model and read its metadata."
     }
-    fun load() = job {
+    fun downloadStarter() = job {
+        engine.unload()
+        val downloader = ModelDownloader(HttpsModelDownloadSource()).also { activeDownloader = it }
+        mutableModel.value = downloader.install(starter, store, cancelled::get, { mutableDownload.value = it })
+        // The owner chose on-device setup. A load failure must not leave a remote backend active.
+        val next = selection.value.copy(backend = ModelBackend.Local)
+        selectionStore.save(next)
+        mutableSelection.value = next
+        mutableNotice.value = "Download verified. Loading your on-device model…"
+        if (cancelled.get()) throw LocalFailure("Download installed; loading stopped")
+        loadCurrent()
+        mutableNotice.value = "Ready on device. This starter is a preview; phone-task quality has not been validated."
+    }
+    fun load() = job { loadCurrent() }
+    private fun loadCurrent() {
         val info = store.current() ?: throw LocalFailure("Import a GGUF model first")
         val mem = memory()
         // This is a conservative admission check, not an exact peak-RAM estimate.
         if (mem.lowMemory || info.bytes > mem.availMem - 512L*1024*1024) throw LocalFailure("Not enough available system memory; close other apps or import smaller weights")
-        if (!cancelled.get()) engine.load(store.modelFile, selection.value, cancelled::get)
+        if (cancelled.get()) throw LocalFailure("Loading stopped")
+        engine.load(store.modelFile, selection.value, cancelled::get)
     }
     fun unload() = job { engine.unload() }
     fun remove() = job { engine.unload(); store.remove(); mutableModel.value = store.current() }
@@ -125,6 +147,8 @@ class LocalAiController(
     fun stop() {
         cancelled.set(true)
         engine.cancel()
+        val downloadToStop = activeDownloader
+        scope.launch(Dispatchers.IO) { downloadToStop?.cancel() }
         importSignal?.cancel()
         // A provider may block in read; closing is best-effort and kept off the UI thread.
         scope.launch(Dispatchers.IO) { runCatching { importStream?.close() } }

@@ -271,3 +271,11 @@ Read [Local AI architecture, setup and build guide](LOCAL_AI.md) and the
 [delivery evidence](../../docs/log/2026-11-07-local-ai-apk.md). Host inference and cancellation
 were tested; the new APK has not been installed or exercised on a phone/emulator. The current
 screen/input and production biometric limitations remain. Weights are not included.
+
+## Model download setup — 7 November 2026 update
+
+Local AI now offers **Download & set up** for an official Qwen3-0.6B Q8 starter preview. After
+confirmation it downloads, checks the pinned digest and size, installs the managed copy and
+loads it locally. Manual GGUF import remains available. Downloads require the app to stay open;
+interrupted transfers restart. No phone-quality recommendation or fine-tuning result is claimed.
+See [setup guide](LOCAL_AI.md) and [validation record](../../docs/log/2026-11-07-model-download.md).

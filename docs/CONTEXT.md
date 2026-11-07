@@ -1359,3 +1359,17 @@ without skips, including real local JNI generation/cancellation; 9 affected test
 the final context UI change. Parent checked native packaging and APK signature. These are host
 and build results, not device validation or model-quality evidence. Exact artifact digest,
 limitations and provenance: [delivery record](log/2026-11-07-local-ai-apk.md).
+
+## Model setup and tuning direction — 7 November 2026
+
+The owner authorized in-app model download/verification/loading. Local AI now offers an explicit
+setup flow for Qwen's Qwen3-0.6B Q8 GGUF (639,446,688 bytes), pinned to a publisher revision and
+SHA-256. It is a starter preview for all current profiles, not a validated per-phone agent model.
+Downloads require confirmation; imports remain available. There is no silent remote fallback.
+This first version is foreground-only and retries interrupted downloads from the beginning.
+
+No Ballistic fine-tuning has occurred. The proposed later sequence is a stable base-model
+comparison, verified training examples, a bounded LoRA experiment, then held-out evaluation after
+export/quantization. Training cannot provide missing observations or platform permissions, and
+approval rules remain in code. Harness/benchmark work stays paused. See the
+[model setup record](log/2026-11-07-model-download.md) for evidence and limitations.

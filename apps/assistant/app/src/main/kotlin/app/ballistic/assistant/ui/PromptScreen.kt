@@ -94,9 +94,9 @@ fun PromptScreen(graph: AppGraph, activity: Activity, onOpenLocalAi: () -> Unit 
                         Text("Start with opening an app", style = MaterialTheme.typography.titleLarge)
                         Text("This build can open apps. Full screen control is unavailable. Opening an app does not confirm the rest of a task.")
                         if(localSelected && !modelReady) {
-                            Text(if(graph.localAi.model.value == null) "Import a model to get started on this phone." else "Load your model before asking Ballistic.")
+                            Text(if(graph.localAi.model.value == null) "Download the starter or import your own model to get started." else "Load your model before asking Ballistic.")
                             Button(onClick = onOpenLocalAi) {
-                                Text(if(graph.localAi.model.value == null) "Import a local model" else "Load local model")
+                                Text(if(graph.localAi.model.value == null) "Set up local AI" else "Load local model")
                             }
                         } else Text("Try: Open Clock")
                     }
