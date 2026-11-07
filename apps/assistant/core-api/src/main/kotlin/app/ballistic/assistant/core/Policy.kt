@@ -3,8 +3,8 @@
 // lives in app-private storage. A file can make the assistant more careful, never less: the
 // hard-confirmation list is a code constant, and an unreadable file falls back to the defaults.
 //
-// Enforcement belongs to core (core/policy, not written yet). The shell uses this for Settings
-// and as a second, tighten-only check in its Confirm adapter ([ConfirmFloor]).
+// Android currently applies these rules at notification extraction, advertised app grants,
+// dispatch and confirmation. Future adapters must enforce the same restrictions.
 
 package app.ballistic.assistant.core
 
@@ -44,9 +44,9 @@ enum class ConfirmMode {
 
 @Serializable
 data class AppPolicy(
-    val observe: Observe = Observe.Tree,
-    val act: Act = Act.Full,
-    val route: Route = Route.Default,
+    val observe: Observe = Observe.None,
+    val act: Act = Act.None,
+    val route: Route = Route.DeviceOnly,
     val confirm: ConfirmMode = ConfirmMode.DefaultList,
 )
 
@@ -68,7 +68,7 @@ data class PolicyFile(
     companion object {
         const val VERSION = 1
 
-        /** Device-only by default (core/README.md §9). Banking apps are added as they are identified. */
+        /** Retained named default; all unconfigured apps now default to blocked and device-only. */
         val DEVICE_ONLY_DEFAULT: Set<String> = setOf("org.thoughtcrime.securesms")
 
         fun defaultFor(pkg: String): AppPolicy =

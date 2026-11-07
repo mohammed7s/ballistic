@@ -11,6 +11,8 @@ import app.ballistic.assistant.adapters.InstalledApps
 import app.ballistic.assistant.adapters.IntentHands
 import app.ballistic.assistant.adapters.NotificationScreen
 import app.ballistic.assistant.confirm.ConfirmBroker
+import app.ballistic.assistant.core.AppAccess
+import app.ballistic.assistant.core.PolicyHands
 import app.ballistic.assistant.core.Act
 import app.ballistic.assistant.core.ActionLog
 import app.ballistic.assistant.core.ConfirmMode
@@ -96,13 +98,23 @@ class AppGraph(val app: Application) {
         modelConfigured = { localAi.selection.value.backend == ModelBackend.Local || modelsConfig.load() != null },
     )
 
-    val hands = IntentHands(app)
+    private val operationConfirm = BiometricConfirm(broker, policyStore)
+    val hands = PolicyHands(policyStore::load, IntentHands(app), operationConfirm) {
+        session.state.value.canStop && session.state.value.runs.lastOrNull()?.stopRequested != true
+    }
 
     val ports = HostPorts(
-        screen = NotificationScreen(app, installedApps = { InstalledApps.list(app) }, capabilities = ::capabilities),
+        screen = NotificationScreen(app, installedApps = {
+            val policy = policyStore.load()
+            InstalledApps.list(app).filter { AppAccess.canOpen(policy.forApp(it.`package`)) }
+        }, capabilities = ::capabilities, mayRead = { pkg ->
+            AppAccess.canReadNotifications(policyStore.load().forApp(pkg), localAi.selection.value.backend == ModelBackend.Local)
+        }, needsNotificationAccess = {
+            policyStore.load().apps.values.any { AppAccess.canReadNotifications(it, localAi.selection.value.backend == ModelBackend.Local) }
+        }),
         hands = hands,
         models = CountedModels(routedModels),
-        confirm = BiometricConfirm(broker, policyStore),
+        confirm = operationConfirm,
     )
 
     /**
@@ -114,7 +126,7 @@ class AppGraph(val app: Application) {
         val policy = policyStore.load()
         val granted = InstalledApps.list(app).map { it.`package` }.filter {
             val p = policy.forApp(it)
-            p.act != Act.None && p.confirm != ConfirmMode.NeverAutomate
+            AppAccess.canOpen(p)
         }
         return HostCapabilities(operations = IntentHands.OPERATIONS, appGrants = granted)
     }

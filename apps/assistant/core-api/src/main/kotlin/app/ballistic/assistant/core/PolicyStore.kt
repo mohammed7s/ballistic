@@ -8,7 +8,9 @@ import java.io.File
 
 class PolicyStore(private val file: File) {
     @Synchronized
-    fun load(): PolicyFile = PolicyFile.decodeOrDefault(if (file.exists()) file.readText() else null)
+    fun load(): PolicyFile = try {
+        PolicyFile.decodeOrDefault(if (file.exists()) file.readText() else null)
+    } catch (_: java.io.IOException) { PolicyFile() }
 
     @Synchronized
     fun save(policy: PolicyFile) {

@@ -6,6 +6,10 @@
 
 package app.ballistic.assistant.ui
 
+import android.hardware.biometrics.BiometricManager
+import android.hardware.biometrics.BiometricPrompt
+import android.os.CancellationSignal
+import android.net.Uri
 import android.app.Activity
 import android.app.NotificationManager
 import android.content.Intent
@@ -58,9 +62,57 @@ fun SettingsScreen(graph: AppGraph, activity: Activity) {
     val localBusy by graph.localAi.busy.collectAsState()
     var policy by remember { mutableStateOf(graph.policyStore.load()) }
     val apps = remember { InstalledApps.list(activity) }
+    var accessMessage by remember { mutableStateOf<String?>(null) }
+    var approving by remember { mutableStateOf(false) }
+    var appSearch by remember { mutableStateOf("") }
+    val canEdit = unlocked && run.canSubmit && run.pendingRequest == null && !localBusy && !approving
+    fun idleAndUnlocked() = graph.gate.canAcceptCommands() && graph.session.state.value.canSubmit &&
+        graph.session.state.value.pendingRequest == null && !graph.localAi.busy.value
+    fun saveRule(pkg: String, label: String, before: AppPolicy, changed: AppPolicy) {
+        if (!idleAndUnlocked() || approving) return
+        val strong = BiometricManager.Authenticators.BIOMETRIC_STRONG
+        if (activity.getSystemService(BiometricManager::class.java).canAuthenticate(strong) != BiometricManager.BIOMETRIC_SUCCESS) {
+            accessMessage = "Changing app access requires an enrolled strong biometric. Set this up in phone security settings."
+            return
+        }
+        approving = true
+        accessMessage = null
+        val description = "Read: ${policyLabel(changed.observe)}\nActions: ${policyLabel(changed.act)}\nModel: ${policyLabel(changed.route)}\nApproval: ${policyLabel(changed.confirm)}"
+        BiometricPrompt.Builder(activity).setTitle("Save access rules")
+            .setSubtitle("$label · $pkg").setDescription(description)
+            .setAllowedAuthenticators(strong).setConfirmationRequired(true)
+            .setNegativeButton("Cancel", activity.mainExecutor) { _, _ -> approving = false; accessMessage = "Rules unchanged." }
+            .build().authenticate(CancellationSignal(), activity.mainExecutor, object : BiometricPrompt.AuthenticationCallback() {
+                override fun onAuthenticationError(code: Int, message: CharSequence) {
+                    approving = false; accessMessage = "Rules unchanged: $message"
+                }
+                override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+                    approving = false
+                    val latest = graph.policyStore.load()
+                    if (!idleAndUnlocked() || latest.forApp(pkg) != before) {
+                        accessMessage = "Rules unchanged. Finish current work and review the rules again."
+                        return
+                    }
+                    try {
+                        val next = latest.with(pkg, changed)
+                        graph.policyStore.save(next)
+                        policy = next
+                        accessMessage = "Rules saved for $label."
+                    } catch (_: Exception) { accessMessage = "Could not save rules; access was not changed." }
+                }
+            })
+    }
 
     LazyColumn(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         item { SessionAccess(graph, activity) }
+        item { Section("Phone permissions") }
+        item {
+            Text("Android controls Ballistic’s access to phone resources. App access rules below restrict what Ballistic may do within those permissions; they cannot grant system access.")
+            OutlinedButton(onClick = {
+                activity.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${activity.packageName}")))
+            }) { Text("Ballistic in phone settings") }
+            Text("For an OS-enforced offline boundary, disable Ballistic’s Network permission in GrapheneOS after model setup. Downloads and connected models then need it enabled again.", style = MaterialTheme.typography.bodySmall)
+        }
         item {
             Text("Task notifications", style = MaterialTheme.typography.titleMedium)
             Text(if (activity.getSystemService(NotificationManager::class.java).areNotificationsEnabled())
@@ -86,7 +138,7 @@ fun SettingsScreen(graph: AppGraph, activity: Activity) {
         item { Section("Notification access") }
         item {
             Column {
-                Text(if (NotificationScreenService.connected != null) "Granted: Ballistic can read notifications." else "Not granted: Ballistic cannot read notifications. Local model setup does not need this permission.")
+                Text(if (NotificationScreenService.connected != null) "Connected: Android makes notifications available to Ballistic. Only apps you allow below are passed to the assistant." else "Not granted: Ballistic cannot read notifications. Local model setup does not need this permission.")
                 OutlinedButton(onClick = { activity.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)) }) { Text("Open system settings") }
             }
         }
@@ -99,30 +151,29 @@ fun SettingsScreen(graph: AppGraph, activity: Activity) {
             }
         }
 
-        item { Section("Apps") }
+        item { Section("App access rules") }
         item {
-            Column {
-                if (!unlocked) Text("Authenticate above to change these.", color = MaterialTheme.colorScheme.error)
-                Text("Send, pay, delete, post, install and grant always need your fingerprint, whatever is set here.", style = MaterialTheme.typography.bodySmall)
-            }
+            Text("New apps start blocked. Reading notifications and opening apps are separate choices. On-device-only notifications are excluded when a connected model is selected.")
+            Text("Saving rules requires a fresh strong biometric. Finish or stop any task before editing. Sensitive-action approval remains separate.", style = MaterialTheme.typography.bodySmall)
+            Text("This build can read allowed notifications and open allowed apps. Screen reading, tapping, typing and full control are unavailable.", style = MaterialTheme.typography.bodySmall)
+            accessMessage?.let { Text(it) }
+            OutlinedTextField(appSearch, { appSearch = it }, label = { Text("Find an app") }, modifier = Modifier.fillMaxWidth())
         }
-        items(apps, key = { it.`package` }) { app ->
+        items(apps.filter { it.label.contains(appSearch, ignoreCase = true) || it.`package`.contains(appSearch, ignoreCase = true) }, key = { it.`package` }) { app ->
             val p = policy.forApp(app.`package`)
-            fun save(changed: AppPolicy) {
-                if (!graph.gate.canAcceptCommands()) return
-                policy = policy.with(app.`package`, changed)
-                graph.policyStore.save(policy)
-            }
+            var expanded by remember { mutableStateOf(false) }
+            var draft by remember(p) { mutableStateOf(p) }
             Column {
                 Text(app.label, fontWeight = FontWeight.Bold)
                 Text(app.`package`, style = MaterialTheme.typography.labelSmall)
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Choice("observe", p.observe, Observe.entries, unlocked) { save(p.copy(observe = it)) }
-                    Choice("act", p.act, Act.entries, unlocked) { save(p.copy(act = it)) }
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Choice("route", p.route, Route.entries, unlocked) { save(p.copy(route = it)) }
-                    Choice("confirm", p.confirm, ConfirmMode.entries, unlocked) { save(p.copy(confirm = it)) }
+                Text("Read: ${policyLabel(p.observe)} · Actions: ${policyLabel(p.act)}", style = MaterialTheme.typography.bodySmall)
+                TextButton(onClick = { expanded = !expanded }) { Text(if (expanded) "Hide rules" else "Edit rules") }
+                if (expanded) {
+                    Choice("Read", draft.observe, listOf(Observe.None, Observe.Notifications), canEdit) { draft = draft.copy(observe = it) }
+                    Choice("Actions", draft.act, listOf(Act.None, Act.Navigate), canEdit) { draft = draft.copy(act = it) }
+                    Choice("Model", draft.route, Route.entries, canEdit) { draft = draft.copy(route = it) }
+                    Choice("Approval", draft.confirm, ConfirmMode.entries, canEdit) { draft = draft.copy(confirm = it) }
+                    Button(enabled = canEdit && draft != p, onClick = { saveRule(app.`package`, app.label, p, draft) }) { Text("Save with biometric") }
                 }
                 HorizontalDivider()
             }
@@ -151,13 +202,28 @@ private fun Section(title: String) {
 private fun <T : Enum<T>> Choice(name: String, value: T, options: List<T>, enabled: Boolean, onPick: (T) -> Unit) {
     var open by remember { mutableStateOf(false) }
     Box {
-        TextButton(onClick = { open = true }, enabled = enabled) { Text("$name: ${value.name}") }
+        TextButton(onClick = { open = true }, enabled = enabled) { Text("$name: ${policyLabel(value)}") }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             for (option in options) {
-                DropdownMenuItem(text = { Text(option.name) }, onClick = { open = false; onPick(option) })
+                DropdownMenuItem(text = { Text(policyLabel(option)) }, onClick = { open = false; onPick(option) })
             }
         }
     }
+}
+
+private fun policyLabel(value: Enum<*>): String = when (value) {
+    Observe.None -> "Blocked"
+    Observe.Notifications -> "Notifications"
+    Observe.Tree, Observe.TreeScreenshot -> "Notifications (legacy screen rule)"
+    Act.None -> "Blocked"
+    Act.Navigate -> "Open app"
+    Act.Full -> "Open app (legacy full rule)"
+    Route.DeviceOnly -> "On device only"
+    Route.Default -> "Selected backend; may leave device"
+    ConfirmMode.DefaultList -> "Sensitive actions"
+    ConfirmMode.Always -> "Every action"
+    ConfirmMode.NeverAutomate -> "Block all actions"
+    else -> value.name
 }
 
 /** Planner endpoint and model; other roles fall back to it (ModelsConfig). The key is write-only. */

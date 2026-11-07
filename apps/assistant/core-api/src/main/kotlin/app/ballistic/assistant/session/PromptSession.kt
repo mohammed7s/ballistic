@@ -114,6 +114,7 @@ class PromptSession(
     fun stop() {
         stopRequested = true
         _state.value.runs.lastOrNull()?.takeIf { _state.value.canStop }?.let {
+            updateRun(it.id) { run -> run.copy(stopRequested = true) }
             appendProgress(it.id, "Stop requested; waiting for current work to end")
         }
         core.stop()

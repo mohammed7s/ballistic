@@ -357,3 +357,18 @@ Owner-started tasks may continue when the Activity is hidden, with a foreground 
 visible progress/Stop notification when notifications are enabled, and elapsed time. Process
 death or force-stop must not silently restart a task. Keeping the process running does not grant
 permission for background activity launches or other-app screen control.
+
+## 8 November 2026 clarification: access controls in the Android prototype
+
+Android/GrapheneOS Settings owns system permission grants and revocation. Ballistic Settings
+owns the additional per-app rules within those grants; it cannot create an OS permission or
+override a revoked one. Unconfigured apps deny observation/actions and default to device-only
+routing. Changing a saved app rule requires fresh strong biometric authentication of the
+displayed change, independently of ordinary command admission, with active work excluded.
+
+The current adapter enforces notification filtering before prompt construction and app-launch
+grants at dispatch. Device-only notifications are omitted for connected inference. Its UI offers
+only notification reading and opening apps; tree/screenshot observation and general control are
+not granted by selecting a policy value. Existing explicit serialized grants are preserved;
+missing or unreadable policy defaults become restrictive. This is app-side enforcement and
+does not claim OS isolation between notification sources or a completed security audit.

@@ -101,6 +101,32 @@ Pixel; laptop and emulator results must be labeled separately.
 
 ## Current capability boundary
 
+### Access controls
+
+Use **Settings → Phone permissions → Ballistic in phone settings** for Android/GrapheneOS
+permissions. These govern the app's system access. Notification access is a separate Android
+special-access grant; task notifications merely show progress and Stop. Local model inference
+does not need notification access. GrapheneOS's Network toggle supplies an OS-enforced offline
+boundary; model downloads and connected inference require network access.
+
+Use **Settings → App access rules** for Ballistic's own restrictions within those system grants.
+Unconfigured apps are blocked for reading and actions, with on-device-only routing. Search for
+an app, expand its rules, choose notification reading and/or opening it, and **Save with
+biometric**. Review the exact settings in the system strong-biometric prompt. Cancelling or
+failing authentication leaves the saved rules unchanged. Finish active work before editing.
+Explicit existing saved grants remain; missing fields now use the restrictive defaults.
+
+Only notification reading and opening apps are offered in this build. Legacy tree/full rules
+are labeled as legacy and provide no additional capabilities. Device-only notifications are
+excluded entirely when a connected model is selected. Every-action approval applies to opening
+an app too. Grants are checked again at dispatch, including after an approval. To try Open Clock,
+first grant Clock **Actions: Open app**; notification reading can remain blocked.
+
+Android's notification grant may deliver notifications broadly to Ballistic's process. Its
+per-app filter limits what reaches the assistant; it is not OS-level isolation between sources.
+The ordinary app cannot add its policy table to Android's permission manager. Sensitive-operation
+approval remains a separate mechanism, and these changes do not establish a completed security audit.
+
 The app can launch supported apps through Android intents. Its notification adapter cannot
 observe another app's complete screen, and general tap/type/scroll control still needs a platform
 adapter. Local model support and the Local AI UI do not complete that integration. Production

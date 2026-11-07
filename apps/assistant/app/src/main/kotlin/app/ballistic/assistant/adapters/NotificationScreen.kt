@@ -58,18 +58,21 @@ class NotificationScreen(
     private val context: Context,
     private val installedApps: () -> List<AppEntry>,
     private val capabilities: () -> HostCapabilities,
+    private val mayRead: (String) -> Boolean,
+    private val needsNotificationAccess: () -> Boolean,
 ) : Screen {
     override fun observe(): ScreenState {
-        val service = NotificationScreenService.connected
-            ?: throw PortException.Host("notification access is not granted to Ballistic")
-        val active = try {
-            service.activeNotifications.orEmpty()
-        } catch (e: SecurityException) {
-            throw PortException.Host("notification access was revoked")
+        // App launch discovery does not require broad notification access. Do not even fetch
+        // notifications unless an explicit rule permits reading them with the selected backend.
+        val active = if (!needsNotificationAccess()) emptyArray() else {
+            val service = NotificationScreenService.connected
+                ?: throw PortException.Host("notification access is not granted to Ballistic")
+            try { service.activeNotifications.orEmpty() }
+            catch (_: SecurityException) { throw PortException.Host("notification access was revoked") }
         }
         val metrics = context.resources.displayMetrics
         val nodes = buildNodes(
-            active.filter { it.packageName != context.packageName }.sortedByDescending { it.postTime },
+            active.filter { it.packageName != context.packageName && mayRead(it.packageName) }.sortedByDescending { it.postTime },
             metrics.widthPixels,
         )
         // Sent on every observation: core keeps the list per run, and this port does not know

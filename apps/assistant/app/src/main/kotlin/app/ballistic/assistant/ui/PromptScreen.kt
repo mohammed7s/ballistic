@@ -108,7 +108,7 @@ fun PromptScreen(graph: AppGraph, activity: Activity, onOpenLocalAi: () -> Unit 
                             Button(onClick = onOpenLocalAi) {
                                 Text(if(graph.localAi.model.value == null) "Set up local AI" else "Load local model")
                             }
-                        } else Text("Try: Open Clock")
+                        } else Text("To try Open Clock, first allow Clock → Actions: Open app in Settings → App access rules.")
                     }
                 }
             }

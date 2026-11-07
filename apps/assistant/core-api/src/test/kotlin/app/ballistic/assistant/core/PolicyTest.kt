@@ -10,29 +10,29 @@ class PolicyTest {
     @Test
     fun hardFromCoreIsNeverLowered() {
         for (mode in listOf(ConfirmMode.DefaultList, ConfirmMode.Always)) {
-            assertEquals(ConfirmClass.Hard, ConfirmFloor.required(request(hard = true), AppPolicy(confirm = mode)))
+            assertEquals(ConfirmClass.Hard, ConfirmFloor.required(request(hard = true), AppPolicy(act = Act.Full, confirm = mode)))
         }
     }
 
     @Test
     fun codeConstantRaisesSoftToHard() {
         // Core asked for soft, but the operation names a word on the constant list.
-        assertEquals(ConfirmClass.Hard, ConfirmFloor.required(request(target = "Send message"), AppPolicy()))
-        assertEquals(ConfirmClass.Hard, ConfirmFloor.required(request(reason = "type and submit"), AppPolicy()))
-        assertEquals(ConfirmClass.Soft, ConfirmFloor.required(request(), AppPolicy()))
+        assertEquals(ConfirmClass.Hard, ConfirmFloor.required(request(target = "Send message"), AppPolicy(act = Act.Full)))
+        assertEquals(ConfirmClass.Hard, ConfirmFloor.required(request(reason = "type and submit"), AppPolicy(act = Act.Full)))
+        assertEquals(ConfirmClass.Soft, ConfirmFloor.required(request(), AppPolicy(act = Act.Full)))
     }
 
     @Test
     fun ownerSettingsTightenOnly() {
-        assertEquals(ConfirmClass.Hard, ConfirmFloor.required(request(), AppPolicy(confirm = ConfirmMode.Always)))
-        assertEquals(ConfirmClass.Refuse, ConfirmFloor.required(request(hard = true), AppPolicy(confirm = ConfirmMode.NeverAutomate)))
+        assertEquals(ConfirmClass.Hard, ConfirmFloor.required(request(), AppPolicy(act = Act.Full, confirm = ConfirmMode.Always)))
+        assertEquals(ConfirmClass.Refuse, ConfirmFloor.required(request(hard = true), AppPolicy(act = Act.Full, confirm = ConfirmMode.NeverAutomate)))
         assertEquals(ConfirmClass.Refuse, ConfirmFloor.required(request(), AppPolicy(act = Act.None)))
     }
 
     @Test
     fun taintedValueRaisesToHard() {
         val tainted = listOf(Tagged("+15550100", Source.Sms("thread 4")))
-        assertEquals(ConfirmClass.Hard, ConfirmFloor.required(request(values = tainted), AppPolicy()))
+        assertEquals(ConfirmClass.Hard, ConfirmFloor.required(request(values = tainted), AppPolicy(act = Act.Full)))
     }
 
     @Test

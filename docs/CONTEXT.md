@@ -1420,3 +1420,19 @@ card. Model requests expose waiting/reply-received events, not raw model reasoni
 bounded to 250 in-process entries per run; existing persisted action logs remain unchanged.
 The updated APK is installed and six session tests pass. Collapsed Activity cards were observed
 on the Pixel; connection timeouts interrupted the remaining expansion/live-feed device checks.
+
+## Access-control cleanup — 8 November 2026
+
+System permission grants remain in Android/GrapheneOS Settings; Ballistic's per-app policy is
+an additional app-side restriction, as specified in SPEC §4.3–4.4. Settings now separates those
+controls, links to the app's system settings and offers only currently supported app rules.
+Unconfigured/unreadable policies deny reading and actions and default to device-only routing.
+Existing explicit serialized grants are retained. Saving an immutable rule change requires a
+fresh BIOMETRIC_STRONG prompt, with no PIN fallback, and rechecks idle/unlocked state afterward.
+
+Notification rules are now applied before node construction; device-only sources are omitted
+for connected inference. With no readable sources, opening apps no longer requires notification
+access. Only granted launchable apps are advertised; dispatch independently checks the grant,
+every-action approval, cancellation and revocation. These restrictions cover the current Android
+adapter, not unimplemented routes or an OS policy service. See the
+[access-control record](log/2026-11-08-app-access.md).
