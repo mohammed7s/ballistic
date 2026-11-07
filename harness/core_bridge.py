@@ -160,7 +160,7 @@ def _foreground_nodes(forest: Any, package: str) -> Optional[list[dict[str, Any]
     nodes = [n for n in nodes if n.get("package") == package]
     ids = {n["id"]: i for i, n in enumerate(nodes)}
     # A removed ancestor is not a root. Keep an invalid comparison-only parent so
-    # slight-change tolerance cannot miss a caption folded through that wrapper.
+    # slight-change tolerance cannot assume complete ancestry through that wrapper.
     # observe still returns the original full forest, never this sentinel.
     return [{**n, "id": ids[n["id"]],
              "parent": None if n["parent"] is None else ids.get(n["parent"], -1)} for n in nodes]
@@ -177,40 +177,40 @@ def _foreground_signature(forest: Any, package: str) -> Optional[str]:
     return _signature(_foreground_nodes(forest, package))
 
 
-_PASSIVE_ROLES = ("text", "image", "container")
-_INTERACTION_FLAGS = ("clickable", "long_clickable", "editable", "scrollable",
-                      "checkable", "checked", "selected", "focused")
-_SETTLING_FLAGS = frozenset((*_INTERACTION_FLAGS, "enabled", "visible"))
+_SETTLING_ROLES = ("text", "image", "container", "button", "edit", "switch",
+                   "checkbox", "slider", "tab", "item", "list")
+_SETTLING_FLAGS = frozenset(("clickable", "long_clickable", "editable", "scrollable",
+                            "checkable", "checked", "selected", "focused", "enabled", "visible"))
 
 
 def slightly_different(old: list[dict[str, Any]], new: list[dict[str, Any]]) -> bool:
-    """Only text may vary, on at most a tenth of the nodes, outside control ancestry.
+    """Only label/text may vary, on at most a tenth of structurally stable nodes.
 
-    All other fields (including IDs, labels, bounds and flags) must match. Roles and
-    flags both restrict tolerance: a caption can fold through pruned wrappers into
-    an actionable row, and a control need not advertise a clickable flag. Unknown
-    roles/flags and malformed ancestry cannot establish passive text. This is still
-    a heuristic: noninteractive text may be material, and repeated stale/incomplete
-    trees remain indistinguishable from stable ones.
+    All other fields, including identity, ancestry, roles, bounds and flags, must
+    match. Controls and scrollable ancestry need not freeze their display strings.
+    Unknown roles/flags and malformed ancestry remain conservative. The latest raw
+    strings still go through core's ordinary filter, identity and confirmation
+    checks: tolerance grants no trust or action authority. This is a consistency
+    heuristic, not proof of freshness, harmless content or atomic target stability.
     """
     if len(old) != len(new) or not old:
         return False
     # Normalization emits parents before children. Requiring that order rejects
     # dangling/forward/cyclic edges without recursion or repeated ancestor walks.
-    # One boolean per ID carries the entire ancestry: O(n) time and O(n) space
+    # One boolean per ID records known ancestry: O(n) time and O(n) space
     # for fixed-size node metadata, plus comparison of the supplied field values.
-    passive: dict[int, bool] = {}
+    known_ancestry: dict[int, bool] = {}
     changed = 0
     for a, b in zip(old, new):
         if not isinstance(a, dict) or not isinstance(b, dict):
             return False
-        if a.keys() != b.keys() or any(a[k] != b[k] for k in a if k != "text"):
+        if a.keys() != b.keys() or any(a[k] != b[k] for k in a if k not in ("label", "text")):
             return False
         uid, parent = a.get("id"), a.get("parent")
         if (type(uid) is not int or type(b.get("id")) is not int
-                or uid < 0 or uid in passive or "parent" not in a
+                or uid < 0 or uid in known_ancestry or "parent" not in a
                 or (b.get("parent") is not None and type(b["parent"]) is not int)
-                or (parent is not None and (type(parent) is not int or parent not in passive))):
+                or (parent is not None and (type(parent) is not int or parent not in known_ancestry))):
             return False
         flags = a.get("flags")
         if (not isinstance(flags, dict) or flags.keys() != _SETTLING_FLAGS
@@ -218,13 +218,13 @@ def slightly_different(old: list[dict[str, Any]], new: list[dict[str, Any]]) -> 
                 or any(type(flags[k]) is not bool or type(b["flags"][k]) is not bool
                        for k in _SETTLING_FLAGS)):
             return False
-        passive[uid] = (a.get("role") in _PASSIVE_ROLES
-                        and not any(flags[k] for k in _INTERACTION_FLAGS)
-                        and (parent is None or passive[parent]))
-        if a.get("text") != b.get("text"):
-            if (a.get("role") != "text" or not passive[uid]
-                    or any(v is not None and not isinstance(v, str)
-                           for v in (a.get("text"), b.get("text")))):
+        if any(k not in node or (node[k] is not None and not isinstance(node[k], str))
+               for node in (a, b) for k in ("label", "text")):
+            return False
+        known_ancestry[uid] = (a.get("role") in _SETTLING_ROLES
+                               and (parent is None or known_ancestry[parent]))
+        if a["text"] != b["text"] or a["label"] != b["label"]:
+            if not known_ancestry[uid]:
                 return False
             changed += 1
             if changed > len(old) // 10:
@@ -273,9 +273,10 @@ class CoreHost:
 
         Two consecutive samples with the same foreground and size settle the
         screen when their trees match, or when they differ only slightly (same
-        skeleton and metadata, text-only changes on at most a tenth of nodes,
-        outside interactive roles/flags and their ancestry); the later sample is
-        returned. This does not establish that changing text is harmless.
+        skeleton and metadata, label/text changes on at most a tenth of nodes,
+        including controls with known ancestry); the later sample is returned
+        intact for ordinary core filtering and validation. This does not establish
+        that changing strings are harmless or the target cannot change afterward.
         Unsettled samples are spaced 0.3 s,
         then doubling. Six acquisitions and a 30-second soft deadline bound our
         retries; a blocking environment/ADB call still depends on its own

@@ -3,6 +3,7 @@ No emulator, network or model: HTTP responses and screens are scripted."""
 from copy import deepcopy
 import json
 import os
+from pathlib import Path
 import subprocess
 import unittest
 from types import SimpleNamespace
@@ -273,8 +274,11 @@ class SettlingTest(unittest.TestCase):
         self.assertEqual(host.observe()['activity'], 'A')
 
 
-class TextOnlySettlingTest(unittest.TestCase):
-    """Frozen varied invariant matrix; observations use the real normalizer and predicate."""
+class LabelTextSettlingTest(unittest.TestCase):
+    """Compatibility matrix: stable metadata, bounded latest label/text snapshots.
+
+    Replaces passive-text-only assertions frozen in the historical settling report.
+    Readiness grants no identity, confirmation exemption or completion evidence."""
 
     def setUp(self):
         self.sleep = patch('core_bridge.time.sleep').start()
@@ -312,7 +316,7 @@ class TextOnlySettlingTest(unittest.TestCase):
         control.text = 'Continue'
         return raw
 
-    def test_six_proven_control_changes_reset_settling(self):
+    def test_control_flags_and_bounds_reset_but_latest_text_and_label_settle(self):
         old = self.button()
         for field, value in [('is_enabled', False), ('is_visible_to_user', False),
                              ('is_clickable', False), ('text', 'Delete'),
@@ -324,9 +328,9 @@ class TextOnlySettlingTest(unittest.TestCase):
                     node.bounds_in_screen.right = value
                 else:
                     setattr(node, field, value)
-                self.assert_transition(old, new)
+                self.assert_transition(old, new, tolerated=field in ('text', 'content_description'))
 
-    def test_all_flags_and_label_sources_and_bounds_are_stable_even_on_inert_text(self):
+    def test_flags_and_bounds_stay_fixed_while_all_label_sources_may_update(self):
         for field in ('is_clickable', 'is_long_clickable', 'is_editable', 'is_scrollable',
                       'is_checkable', 'is_checked', 'is_selected', 'is_enabled',
                       'is_focused', 'is_visible_to_user', 'content_description',
@@ -339,7 +343,8 @@ class TextOnlySettlingTest(unittest.TestCase):
                     node.bounds_in_screen.bottom += 1
                 else:
                     setattr(node, field, not getattr(node, field) if field.startswith('is_') else 'New label')
-                self.assert_transition(old, new)
+                self.assert_transition(old, new, tolerated=field in
+                                       ('content_description', 'hint_text', 'tooltip_text'))
 
     def caption_tree(self, wrapped=False):
         raw = self.button()
@@ -354,13 +359,13 @@ class TextOnlySettlingTest(unittest.TestCase):
             nodes[2].child_ids = [nodes[3].unique_id]
         return raw, 3 if wrapped else 2
 
-    def test_descendant_caption_including_pruned_wrapper_resets(self):
+    def test_descendant_caption_including_pruned_wrapper_returns_latest(self):
         for wrapped in (False, True):
             with self.subTest(wrapped=wrapped):
                 old, index = self.caption_tree(wrapped)
                 new = deepcopy(old)
                 new.windows[0].tree.nodes[index].text = 'Changed caption'
-                self.assert_transition(old, new)
+                self.assert_transition(old, new, tolerated=True)
 
     def test_caption_really_folds_into_button_in_current_rust(self):
         for wrapped in (False, True):
@@ -374,7 +379,7 @@ class TextOnlySettlingTest(unittest.TestCase):
                                         capture_output=True, check=True)
                 self.assertIn('button "Caption marker"', result.stdout)
 
-    def test_edit_and_toggle_values_and_folded_toggle_caption_reset(self):
+    def test_edit_and_toggle_text_may_update_but_checked_flag_must_match(self):
         for role, field, value in [('EditText', 'text', 'new draft'),
                                    ('Switch', 'is_checked', True), ('Switch', 'text', 'OFF')]:
             with self.subTest(role=role, field=field):
@@ -385,7 +390,7 @@ class TextOnlySettlingTest(unittest.TestCase):
                 node.is_checkable = role == 'Switch'
                 new = deepcopy(old)
                 setattr(new.windows[0].tree.nodes[1], field, value)
-                self.assert_transition(old, new)
+                self.assert_transition(old, new, tolerated=field == 'text')
         old, index = self.caption_tree()
         nodes = old.windows[0].tree.nodes
         nodes[0].child_ids.remove(nodes[3].unique_id)
@@ -394,9 +399,9 @@ class TextOnlySettlingTest(unittest.TestCase):
         nodes[3].is_checkable = True
         new = deepcopy(old)
         new.windows[0].tree.nodes[index].text = 'Different setting'
-        self.assert_transition(old, new)
+        self.assert_transition(old, new, tolerated=True)
 
-    def test_interactive_flags_on_text_or_any_ancestor_block_text_variation(self):
+    def test_unchanged_interactive_flags_on_text_or_ancestors_allow_text_variation(self):
         for field in ('is_clickable', 'is_long_clickable', 'is_editable', 'is_scrollable',
                       'is_checkable', 'is_checked', 'is_selected', 'is_focused'):
             for ancestor in (False, True):
@@ -405,9 +410,9 @@ class TextOnlySettlingTest(unittest.TestCase):
                     setattr(old.windows[0].tree.nodes[0 if ancestor else -1], field, True)
                     new = deepcopy(old)
                     new.windows[0].tree.nodes[-1].text = '00:02'
-                    self.assert_transition(old, new)
+                    self.assert_transition(old, new, tolerated=True)
 
-    def test_control_roles_without_action_flags_and_disabled_ancestors_block(self):
+    def test_known_control_roles_and_disabled_ancestors_allow_latest_strings(self):
         for class_name in ('Button', 'EditText', 'Switch', 'CheckBox', 'SeekBar',
                            'TabView', 'ListView'):
             with self.subTest(class_name=class_name):
@@ -415,23 +420,23 @@ class TextOnlySettlingTest(unittest.TestCase):
                 old.windows[0].tree.nodes[0].class_name = 'android.widget.' + class_name
                 new = deepcopy(old)
                 new.windows[0].tree.nodes[-1].text = '00:02'
-                self.assert_transition(old, new)
+                self.assert_transition(old, new, tolerated=True)
         for field in ('is_enabled', 'is_visible_to_user'):
             with self.subTest(field=field):
                 old, index = self.caption_tree(True)
                 setattr(old.windows[0].tree.nodes[1], field, False)
                 new = deepcopy(old)
                 new.windows[0].tree.nodes[index].text = 'Changed'
-                self.assert_transition(old, new)
+                self.assert_transition(old, new, tolerated=True)
 
-    def test_non_text_role_changes_are_not_ticking_text(self):
+    def test_known_non_text_roles_allow_strings_but_unknown_role_stays_conservative(self):
         for class_name in ('ImageView', 'LinearLayout', 'UnknownWidget', 'Button'):
             with self.subTest(class_name=class_name):
                 old = self.base()
                 old.windows[0].tree.nodes[-1].class_name = 'android.widget.' + class_name
                 new = deepcopy(old)
                 new.windows[0].tree.nodes[-1].text = 'changed'
-                self.assert_transition(old, new)
+                self.assert_transition(old, new, tolerated=class_name != 'UnknownWidget')
 
     def test_skeleton_count_and_id_changes_reject(self):
         old = self.nodes(self.base())
@@ -502,7 +507,7 @@ class TextOnlySettlingTest(unittest.TestCase):
                 new[-1]['text'] = '00:02'
                 self.assertFalse(slightly_different(old, new))
 
-    def test_deep_ancestry_is_iterative_and_respects_distant_control(self):
+    def test_deep_known_ancestry_is_iterative_even_with_distant_control(self):
         old = self.nodes(self.base(2000))
         for i, node in enumerate(old):
             node['parent'] = old[i - 1]['id'] if i else None
@@ -511,7 +516,7 @@ class TextOnlySettlingTest(unittest.TestCase):
             node['text'] = '00:02'
         self.assertTrue(slightly_different(old, new))
         old[0]['flags']['clickable'] = new[0]['flags']['clickable'] = True
-        self.assertFalse(slightly_different(old, new))
+        self.assertTrue(slightly_different(old, new))
 
     def test_exact_observation_keeps_existing_path_without_predicate(self):
         host = self.host(sample(self.button()))
@@ -590,9 +595,9 @@ class TextOnlySettlingTest(unittest.TestCase):
         self.assertEqual(host.observe()['height'], 2300)
         self.assertEqual(host.env.state_reads, 3)
 
-    def test_sparse_control_churn_exhausts_then_fresh_call_restarts(self):
+    def test_sparse_control_flag_churn_exhausts_then_fresh_call_restarts(self):
         old, new = self.button(), self.button()
-        new.windows[0].tree.nodes[1].text = 'Delete'
+        new.windows[0].tree.nodes[1].is_enabled = False
         host = self.host(*(sample(old if i % 2 == 0 else new) for i in range(6)))
         with self.assertRaisesRegex(ObservationError, 'foreground_not_settled'):
             host.observe()
@@ -616,6 +621,150 @@ class TextOnlySettlingTest(unittest.TestCase):
             host.observe()
         self.assertAlmostEqual(self.sleep.call_args.args[0], 0.1)
         self.assertEqual((host.env.state_reads, host._observation_sequence), (1, 0))
+
+    def test_exact_captured_pairs_and_identical_sample_return_latest(self):
+        fixture = json.loads((Path(__file__).parent / 'fixtures/settling_capture_20261107.json').read_text())
+
+        def restore(value):
+            if isinstance(value, dict):
+                return SimpleNamespace(**{k: restore(v) for k, v in value.items()})
+            if isinstance(value, list):
+                return [restore(v) for v in value]
+            return value
+
+        package = fixture['foreground'].split('/')[0]
+        for attempt in fixture['attempts']:
+            forests = []
+            for captured in attempt['samples']:
+                raw = deepcopy(fixture['base_window'])
+                raw['tree']['nodes'][fixture['changed_raw_index']].update(captured['values'])
+                forests.append(forest(restore(raw)))
+            for i, (old, new) in enumerate(zip(forests, forests[1:])):
+                with self.subTest(attempt=attempt['attempt'], pair=i):
+                    self.assertTrue(slightly_different(core_bridge._foreground_nodes(old, package),
+                                                      core_bridge._foreground_nodes(new, package)))
+                    host = self.host(sample(old, fixture['foreground']), sample(new, fixture['foreground']))
+                    result = host.observe()
+                    self.assertEqual(host.env.state_reads, 2)
+                    self.assertEqual(result['nodes'], core_bridge.forest_to_nodes(new))
+                    self.assertEqual((result['width'], result['height']), tuple(fixture['size']))
+
+    def test_generic_clickable_unicode_labels_and_nested_scrollable_ancestry(self):
+        for before, after in [('Continue', 'Delete'), ('مرحبا', '再試行 🧭'),
+                              ('α\nβ', 'not a clock'), ('', 'new content'), ('gone', '')]:
+            for field in ('text', 'content_description'):
+                with self.subTest(before=before, after=after, field=field):
+                    old, index = self.caption_tree(True)
+                    nodes = old.windows[0].tree.nodes
+                    nodes[0].class_name = 'android.widget.ScrollView'
+                    nodes[0].is_scrollable = True
+                    nodes[2].class_name = 'android.widget.NestedScrollView'
+                    nodes[2].is_scrollable = True
+                    nodes[index].is_clickable = True
+                    setattr(nodes[index], field, before)
+                    new = deepcopy(old)
+                    setattr(new.windows[0].tree.nodes[index], field, after)
+                    self.assert_transition(old, new, tolerated=True)
+
+    def test_label_and_text_count_changed_nodes_once_under_original_cap(self):
+        for count, changes, allowed in ((9, 1, False), (10, 1, True), (10, 2, False),
+                                        (20, 2, True), (20, 3, False)):
+            with self.subTest(count=count, changes=changes):
+                old = self.base(count)
+                for node in old.windows[0].tree.nodes[-changes:]:
+                    node.class_name = 'android.widget.Button'
+                    node.is_clickable = True
+                new = deepcopy(old)
+                for node in new.windows[0].tree.nodes[-changes:]:
+                    node.text = 'arbitrary new text'
+                    node.content_description = '異なる説明'
+                self.assert_transition(old, new, tolerated=allowed)
+
+    def test_malformed_or_missing_display_fields_do_not_gain_tolerance(self):
+        for field in ('text', 'label'):
+            for value in ([], {}, 1, False):
+                for side in ('old', 'new', 'unchanged_ancestor'):
+                    with self.subTest(field=field, value=value, side=side):
+                        old = self.nodes(self.base())
+                        new = deepcopy(old)
+                        new[-1]['text'] = 'updated'
+                        if side == 'unchanged_ancestor':
+                            old[0][field] = new[0][field] = value
+                        else:
+                            (old if side == 'old' else new)[-1][field] = value
+                        self.assertFalse(slightly_different(old, new))
+            with self.subTest(field=field, missing=True):
+                old = self.nodes(self.base())
+                del old[0][field]
+                new = deepcopy(old)
+                new[-1]['text'] = 'updated'
+                self.assertFalse(slightly_different(old, new))
+
+    def test_excluded_parent_marker_remains_private_on_later_exact_return(self):
+        old, index = self.caption_tree(True)
+        old.windows[0].tree.nodes[2].package_name = 'foreign'
+        new = deepcopy(old)
+        new.windows[0].tree.nodes[index].text = 'latest caption'
+        self.assertIn(-1, [n['parent'] for n in self.nodes(new)])
+        host = self.host(sample(old), sample(new))
+        result = host.observe()
+        self.assertEqual(host.env.state_reads, 3)
+        self.assertEqual(result['nodes'], core_bridge.forest_to_nodes(new))
+        self.assertNotIn(-1, [n['parent'] for n in result['nodes']])
+
+    def test_latest_folded_caption_reaches_real_core_filter(self):
+        binary = os.environ.get('BALLISTIC_TEST_CORE_BIN') or core_bridge.default_core_bin()
+        for wrapped in (False, True):
+            with self.subTest(wrapped=wrapped):
+                old, index = self.caption_tree(wrapped)
+                old.windows[0].tree.nodes[index].text = 'Continue'
+                new = deepcopy(old)
+                new.windows[0].tree.nodes[index].text = 'Delete'
+                host = self.host(sample(old), sample(new))
+                screen = host.observe()
+                self.assertEqual(host.env.state_reads, 2)
+                result = subprocess.run([binary, 'filter'], input=json.dumps(screen), text=True,
+                                        capture_output=True, check=True, timeout=10)
+                self.assertIn('button "Delete"', result.stdout)
+                self.assertNotIn('Continue', result.stdout)
+
+    def test_latest_button_text_still_requires_confirmation_and_collection_identity(self):
+        binary = os.environ.get('BALLISTIC_TEST_CORE_BIN') or core_bridge.default_core_bin()
+        for collection in (False, True):
+            with self.subTest(collection=collection):
+                old = self.button()
+                # Empty root is pruned for the ordinary button (e1). A scrollable
+                # collection root is retained and its unidentified child is e2.
+                old.windows[0].tree.nodes[0].text = ''
+                if collection:
+                    old.windows[0].tree.nodes[0].class_name = 'androidx.recyclerview.widget.RecyclerView'
+                    old.windows[0].tree.nodes[0].is_scrollable = True
+                new = deepcopy(old)
+                new.windows[0].tree.nodes[1].text = 'Delete'
+                host = self.host(sample(old), sample(new))
+                host.confirm_policy = 'deny'
+                target = 'e2' if collection else 'e1'
+                host.models.complete.return_value = {'text': json.dumps({'action': 'tap', 'target': target})}
+                host.act = Mock(side_effect=AssertionError('no dispatch authorized'))
+                with subprocess.Popen([binary, 'run', '--request', 'Inspect this screen', '--max-steps', '1'],
+                                      stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE) as proc:
+                    result = host.serve(proc)
+                    proc.stdin.close()
+                    proc.wait(timeout=10)
+                    self.assertEqual(proc.returncode, 0)
+                self.assertEqual(host.env.state_reads, 2)
+                self.assertEqual(next(line['data']['nodes'] for line in host.lines
+                                      if line.get('dir') == 'reply' and 'nodes' in line.get('data', {})),
+                                 core_bridge.forest_to_nodes(new))
+                self.assertFalse(result['report']['done'])
+                host.act.assert_not_called()
+                self.assertEqual(len(host.confirmations), 0 if collection else 1)
+                if collection:
+                    self.assertIn('no identified control', result['report']['reason'])
+                    self.assertNotIn('Delete', repr(host.models.complete.call_args_list))
+                else:
+                    self.assertIn('delete', json.dumps(host.confirmations).lower())
+                    self.assertNotIn('Continue', repr(host.models.complete.call_args_list))
 
 
 class CoreBinTest(unittest.TestCase):

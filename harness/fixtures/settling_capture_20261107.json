@@ -1,0 +1,584 @@
+{
+  "source_runtime": "77bc36b15506b0e0b73cc6e59097c6e684d05073",
+  "source_capture": "core8_settling_capture_20261107_d91f6a",
+  "foreground": "com.google.android.apps.nexuslauncher/com.google.android.apps.nexuslauncher.NexusLauncherActivity",
+  "size": [
+    1080,
+    2400
+  ],
+  "base_window": {
+    "window_type": 1,
+    "is_active": true,
+    "is_focused": true,
+    "tree": {
+      "nodes": [
+        {
+          "unique_id": 0,
+          "child_ids": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "class_name": "android.widget.FrameLayout",
+          "content_description": "",
+          "hint_text": "",
+          "tooltip_text": "",
+          "text": "",
+          "view_id_resource_name": "",
+          "package_name": "com.google.android.apps.nexuslauncher",
+          "is_clickable": false,
+          "is_long_clickable": false,
+          "is_editable": false,
+          "is_scrollable": false,
+          "is_checkable": false,
+          "is_checked": false,
+          "is_selected": false,
+          "is_enabled": true,
+          "is_focused": false,
+          "is_visible_to_user": true,
+          "bounds_in_screen": {
+            "left": 0,
+            "top": 0,
+            "right": 1080,
+            "bottom": 2400
+          }
+        },
+        {
+          "unique_id": 1,
+          "child_ids": [
+            8,
+            9,
+            10,
+            11,
+            12
+          ],
+          "class_name": "android.widget.ScrollView",
+          "content_description": "",
+          "hint_text": "",
+          "tooltip_text": "",
+          "text": "",
+          "view_id_resource_name": "com.google.android.apps.nexuslauncher:id/workspace",
+          "package_name": "com.google.android.apps.nexuslauncher",
+          "is_clickable": false,
+          "is_long_clickable": false,
+          "is_editable": false,
+          "is_scrollable": true,
+          "is_checkable": false,
+          "is_checked": false,
+          "is_selected": false,
+          "is_enabled": true,
+          "is_focused": false,
+          "is_visible_to_user": true,
+          "bounds_in_screen": {
+            "left": 0,
+            "top": 0,
+            "right": 1080,
+            "bottom": 2400
+          }
+        },
+        {
+          "unique_id": 2,
+          "child_ids": [],
+          "class_name": "android.view.View",
+          "content_description": "Home",
+          "hint_text": "",
+          "tooltip_text": "",
+          "text": "",
+          "view_id_resource_name": "",
+          "package_name": "com.google.android.apps.nexuslauncher",
+          "is_clickable": false,
+          "is_long_clickable": false,
+          "is_editable": false,
+          "is_scrollable": false,
+          "is_checkable": false,
+          "is_checked": false,
+          "is_selected": false,
+          "is_enabled": true,
+          "is_focused": false,
+          "is_visible_to_user": true,
+          "bounds_in_screen": {
+            "left": 0,
+            "top": 128,
+            "right": 1080,
+            "bottom": 2337
+          }
+        },
+        {
+          "unique_id": 3,
+          "child_ids": [],
+          "class_name": "android.widget.TextView",
+          "content_description": "Phone",
+          "hint_text": "",
+          "tooltip_text": "",
+          "text": "Phone",
+          "view_id_resource_name": "",
+          "package_name": "com.google.android.apps.nexuslauncher",
+          "is_clickable": true,
+          "is_long_clickable": true,
+          "is_editable": false,
+          "is_scrollable": false,
+          "is_checkable": false,
+          "is_checked": false,
+          "is_selected": false,
+          "is_enabled": true,
+          "is_focused": false,
+          "is_visible_to_user": true,
+          "bounds_in_screen": {
+            "left": 76,
+            "top": 1873,
+            "right": 249,
+            "bottom": 2068
+          }
+        },
+        {
+          "unique_id": 4,
+          "child_ids": [],
+          "class_name": "android.widget.TextView",
+          "content_description": "Messages",
+          "hint_text": "",
+          "tooltip_text": "",
+          "text": "Messages",
+          "view_id_resource_name": "",
+          "package_name": "com.google.android.apps.nexuslauncher",
+          "is_clickable": true,
+          "is_long_clickable": true,
+          "is_editable": false,
+          "is_scrollable": false,
+          "is_checkable": false,
+          "is_checked": false,
+          "is_selected": false,
+          "is_enabled": true,
+          "is_focused": false,
+          "is_visible_to_user": true,
+          "bounds_in_screen": {
+            "left": 328,
+            "top": 1873,
+            "right": 501,
+            "bottom": 2068
+          }
+        },
+        {
+          "unique_id": 5,
+          "child_ids": [],
+          "class_name": "android.widget.TextView",
+          "content_description": "Chrome",
+          "hint_text": "",
+          "tooltip_text": "",
+          "text": "Chrome",
+          "view_id_resource_name": "",
+          "package_name": "com.google.android.apps.nexuslauncher",
+          "is_clickable": true,
+          "is_long_clickable": true,
+          "is_editable": false,
+          "is_scrollable": false,
+          "is_checkable": false,
+          "is_checked": false,
+          "is_selected": false,
+          "is_enabled": true,
+          "is_focused": false,
+          "is_visible_to_user": true,
+          "bounds_in_screen": {
+            "left": 580,
+            "top": 1873,
+            "right": 753,
+            "bottom": 2068
+          }
+        },
+        {
+          "unique_id": 6,
+          "child_ids": [],
+          "class_name": "android.widget.TextView",
+          "content_description": "Predicted app: Gmail",
+          "hint_text": "",
+          "tooltip_text": "",
+          "text": "Gmail",
+          "view_id_resource_name": "",
+          "package_name": "com.google.android.apps.nexuslauncher",
+          "is_clickable": true,
+          "is_long_clickable": true,
+          "is_editable": false,
+          "is_scrollable": false,
+          "is_checkable": false,
+          "is_checked": false,
+          "is_selected": false,
+          "is_enabled": true,
+          "is_focused": false,
+          "is_visible_to_user": true,
+          "bounds_in_screen": {
+            "left": 832,
+            "top": 1873,
+            "right": 1004,
+            "bottom": 2068
+          }
+        },
+        {
+          "unique_id": 7,
+          "child_ids": [
+            13,
+            14,
+            15
+          ],
+          "class_name": "android.widget.FrameLayout",
+          "content_description": "Search",
+          "hint_text": "",
+          "tooltip_text": "",
+          "text": "",
+          "view_id_resource_name": "com.google.android.apps.nexuslauncher:id/search_container_hotseat",
+          "package_name": "com.google.android.apps.nexuslauncher",
+          "is_clickable": true,
+          "is_long_clickable": true,
+          "is_editable": false,
+          "is_scrollable": false,
+          "is_checkable": false,
+          "is_checked": false,
+          "is_selected": false,
+          "is_enabled": true,
+          "is_focused": false,
+          "is_visible_to_user": true,
+          "bounds_in_screen": {
+            "left": 75,
+            "top": 2125,
+            "right": 1004,
+            "bottom": 2290
+          }
+        },
+        {
+          "unique_id": 8,
+          "child_ids": [],
+          "class_name": "android.widget.TextView",
+          "content_description": "00:42",
+          "hint_text": "",
+          "tooltip_text": "",
+          "text": "00:42",
+          "view_id_resource_name": "com.google.android.apps.nexuslauncher:id/title_text",
+          "package_name": "com.google.android.apps.nexuslauncher",
+          "is_clickable": true,
+          "is_long_clickable": false,
+          "is_editable": false,
+          "is_scrollable": false,
+          "is_checkable": false,
+          "is_checked": false,
+          "is_selected": false,
+          "is_enabled": true,
+          "is_focused": false,
+          "is_visible_to_user": true,
+          "bounds_in_screen": {
+            "left": 99,
+            "top": 292,
+            "right": 300,
+            "bottom": 355
+          }
+        },
+        {
+          "unique_id": 9,
+          "child_ids": [],
+          "class_name": "android.widget.TextView",
+          "content_description": "",
+          "hint_text": "",
+          "tooltip_text": "",
+          "text": "",
+          "view_id_resource_name": "com.google.android.apps.nexuslauncher:id/subtitle_text",
+          "package_name": "com.google.android.apps.nexuslauncher",
+          "is_clickable": true,
+          "is_long_clickable": false,
+          "is_editable": false,
+          "is_scrollable": false,
+          "is_checkable": false,
+          "is_checked": false,
+          "is_selected": false,
+          "is_enabled": true,
+          "is_focused": false,
+          "is_visible_to_user": false,
+          "bounds_in_screen": {
+            "left": 94,
+            "top": 379,
+            "right": 99,
+            "bottom": 428
+          }
+        },
+        {
+          "unique_id": 10,
+          "child_ids": [],
+          "class_name": "android.widget.TextView",
+          "content_description": "Gmail",
+          "hint_text": "",
+          "tooltip_text": "",
+          "text": "Gmail",
+          "view_id_resource_name": "",
+          "package_name": "com.google.android.apps.nexuslauncher",
+          "is_clickable": true,
+          "is_long_clickable": true,
+          "is_editable": false,
+          "is_scrollable": false,
+          "is_checkable": false,
+          "is_checked": false,
+          "is_selected": false,
+          "is_enabled": true,
+          "is_focused": false,
+          "is_visible_to_user": true,
+          "bounds_in_screen": {
+            "left": 309,
+            "top": 1479,
+            "right": 519,
+            "bottom": 1751
+          }
+        },
+        {
+          "unique_id": 11,
+          "child_ids": [],
+          "class_name": "android.widget.TextView",
+          "content_description": "Photos",
+          "hint_text": "",
+          "tooltip_text": "",
+          "text": "Photos",
+          "view_id_resource_name": "",
+          "package_name": "com.google.android.apps.nexuslauncher",
+          "is_clickable": true,
+          "is_long_clickable": true,
+          "is_editable": false,
+          "is_scrollable": false,
+          "is_checkable": false,
+          "is_checked": false,
+          "is_selected": false,
+          "is_enabled": true,
+          "is_focused": false,
+          "is_visible_to_user": true,
+          "bounds_in_screen": {
+            "left": 561,
+            "top": 1479,
+            "right": 771,
+            "bottom": 1751
+          }
+        },
+        {
+          "unique_id": 12,
+          "child_ids": [],
+          "class_name": "android.widget.TextView",
+          "content_description": "YouTube",
+          "hint_text": "",
+          "tooltip_text": "",
+          "text": "YouTube",
+          "view_id_resource_name": "",
+          "package_name": "com.google.android.apps.nexuslauncher",
+          "is_clickable": true,
+          "is_long_clickable": true,
+          "is_editable": false,
+          "is_scrollable": false,
+          "is_checkable": false,
+          "is_checked": false,
+          "is_selected": false,
+          "is_enabled": true,
+          "is_focused": false,
+          "is_visible_to_user": true,
+          "bounds_in_screen": {
+            "left": 813,
+            "top": 1479,
+            "right": 1023,
+            "bottom": 1751
+          }
+        },
+        {
+          "unique_id": 13,
+          "child_ids": [],
+          "class_name": "android.widget.ImageView",
+          "content_description": "Google app",
+          "hint_text": "",
+          "tooltip_text": "",
+          "text": "",
+          "view_id_resource_name": "com.google.android.apps.nexuslauncher:id/g_icon",
+          "package_name": "com.google.android.apps.nexuslauncher",
+          "is_clickable": true,
+          "is_long_clickable": false,
+          "is_editable": false,
+          "is_scrollable": false,
+          "is_checkable": false,
+          "is_checked": false,
+          "is_selected": false,
+          "is_enabled": true,
+          "is_focused": false,
+          "is_visible_to_user": true,
+          "bounds_in_screen": {
+            "left": 86,
+            "top": 2144,
+            "right": 212,
+            "bottom": 2270
+          }
+        },
+        {
+          "unique_id": 14,
+          "child_ids": [],
+          "class_name": "android.widget.ImageView",
+          "content_description": "Voice search",
+          "hint_text": "",
+          "tooltip_text": "",
+          "text": "",
+          "view_id_resource_name": "com.google.android.apps.nexuslauncher:id/mic_icon",
+          "package_name": "com.google.android.apps.nexuslauncher",
+          "is_clickable": true,
+          "is_long_clickable": false,
+          "is_editable": false,
+          "is_scrollable": false,
+          "is_checkable": false,
+          "is_checked": false,
+          "is_selected": false,
+          "is_enabled": true,
+          "is_focused": false,
+          "is_visible_to_user": true,
+          "bounds_in_screen": {
+            "left": 741,
+            "top": 2125,
+            "right": 867,
+            "bottom": 2290
+          }
+        },
+        {
+          "unique_id": 15,
+          "child_ids": [],
+          "class_name": "android.widget.ImageButton",
+          "content_description": "Google Lens",
+          "hint_text": "",
+          "tooltip_text": "",
+          "text": "",
+          "view_id_resource_name": "com.google.android.apps.nexuslauncher:id/lens_icon",
+          "package_name": "com.google.android.apps.nexuslauncher",
+          "is_clickable": true,
+          "is_long_clickable": false,
+          "is_editable": false,
+          "is_scrollable": false,
+          "is_checkable": false,
+          "is_checked": false,
+          "is_selected": false,
+          "is_enabled": true,
+          "is_focused": false,
+          "is_visible_to_user": true,
+          "bounds_in_screen": {
+            "left": 867,
+            "top": 2125,
+            "right": 993,
+            "bottom": 2290
+          }
+        }
+      ]
+    }
+  },
+  "changed_raw_index": 8,
+  "attempts": [
+    {
+      "attempt": 1,
+      "samples": [
+        {
+          "values": {
+            "text": "00:42",
+            "content_description": "00:42"
+          },
+          "raw_protobuf_sha256": "4ebfec20279b2a5ee3a6b4448ca3444e83029a715474c90e5834e9924fcc565b"
+        },
+        {
+          "values": {
+            "text": "00:43",
+            "content_description": "00:43"
+          },
+          "raw_protobuf_sha256": "8b86891c558d8ed49faa5a125c6dcc7e275364897388a2c7715720eda2822618"
+        },
+        {
+          "values": {
+            "text": "00:44",
+            "content_description": "00:44"
+          },
+          "raw_protobuf_sha256": "bf45753927950c69d7674e0443bc6ec7eb5f3d0d96ebc132dd9d290667948228"
+        },
+        {
+          "values": {
+            "text": "20:42",
+            "content_description": "20:42"
+          },
+          "raw_protobuf_sha256": "286fa43a1ca3d4e5d6ba94bd6b707d2303f0ef8c8bfc3ae40f3426329d299015"
+        },
+        {
+          "values": {
+            "text": "20:45",
+            "content_description": "20:45"
+          },
+          "raw_protobuf_sha256": "438a8025f83a26951188493987e3aa3001af322c606c18b122dfb055ba76c732"
+        },
+        {
+          "values": {
+            "text": "20:50",
+            "content_description": "20:50"
+          },
+          "raw_protobuf_sha256": "2d211bcca44e082a2377afd65c078a7172dfe6b7e03d89bc954d2e7be90368e6"
+        }
+      ]
+    },
+    {
+      "attempt": 2,
+      "samples": [
+        {
+          "values": {
+            "text": "20:50",
+            "content_description": "20:50"
+          },
+          "raw_protobuf_sha256": "2d211bcca44e082a2377afd65c078a7172dfe6b7e03d89bc954d2e7be90368e6"
+        },
+        {
+          "values": {
+            "text": "20:50",
+            "content_description": "20:50"
+          },
+          "raw_protobuf_sha256": "2d211bcca44e082a2377afd65c078a7172dfe6b7e03d89bc954d2e7be90368e6"
+        }
+      ]
+    },
+    {
+      "attempt": 3,
+      "samples": [
+        {
+          "values": {
+            "text": "20:50",
+            "content_description": "20:50"
+          },
+          "raw_protobuf_sha256": "2d211bcca44e082a2377afd65c078a7172dfe6b7e03d89bc954d2e7be90368e6"
+        },
+        {
+          "values": {
+            "text": "20:51",
+            "content_description": "20:51"
+          },
+          "raw_protobuf_sha256": "3e9f7425818934d0e306eb07e2a2fb8320fa865df71609609456fa3670bc1338"
+        },
+        {
+          "values": {
+            "text": "20:52",
+            "content_description": "20:52"
+          },
+          "raw_protobuf_sha256": "f67a271ae9ef84f92346f05e8043d92d836169ba52aa0ac64f85bbe008cec429"
+        },
+        {
+          "values": {
+            "text": "20:53",
+            "content_description": "20:53"
+          },
+          "raw_protobuf_sha256": "342466df4ff59c3e2e564825edb45c51abc668faca70200c5c62d93e84a19352"
+        },
+        {
+          "values": {
+            "text": "20:56",
+            "content_description": "20:56"
+          },
+          "raw_protobuf_sha256": "7e25f029a533450b87017f0ea4e9898c5f245ae854ee23bc0c17133ee47f6f91"
+        },
+        {
+          "values": {
+            "text": "21:01",
+            "content_description": "21:01"
+          },
+          "raw_protobuf_sha256": "184ac7dc4e145212f2e7314a8217940ef280bc46787b7afd4a61927598614cce"
+        }
+      ]
+    }
+  ]
+}
