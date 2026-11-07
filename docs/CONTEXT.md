@@ -27,7 +27,7 @@ need checking for the selected training use. No training, downloads or provision
 The owner's phone-control/app-workflow distinction supports testing a small typed-operation
 interpreter before investing in general UI-policy training; structured adapters remain pending.
 
-**7 November 2026 — observation consistency patch, offline validation:** harness now brackets
+**7 November 2026 — observation consistency patch:** harness now brackets
 acquisition with foreground-activity reads, requires two matching ready foreground samples in
 active/focused application/system windows, and rejects an unchanged app tree when the observed
 activity changed. Six attempts and a 15-second soft deadline end in a sanitized ObservationError
@@ -36,7 +36,17 @@ identical trees paired with different activities in Wi-Fi and Brightness cases; 
 producer-side cause is unproven. Raw forests expose no capture generation tied to actions, so
 same-activity stale trees remain undetectable; legitimate identical trees across activities can
 be conservatively rejected. Blocking transport calls can exceed the soft deadline. Parent reran
-all **25 Python harness tests**, passing. Live window metadata and latency still need validation.
+all **25 Python harness tests**, passing locally and on the ThinkPad for the initial patch.
+Live navigation-only testing exposed a launcher timeout caused by nesting AndroidWorld's
+whole-screen settling loop inside this check. Follow-up `b33c441` uses raw acquisitions and
+foreground-only comparison, with a 0.3 s interval between candidate samples; all 25 local tests
+pass again. The repeat live smoke passed six observations: home 1.676 s, unchanged home 1.221 s,
+Settings 2.229 s, Display 1.903 s, Brightness dialog 1.966 s, return home 2.694 s. No model calls,
+task scoring or settings-value changes; emulator returned home. Evidence is in local ignored
+`ballistic_runs/observation_smoke_20261107/` and remote `~/ballistic_runs/observation_fixed_20261107.log`.
+This validates window metadata and these transitions only, not all stale-tree cases or a new
+benchmark score. GitHub SSH was temporarily unreachable from ThinkPad; the already-pushed
+follow-up commit was fast-forwarded there from a locally transferred Git bundle.
 
 **7 November 2026 — benchmark safety patch reviewed:** core now rejects unidentified tap,
 long-press, edit and slider targets, including the recorded anonymous Quick Settings guesses.
