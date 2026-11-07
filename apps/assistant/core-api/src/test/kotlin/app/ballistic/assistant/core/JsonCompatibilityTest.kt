@@ -144,6 +144,30 @@ class JsonCompatibilityTest {
     }
 
     @Test
+    fun explicitForegroundContractRoundTripsAndDefaultsAbsent() {
+        val observed = ForegroundObservation("org.example.compass", "Main", 9uL)
+        same(ForegroundObservation.serializer(), observed,
+            """{"package":"org.example.compass","activity":"Main","sequence":9}""")
+        same(Verification.serializer(), Verification(VerificationStatus.Verified,
+            "code_validated_host_foreground", emptyList(), observed),
+            """{"status":"verified","evidence_basis":"code_validated_host_foreground","nodes":[],"foreground":{"package":"org.example.compass","activity":"Main","sequence":9}}""")
+        same(ScreenState.serializer(), ScreenState("org.example.compass", "Main", 400, 800,
+            emptyList(), foreground = observed),
+            """{"package":"org.example.compass","activity":"Main","width":400,"height":800,"nodes":[],"installed_apps":[],"capabilities":null,"foreground":{"package":"org.example.compass","activity":"Main","sequence":9}}""")
+        same(HostCapabilities.serializer(), HostCapabilities(listOf("open_app"),
+            listOf("org.example.compass"), listOf("foreground_component_v1")),
+            """{"operations":["open_app"],"app_grants":["org.example.compass"],"observations":["foreground_component_v1"]}""")
+        val old = CoreJson.decodeFromString(ScreenState.serializer(),
+            """{"package":"com.android.systemui","activity":"notification_listener","width":400,"height":800,"nodes":[],"capabilities":{"operations":["open_app"],"app_grants":["org.example.compass"]}}""")
+        assertEquals(null, old.foreground)
+        assertEquals(emptyList(), old.capabilities!!.observations)
+        // Native notification observations cannot gain evidence from their package header.
+        assertEquals(false, CoreJson.encodeToJsonElement(ScreenState.serializer(), old).jsonObject.containsKey("foreground"))
+        same(ForegroundObservation.serializer(), observed.copy(sequence = ULong.MAX_VALUE),
+            """{"package":"org.example.compass","activity":"Main","sequence":18446744073709551615}""")
+    }
+
+    @Test
     fun operationIdsMatchCoreCapabilities() {
         // core/src/capabilities.rs operation_id.
         val ids = listOf(

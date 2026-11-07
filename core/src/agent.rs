@@ -4,7 +4,7 @@
 use std::io::{BufRead, Write};
 use std::time::Instant;
 use serde_json::{json, Value};
-use crate::{capabilities, verification, actions, bridge::Bridge, ports::*, run::Host,
+use crate::{capabilities, verification, launch_completion, actions, bridge::Bridge, ports::*, run::Host,
     readback::{self, Readback}, reader::{self, ElementAnswer, ReaderPick},
     screen_filter::{self, FilterContext, FilteredScreen}, types::*};
 
@@ -75,11 +75,13 @@ pub(crate) fn drive<H: Host>(host: &mut H, request:&str, max_steps:u32) -> PortR
     // for that screen so core can say whether it changed.
     let mut next_screen: Option<ScreenState> = None;
     let mut pending_line: Option<(String, ScreenState, Option<NodeId>)> = None;
+    let mut foreground_high_water = 0;
 
     for step in 1..=max_steps {
         stop_if_cancelled!(step-1);
         let start=Instant::now();
         let screen=match next_screen.take() { Some(s)=>s, None=>host.observe()? };
+        if let Some(f)=&screen.foreground { foreground_high_water=foreground_high_water.max(f.sequence); }
         if let Some((line,before,target))=pending_line.take() {
             let change=readback::compare(&before,&screen,target);
             history.push(format!("{line}; screen {}",change.describe()));
@@ -132,17 +134,27 @@ pub(crate) fn drive<H: Host>(host: &mut H, request:&str, max_steps:u32) -> PortR
             Action::Done{..}=> {
                 stop_if_cancelled!(step-1);
                 let fresh=host.observe()?;
-                let filtered=screen_filter::filter(&fresh,&FilterContext{request,typed:&typed});
                 stop_if_cancelled!(step-1);
-                let check=host.complete(ModelRole::Verifier,&[
-                    message("system",r#"Assess completion from the current screen only. Return JSON {"status":"verified|failed|unknown","nodes":["e1"],"evidence_basis":"visible_ui","reason":"..."}. Check every requested field, value and constraint against current visible evidence, including exact names, dates and units. Verified requires all requested postconditions; failed requires a visible contradiction; otherwise use unknown. Cite distinct current eN ids with readable evidence. Hidden cN content, resource ids, an opened app, an acknowledged input or text merely typed in an editor do not prove a saved or sent result. A label identifies a control, not its hidden value. Do not infer missing values. This is a model assessment, never authoritative readback."#.into()),
-                    message("user",format!("Request: {request}\nScreen {}:\n{}",fresh.package,screen_filter::render(&filtered)))],400)?;
+                let launch_goal=launch_completion::recognize(request,&apps);
+                let assessment=if let Some(goal)=launch_goal.as_ref() {
+                    // One fresh readback, then stop even if unavailable. Neither repeated
+                    // guesses nor a model verdict can substitute for this typed postcondition.
+                    launch_completion::assess(goal,&screen,&fresh,foreground_high_water,request,&apps)
+                } else {
+                    let filtered=screen_filter::filter(&fresh,&FilterContext{request,typed:&typed});
+                    stop_if_cancelled!(step-1);
+                    let check=host.complete(ModelRole::Verifier,&[
+                        message("system",r#"Assess completion from the current screen only. Return JSON {"status":"verified|failed|unknown","nodes":["e1"],"evidence_basis":"visible_ui","reason":"..."}. Check every requested field, value and constraint against current visible evidence, including exact names, dates and units. Verified requires all requested postconditions; failed requires a visible contradiction; otherwise use unknown. Cite distinct current eN ids with readable evidence. Hidden cN content, resource ids, an opened app, an acknowledged input or text merely typed in an editor do not prove a saved or sent result. A label identifies a control, not its hidden value. Do not infer missing values. This is a model assessment, never authoritative readback."#.into()),
+                        message("user",format!("Request: {request}\nScreen {}:\n{}",fresh.package,screen_filter::render(&filtered)))],400)?;
+                    stop_if_cancelled!(step-1);
+                    verification::assess_with_feedback(&check.text,&filtered)
+                };
                 stop_if_cancelled!(step-1);
-                let assessment=verification::assess_with_feedback(&check.text,&filtered);
                 verification=assessment.verification;
                 done=verification.status == VerificationStatus::Verified;
-                terminal=done;
+                terminal=done || launch_goal.is_some();
                 if done {task_status="completed";}
+                else if launch_goal.is_some() {task_status="pending";}
                 outcome=assessment.feedback.into();
                 if !done {
                     failure_category=Some("verification");

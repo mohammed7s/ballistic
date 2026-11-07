@@ -110,7 +110,9 @@ and its host.
 **Screen**: `observe() -> ScreenState`
 ```
 ScreenState
-  package, activity            current foreground app
+  package, activity            observation context (not by itself foreground proof)
+  foreground?                  explicit host foreground package/activity + increasing sequence
+  capabilities.observations    supported observation contracts, absent means none
   width, height                logical pixels
   nodes: [Node]                the accessibility tree, flattened, in reading order
   installed_apps: [AppEntry]   label + package for every launchable app (once per session)
@@ -369,6 +371,39 @@ A receipt may mean only accepted or queued: record its semantics, retain `pendin
 appropriate, and never equate successful dispatch or an opened screen with a verified send.
 Missing evidence means unknown, not successful verification. The host cannot claim stronger
 verification than its evidence supports.
+
+**Launch-only readback (7 Nov 2026, `launch_completion.rs`).** In the planner's `done`
+branch, core recognizes only the complete owner form `[please ](open|launch) [the ]<installed
+label/package>[ app][.]`, case-insensitively. It enumerates full forms, including potentially
+ambiguous article/suffix forms; exactly one package must match. There is no alias, prefix or
+fuzzy resolution for completion. Control characters, instruction punctuation, conjunctions,
+sequencing and a conservative set of action words exclude the typed path, even inside installed
+labels. Unrecognized forms and compound goals retain ordinary model verification. A launch-shaped
+unknown/ambiguous name cannot be supplied by the model: it stops pending on `done`.
+
+Recognized launches take one new `observe` on `done`. Both the previous and fresh observations
+must advertise `foreground_component_v1`, `open_app`, and the target app grant. Their optional
+`foreground: {package, activity, sequence}` must agree with their observation headers, have a
+positive sequence and nonempty component; the fresh sequence must exceed every earlier observed
+sequence in the run. The new package must equal the exact installed target, whose resolution is
+rechecked against the fresh app list (or cached list when omitted). Success records
+`code_validated_host_foreground` with that typed observation, no model citations. Already-open
+apps can satisfy the postcondition without a launch. Missing/contradictory/stale evidence stops
+pending with fixed feedback, without model fallback or repeated done guesses. Cancellation is
+checked after the read and before accepting completion; the ordinary post-verifier check remains.
+
+This contract adds no mutations and does not treat an `open_app` acknowledgment or `opened_ui`
+as completion. It is intentionally in `done`, so recognition cannot initiate a launch; the planner
+still chooses when to claim completion and may waste steps before that. The harness advertises
+and emits evidence only after its existing bracketed foreground reads and settled accessibility
+acquisition succeed. Its sequence proves a new host call, **not** a new accessibility capture;
+same-activity stale trees and transitions between/after activity samples remain possible. Core
+trusts the host and cannot detect a fully fabricated consistent assertion. This proves only
+foreground presence at observation time, not any saved/sent/changed app state or absence of prior
+side effects. No benchmark checker or private app data supplies evidence. Native
+`NotificationScreen` leaves this optional contract/evidence absent and cannot verify a launch;
+no APK permissions or observation mechanism were added. Rust/Kotlin JSON mirrors change together;
+the UniFFI ABI remains unchanged.
 
 After an ambiguous send or other side effect (timeout, lost acknowledgment), inspect state before
 retrying. Retry only when reliable readback proves no effect or the route offers a valid

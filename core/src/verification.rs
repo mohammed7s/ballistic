@@ -35,7 +35,7 @@ pub fn assess_with_feedback(text: &str, screen: &FilteredScreen) -> Assessment {
     }
     if v.status == VerificationStatus::Unknown {
         return Assessment {
-            verification: Verification { status: v.status, evidence_basis: "model_assessment".into(), nodes: v.nodes },
+            verification: Verification { status: v.status, evidence_basis: "model_assessment".into(), nodes: v.nodes, foreground: None },
             feedback: "current screen does not establish every requested postcondition",
         };
     }
@@ -66,7 +66,7 @@ pub fn assess_with_feedback(text: &str, screen: &FilteredScreen) -> Assessment {
     Assessment {
         feedback: if v.status == VerificationStatus::Verified { "model assessed complete" }
             else { "visible evidence does not satisfy the requested postcondition" },
-        verification: Verification { status: v.status, evidence_basis: "model_assessment".into(), nodes: v.nodes },
+        verification: Verification { status: v.status, evidence_basis: "model_assessment".into(), nodes: v.nodes, foreground: None },
     }
 }
 

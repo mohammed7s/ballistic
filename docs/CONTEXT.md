@@ -15,6 +15,28 @@ confirmation dialog.**
 
 ## 2. Decisions taken (and why)
 
+**7 November 2026 — explicit foreground completion integrated:** the launch-only change from
+`c17432c` checks the complete owner request against a conservative grammar and unique exact app
+labels/packages. At `done`, it requires advertised `foreground_component_v1`, app grants,
+consistent component fields and a newly sampled increasing host observation sequence. The result
+is `code_validated_host_foreground`, never a model claim or launch acknowledgment. Unknown or
+ambiguous launch targets and absent/stale/contradictory evidence stop pending. Recognition does
+not dispatch any action. The harness supplies evidence only after its bracketed foreground reads
+and settled accessibility acquisition. Native NotificationScreen leaves this contract absent;
+its foreground-completion gap remains. Rust/Kotlin JSON mirrors changed together, with no
+UniFFI ABI regeneration or APK rebuild. Details and trust limits: `core/README.md` §10.
+
+Parent integration checks pass: **112 Rust tests with UniFFI, 79 Python tests and 44 JVM tests,
+no skips**; the JVM checks use the freshly built native library and include positive foreground
+and negative notification-only boundary cases. These are development regressions. The full
+`OpenAppTaskEval` prompt also asks for permission-popup handling and is deliberately outside
+this launch-only grammar; this change alone does not fix that measured benchmark regression.
+Compounds retain ordinary verification, the planner must still reach `done`, and a trusted-host
+assertion proves foreground presence at that observation, not saved/sent state or absence of
+prior side effects. Sequence detects replay, not dishonest host fabrication or stale a11y capture.
+No live uplift or 13/20 claim is made. A separate live caption round is pinned to `96d9c94`, so
+its results will not include this foreground change.
+
 **7 November 2026 — exact file captions integrated, request pacing added:** `6d2bebb`
 recognizes the exact English Markor browser-row envelope verified against versionCode 146 source.
 It separates file/folder kind from the full untrusted title; only whole owner-matched titles are

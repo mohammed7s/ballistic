@@ -110,6 +110,21 @@ pub struct ScreenState {
     /// Host authority, never model text. None parses old recordings but denies execution.
     #[serde(default)]
     pub capabilities: Option<HostCapabilities>,
+    /// Optional explicit host readback; package/activity alone are not foreground evidence.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub foreground: Option<ForegroundObservation>,
+}
+
+/// Host asserts that it freshly read the actual foreground component during this observe call.
+/// Never infer this from Hands acknowledgments, notification ownership, or node text.
+/// Sequence starts above zero and strictly increases per successful observation in a host
+/// session. It detects replay, not a dishonest host or transitions after the observation.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ForegroundObservation {
+    pub package: String,
+    pub activity: String,
+    pub sequence: u64,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -290,6 +305,9 @@ pub enum ConfirmResult {
 pub struct HostCapabilities {
     pub operations: Vec<String>,
     pub app_grants: Vec<String>,
+    /// Explicit observation contracts supported now. Absent denies typed completion.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub observations: Vec<String>,
     /// Owner grants for read-only tools (`tools.rs`). Absent: no tool may be called.
     #[serde(default)]
     pub tool_grants: Vec<crate::tools::ToolGrant>,
@@ -309,9 +327,11 @@ pub struct Verification {
     /// Set by core. A model never upgrades itself to authoritative readback.
     pub evidence_basis: String,
     pub nodes: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub foreground: Option<ForegroundObservation>,
 }
 impl Default for Verification {
     fn default() -> Self {
-        Self { status: VerificationStatus::Unknown, evidence_basis: "none".into(), nodes: vec![] }
+        Self { status: VerificationStatus::Unknown, evidence_basis: "none".into(), nodes: vec![], foreground: None }
     }
 }

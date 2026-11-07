@@ -18,6 +18,7 @@ pub mod readback;
 pub mod capabilities;
 pub mod tools;
 pub mod verification;
+pub mod launch_completion;
 
 #[cfg(feature = "uniffi")]
 pub mod ffi;

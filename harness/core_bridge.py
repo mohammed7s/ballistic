@@ -211,6 +211,7 @@ class CoreHost:
         self.confirmations: list[dict[str, Any]] = []
         self._apps: Optional[list[dict[str, Any]]] = None
         self._last_observation: Optional[tuple[str, str]] = None
+        self._observation_sequence = 0
 
     # ---- observe -------------------------------------------------------------------------
     def observe(self) -> dict[str, Any]:
@@ -304,12 +305,18 @@ class CoreHost:
         # A phone host must build this list from actual owner grants and API access.
         capabilities = {"operations": ["open_app", "tap", "long_press", "type", "scroll",
                                        "swipe", "back", "home", "wait"],
-                        "app_grants": sorted({a["package"] for a in self._apps} | {package})}
+                        "app_grants": sorted({a["package"] for a in self._apps} | {package}),
+                        "observations": ["foreground_component_v1"]}
         if self.tools:
             capabilities["tool_grants"] = self.tools.grants()
         self._last_observation = (foreground, signature)
+        # Only this successful, bracketed and settled acquisition advertises foreground.
+        # This sequence is call freshness, not an accessibility capture generation.
+        self._observation_sequence += 1
         return {"package": package, "activity": activity, "width": w, "height": h,
-                "nodes": nodes, "installed_apps": self._apps, "capabilities": capabilities}
+                "nodes": nodes, "installed_apps": self._apps, "capabilities": capabilities,
+                "foreground": {"package": package, "activity": activity,
+                               "sequence": self._observation_sequence}}
 
     # ---- act -----------------------------------------------------------------------------
     def act(self, op: dict[str, Any]) -> dict[str, Any]:

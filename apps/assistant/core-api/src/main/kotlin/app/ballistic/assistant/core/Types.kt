@@ -7,6 +7,7 @@
 
 package app.ballistic.assistant.core
 
+import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -100,6 +101,17 @@ data class ScreenState(
     @SerialName("installed_apps") val installedApps: kotlin.collections.List<AppEntry> = emptyList(),
     /** Host authority, never model text. Null parses old recordings but core denies execution. */
     val capabilities: HostCapabilities? = null,
+    /** Explicit host readback only; notifications and launch acknowledgments cannot set it. */
+    @EncodeDefault(EncodeDefault.Mode.NEVER) val foreground: ForegroundObservation? = null,
+)
+
+/** Fresh foreground component sampled by this observe call. Positive increasing host sequence.
+ * ULong mirrors Rust u64; this is call freshness, not a source capture generation. */
+@Serializable
+data class ForegroundObservation(
+    val `package`: String,
+    val activity: String,
+    val sequence: ULong,
 )
 
 @Serializable
@@ -299,6 +311,7 @@ enum class ConfirmResult {
 data class HostCapabilities(
     val operations: kotlin.collections.List<String>,
     @SerialName("app_grants") val appGrants: kotlin.collections.List<String>,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) val observations: kotlin.collections.List<String> = emptyList(),
 )
 
 @Serializable
@@ -321,4 +334,5 @@ data class Verification(
     /** Set by core. A model never upgrades itself to authoritative readback. */
     @SerialName("evidence_basis") val evidenceBasis: String = "none",
     val nodes: kotlin.collections.List<String> = emptyList(),
+    @EncodeDefault(EncodeDefault.Mode.NEVER) val foreground: ForegroundObservation? = null,
 )

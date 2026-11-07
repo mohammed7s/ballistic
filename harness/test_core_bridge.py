@@ -97,7 +97,12 @@ class ObservationTest(unittest.TestCase):
     def test_settled_unchanged_screen_is_allowed(self):
         host = self.host(sample(self.old))
         first = host.observe()
-        self.assertEqual(host.observe(), first)
+        second = host.observe()
+        self.assertEqual(first['foreground'], {'package': 'app', 'activity': 'A', 'sequence': 1})
+        self.assertEqual(second['foreground'], {'package': 'app', 'activity': 'A', 'sequence': 2})
+        self.assertEqual(first['capabilities']['observations'], ['foreground_component_v1'])
+        self.assertEqual({k: v for k, v in second.items() if k != 'foreground'},
+                         {k: v for k, v in first.items() if k != 'foreground'})
         self.assertEqual(first['activity'], 'A')
         self.assertEqual(first['nodes'][0]['text'], 'Screen A')
         self.assertEqual(host.env.state_reads, 4)
@@ -111,6 +116,7 @@ class ObservationTest(unittest.TestCase):
         result = host.observe()
         self.assertEqual((result['package'], result['activity']), ('app', 'B'))
         self.assertEqual(result['nodes'][0]['text'], 'Screen B')
+        self.assertEqual(result['foreground'], {'package': 'app', 'activity': 'B', 'sequence': 1})
         self.assertEqual(host.env.state_reads, 4)
 
     def test_startup_transition_between_acquisitions_rejects_unchanged_tree(self):
@@ -176,6 +182,7 @@ class ObservationTest(unittest.TestCase):
                 reply = host._answer({'id': 7, 'ask': 'observe'})
                 self.assertFalse(reply['ok'])
                 self.assertNotIn('data', reply)
+                self.assertEqual(host._observation_sequence, 0)
                 self.assertIn('environment observation failed: no_ready_foreground', reply['error'])
                 self.assertEqual(host.env.state_reads, 6)
                 host.models.complete.assert_not_called()

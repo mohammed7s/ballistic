@@ -12,7 +12,7 @@
       "required_grant": "host_app_grant",
       "confirmation": "core_policy_exact_operation",
       "execution_evidence": "opened_ui",
-      "completion_evidence": "fresh_screen_model_assessment; independent readback adapter pending",
+      "completion_evidence": "launch-only owner goal: fresh advertised foreground_component_v1 readback checked by core; acknowledgment is insufficient",
       "retry": "replan_only_if_not_executed; stop_on_unknown"
     },
     {
@@ -113,6 +113,19 @@
       "execution_evidence": "host_acknowledgment",
       "completion_evidence": "fresh_screen_model_assessment; independent readback adapter pending",
       "retry": "replan_only_if_not_executed; stop_on_unknown"
+    }
+  ],
+  "observations": [
+    {
+      "id": "foreground_component_v1",
+      "result": {
+        "package": "string",
+        "activity": "string",
+        "sequence": "u64"
+      },
+      "required_grant": "host_app_grant",
+      "semantics": "Actual foreground component freshly sampled within Screen.observe; positive strictly increasing sequence per host session; never inferred from notification ownership, node text, requested app or Hands acknowledgment.",
+      "completion_scope": "Only an unambiguous exact installed app in the core launch-only owner grammar; no in-app postconditions."
     }
   ]
 }

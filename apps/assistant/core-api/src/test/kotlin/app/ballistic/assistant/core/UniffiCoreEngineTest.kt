@@ -64,6 +64,45 @@ class UniffiCoreEngineTest {
     }
 
     @Test
+    fun notificationHostCannotVerifyLaunchAfterAcknowledgment() {
+        val core = nativeEngine()
+        val acted = mutableListOf<HandsOp>()
+        val roles = mutableListOf<ModelRole>()
+        val result = core.run("open the Clock app", 5, ports(acted, roles, listOf(
+            """{"action":"open_app","app":"Clock"}""",
+            """{"action":"done","evidence":"opened"}""",
+        )), Recorder(), CancelToken())
+        assertEquals(TaskStatus.Pending, result.taskStatus)
+        assertEquals(VerificationStatus.Unknown, result.verification.status)
+        assertEquals(ExecutionStatus.Executed, result.executionStatus)
+        assertEquals(1, acted.size)
+        assertEquals(listOf(ModelRole.Planner, ModelRole.Planner), roles)
+    }
+
+    @Test
+    fun explicitHostForegroundEvidenceCrossesJsonBoundary() {
+        val core = nativeEngine()
+        var sequence = 0uL
+        val acted = mutableListOf<HandsOp>()
+        val roles = mutableListOf<ModelRole>()
+        val base = ports(acted, roles, listOf("""{"action":"done","evidence":"claimed"}"""))
+        val observing = base.copy(screen = {
+            sequence += 1uL
+            screen.copy(`package` = "com.android.deskclock", activity = "Main",
+                capabilities = screen.capabilities!!.copy(observations = listOf("foreground_component_v1")),
+                foreground = ForegroundObservation("com.android.deskclock", "Main", sequence))
+        })
+        val result = core.run("open the Clock app", 5, observing, Recorder(), CancelToken())
+        assertEquals(TaskStatus.Completed, result.taskStatus)
+        assertEquals(VerificationStatus.Verified, result.verification.status)
+        assertEquals("code_validated_host_foreground", result.verification.evidenceBasis)
+        assertEquals(ForegroundObservation("com.android.deskclock", "Main", 2uL), result.verification.foreground)
+        assertEquals(ExecutionStatus.NotExecuted, result.executionStatus)
+        assertTrue(acted.isEmpty())
+        assertEquals(listOf(ModelRole.Planner), roles)
+    }
+
+    @Test
     fun stopBeforeStartMakesNoCalls() {
         val core = nativeEngine()
         val acted = mutableListOf<HandsOp>()
