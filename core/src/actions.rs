@@ -36,7 +36,7 @@ pub enum ActionError {
     BadArguments { action: String, detail: String },
     #[error("e{0} is not on this screen")]
     NoSuchElement(u32),
-    #[error("e{0} is not an editable field; tap it first or pick an element marked [editable]")]
+    #[error("e{0} is not an editable field; type requires [editable]. Use the visible input controls; a display is not a text field")]
     NotEditable(u32),
     #[error("e{0} is not scrollable; give an element marked [scrollable] or no target to scroll the whole screen")]
     NotScrollable(u32),

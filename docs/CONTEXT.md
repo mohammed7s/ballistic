@@ -15,6 +15,18 @@ confirmation dialog.**
 
 ## 2. Decisions taken (and why)
 
+**7 November 2026 — input semantics and planning guidance corrected:** the timer trace exposed
+misleading core feedback suggesting a tap on a non-editable display. Feedback now requires a
+real editable input. Planner rules clarify action-specific fields, numeric-keypad entry,
+exact names/extensions and date/time constraints, and inspection before repeating acknowledged
+creations. These are model instructions, not stronger code-enforced completion or retry policy.
+Exact Markor new-file identifiers now provide `File name` and `File extension` labels rather
+than relying on `my_note`/`.md` hints; displayed values remain content. The two new development
+regressions improve 1/2 to 2/2. **114 Rust and 79 Python tests pass, no skips**. Planner text
+increases 828 characters; live token/quality impact remains unmeasured. Details and pinned
+layout source are in `docs/RELIABILITY_20261107.md`. The ongoing caption validation is pinned to
+`96d9c94` and excludes this change. Last full-suite result remains 4/20 combined, 9/20 state.
+
 **7 November 2026 — explicit foreground completion integrated:** the launch-only change from
 `c17432c` checks the complete owner request against a conservative grammar and unique exact app
 labels/packages. At `done`, it requires advertised `foreground_component_v1`, app grants,

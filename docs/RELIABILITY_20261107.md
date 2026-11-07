@@ -154,3 +154,36 @@ each task's current budget. Stop on quota and inspect sanitized telemetry; do no
 These live calls may never produce an eligible empty response, so the scripted bridge test
 remains the deterministic retry proof. Only after these targeted checks and the existing
 injection gates should the parent consider the full 20-task measurement.
+
+## Further trace-backed planning refinements (7 November 2026)
+
+The Core 4 timer recording shows a `type` attempt on a non-editable duration display.
+Core's correction incorrectly suggested tapping it first; the model then emitted a `tap`
+containing the type-only `submit` field and exhausted correction attempts. Feedback now
+requires a genuine editable input and does not suggest that tapping makes a display editable.
+Planner instructions clarify per-action fields and visible numeric-keypad entry without any
+task-name, requested-value or app-specific branch.
+
+The Calendar recording shows start and end values of `16:00` after a request for 13:00 and
+15 minutes. No time-setting action occurred. Its verifier accepted the title and description;
+date/time value observations are separate pending work. The Markor recording shows separate
+name/extension inputs presented as `my_note` and `.md`; the planner entered only the requested
+basename. Exact package/resource/role mappings now name those two inputs `File name` and
+`File extension`, keeping their displayed strings as content. The separate fields are confirmed
+in the pinned [Markor v2.10.9 layout](https://github.com/gsantner/markor/blob/ab2175460680eb4a914b6006b9c962756b2067d2/app/src/main/res/layout/new_file_dialog.xml).
+Two development tests written before this mapping improve from 1/2 to 2/2, covering content
+isolation, exact text dispatch, typed readback and incorrect package/resource/role variants.
+
+Planner instructions also require checking all requested constraints before saving and
+distinguish screen changes from effect receipts. An unchanged screen should lead to waiting or
+inspection, not blindly repeating a creation. The Camera trace contains four shutter dispatches;
+the installed AndroidWorld checker requires exactly one new photo, but the collected run JSON
+does not establish the resulting file count. Do not describe it as proven failure to capture.
+These instructions are model guidance, not code-enforced semantic verification or duplicate
+prevention. They cannot replace the pending typed evidence and policy work.
+
+Combined local validation: **114 Rust tests with UniFFI and 79 Python tests pass, no skips**.
+The planner rules grew from 1,661 to 2,489 characters (rough character/4 estimate: 416 to 623
+tokens); actual provider token and behavior effects remain unmeasured. No model, budget,
+action schema, permission requirement or benchmark checker changed. The live caption round
+at `96d9c94` excludes these later changes; no full-suite uplift is claimed.

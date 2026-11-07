@@ -147,6 +147,10 @@ const KNOWN_CONTROLS: &[KnownControl] = &[
     KnownControl { package: "com.arduia.expense", resource_id: "com.arduia.expense:id/btn_close", role: Role::Button, label: "Close" },
     KnownControl { package: "com.android.camera2", resource_id: "com.android.camera2:id/rounded_thumbnail_view", role: Role::Button, label: "Last photo thumbnail" },
     KnownControl { package: "net.gsantner.markor", resource_id: "net.gsantner.markor:id/document__fragment__edit__highlighting_editor", role: Role::Edit, label: "Note text" },
+    // The new-file layout has separate name and extension inputs. Hints such as my_note
+    // and .md are displayed values, not useful identities for these two controls.
+    KnownControl { package: "net.gsantner.markor", resource_id: "net.gsantner.markor:id/new_file_dialog__name", role: Role::Edit, label: "File name" },
+    KnownControl { package: "net.gsantner.markor", resource_id: "net.gsantner.markor:id/new_file_dialog__ext", role: Role::Edit, label: "File extension" },
     KnownControl { package: "com.simplemobiletools.calendar.pro", resource_id: "com.simplemobiletools.calendar.pro:id/top_left_arrow", role: Role::Image, label: "Previous month" },
     KnownControl { package: "com.simplemobiletools.calendar.pro", resource_id: "com.simplemobiletools.calendar.pro:id/top_right_arrow", role: Role::Image, label: "Next month" },
     KnownControl { package: "com.simplemobiletools.calendar.pro", resource_id: "com.simplemobiletools.calendar.pro:id/event_start_date", role: Role::Text, label: "Start date" },
