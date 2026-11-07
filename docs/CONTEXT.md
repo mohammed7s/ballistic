@@ -306,6 +306,15 @@ DRM; a Linux-based phone; upstreaming the agent itself.
   host route (`154.42.3.225/32` via Wi-Fi gateway `10.32.141.239`, interface `wlp5s0`)
   restored access and the existing resumable job continued. This route may need removal or update
   if the Wi-Fi network changes. No global network or emulator changes were made.
+- **Patched build completed (7 Nov, verified 01:10 UTC):** `2026110700` finished
+  `rc=0 stage=complete` at 01:09:56 UTC after 36 min 8 s. Unsigned `blazer-target_files.zip`
+  is 4,543,948,875 bytes; `blazer-otatools.zip` is 536,798,276 bytes. Both pass the recorded
+  SHA-256 checks (`ballistic-os/docs/regression-tests.md` contains full hashes and paths).
+  Signing with the same disposable cloud test keys started at 01:11:04 UTC; a separate
+  `-j32` test job compiles VirtualDeviceServicesTests and focused Settings host-test dependencies,
+  then runs two Settings Robolectric classes. Logs/status are in the existing patched job
+  directory. Test results, signing completion and on-device Computer Control validation remain
+  pending. Baseline install download continues independently; no phone has been flashed.
 - **Hardware (6 Nov 2026, corrected same day):** the owner's phone is a **Pixel 10 Pro**
   (`blazer`, SKU GEHN3, serial 56181FDCH0070R, stock Android 17 `CP2A.260805.005`), not a Pixel 10.
   **It cannot be bootloader-unlocked, so it cannot run GrapheneOS or Ballistic as it stands.**
