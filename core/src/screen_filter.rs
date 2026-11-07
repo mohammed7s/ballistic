@@ -20,6 +20,7 @@ use crate::types::*;
 pub use crate::typed_value::{ClockTime, ObservedValue, ValueObservation};
 
 mod settings;
+mod sms;
 
 /// Match-only strings longer than this stay references even when they match the request (they
 /// are bodies, not titles). The ref is then marked `matches request` so the planner knows to read it.
@@ -425,6 +426,7 @@ struct Work {
 
 pub fn filter(screen: &ScreenState, ctx: &FilterContext) -> FilteredScreen {
     let nodes = &screen.nodes;
+    let sms_confirmation = sms::confirmation_node(screen);
     let index: std::collections::HashMap<NodeId, usize> =
         nodes.iter().enumerate().map(|(i, n)| (n.id, i)).collect();
     let raw_parent = |i: usize| nodes[i].parent.and_then(|p| index.get(&p).copied()).filter(|p| *p < i);
@@ -452,8 +454,9 @@ pub fn filter(screen: &ScreenState, ctx: &FilterContext) -> FilteredScreen {
     for (i, n) in nodes.iter().enumerate() {
         let visible = n.flags.visible && n.bounds.area() > 0 && on_screen(&n.bounds, screen.width, screen.height);
         let mut pieces = Vec::new();
-        // Preserve captions and dedicated value slots byte-for-byte for reader identity.
-        let value_slot = crate::typed_value::is_value_slot(n);
+        // Preserve captions, dedicated value slots and strings on the source-identified SMS
+        // control byte-for-byte for reader identity; these strings never supply its label.
+        let value_slot = crate::typed_value::is_value_slot(n) || sms_confirmation == Some(i);
         let item_content = crate::typed_value::is_item_content(n);
         let collection_content = collection_roots[i].is_some();
         let label = if value_slot || item_content {
@@ -593,6 +596,7 @@ pub fn filter(screen: &ScreenState, ctx: &FilterContext) -> FilteredScreen {
             && (device_page || w.item_root.is_some_and(|r| device_row.contains(&r)));
 
         let static_label = settings_labels.get(&n.id).map(|s| (*s).to_owned())
+            .or_else(|| (sms_confirmation == Some(i)).then(|| sms::LABEL.to_owned()))
             .or_else(|| code_owned_label(nodes, i, raw_parent(i)));
         let file_row = n.resource_id.as_deref() == Some(MARKOR_ROW);
         // Never normalize a caption assembled from multiple nodes/strings or a folded toggle.
