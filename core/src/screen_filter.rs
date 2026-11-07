@@ -19,6 +19,8 @@ use std::collections::HashSet;
 use crate::types::*;
 pub use crate::typed_value::{ClockTime, ObservedValue, ValueObservation};
 
+mod settings;
+
 /// Match-only strings longer than this stay references even when they match the request (they
 /// are bodies, not titles). The ref is then marked `matches request` so the planner knows to read it.
 pub const MATCH_SHOW_MAX_CHARS: usize = 80;
@@ -272,8 +274,9 @@ fn is_keyboard_key(package: &str, rid: Option<&str>) -> bool {
 /// Words that mark a Settings page or row as listing Wi-Fi networks or Bluetooth devices, whose
 /// names are chosen by whoever runs the network or owns the device, so they are content.
 /// Checked against the activity name and the resource ids and content descriptions in a row,
-/// never against the row's text. Best effort until checked on recorded screens; errs towards
-/// content (e.g. "Pair new device" on a device page becomes a reference too).
+/// never against the row's text. This is a conservative fallback for dedicated activities;
+/// generic SubSettings is always content unless the separate page-signature module proves a
+/// static control. These words may tighten trust, never grant it.
 const DEVICE_PAGE_WORDS: &[&str] =
     &["wifi", "wi-fi", "wi_fi", "wlan", "ssid", "network", "internet", "bluetooth", "device", "pairing"];
 
@@ -519,9 +522,12 @@ pub fn filter(screen: &ScreenState, ctx: &FilterContext) -> FilteredScreen {
     }
 
     // Rule 4 inputs: which list items are Settings device/network rows.
-    // Settings often uses the generic SubSettings activity. A device/network toolbar can
-    // tighten filtering too; its text can never grant label trust to another node.
-    let device_page = mentions_device_or_network(&screen.activity) || nodes.iter().any(|n|
+    // SubSettings titles can be SIM/SSID names, including names without network keywords.
+    // Unknown subpages therefore stay content. Only a complete source-backed page envelope
+    // can supply static control labels; a toolbar string can only tighten trust, never grant it.
+    let settings_labels = settings::labels(screen);
+    let device_page = screen.activity == settings::SUB_SETTINGS
+        || mentions_device_or_network(&screen.activity) || nodes.iter().any(|n|
         n.package.as_deref().unwrap_or(&screen.package) == SETTINGS
             && n.resource_id.as_deref() == Some("com.android.settings:id/collapsing_toolbar")
             && [non_empty(&n.label), non_empty(&n.text)].into_iter().flatten().any(mentions_device_or_network));
@@ -551,7 +557,8 @@ pub fn filter(screen: &ScreenState, ctx: &FilterContext) -> FilteredScreen {
         let settings_device_text = package == SETTINGS
             && (device_page || w.item_root.is_some_and(|r| device_row.contains(&r)));
 
-        let static_label = code_owned_label(nodes, i, raw_parent(i));
+        let static_label = settings_labels.get(&n.id).map(|s| (*s).to_owned())
+            .or_else(|| code_owned_label(nodes, i, raw_parent(i)));
         let file_row = n.resource_id.as_deref() == Some(MARKOR_ROW);
         // Never normalize a caption assembled from multiple nodes/strings or a folded toggle.
         let caption = if w.pieces.len() == 1 && w.pieces[0].kind == PieceKind::FileCaption && w.role == n.role {
@@ -594,7 +601,9 @@ pub fn filter(screen: &ScreenState, ctx: &FilterContext) -> FilteredScreen {
                 if !labels.iter().any(|l| l.eq_ignore_ascii_case(&p.text)) {
                     labels.push(p.text.clone());
                 }
-            } else if !file_row && !matches!(p.kind, PieceKind::FileCaption | PieceKind::ItemContent) && ctx.typed.iter().any(|t| t == &p.text) {
+            } else if !file_row && !matches!(p.kind, PieceKind::FileCaption | PieceKind::ItemContent)
+                && (!settings_device_text || (w.flags.editable && p.kind == PieceKind::Text))
+                && ctx.typed.iter().any(|t| t == &p.text) {
                 typed.push(p.text.clone());
             } else {
                 content.push((p.text.clone(), false));

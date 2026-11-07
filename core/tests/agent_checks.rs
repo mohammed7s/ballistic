@@ -177,9 +177,18 @@ fn invalid_later_plan_preserves_prior_execution_status() {
 
 
 #[test]
-fn recorded_airplane_mode_switch_is_not_wifi_completion_evidence() {
+fn recorded_switch_is_identified_as_airplane_mode_and_unknown_if_its_title_is_missing() {
     let raw: serde_json::Value=serde_json::from_str(include_str!("screens/benchmark_regressions/core4_wifi_false_done.json")).unwrap();
-    let screen: ballistic_core::types::ScreenState=serde_json::from_value(raw["screen"].clone()).unwrap();
+    let mut screen: ballistic_core::types::ScreenState=serde_json::from_value(raw["screen"].clone()).unwrap();
+    let view=ballistic_core::screen_filter::filter(&screen,&ballistic_core::screen_filter::FilterContext {
+        request:"Turn wifi off.",typed:&[]});
+    let switch=view.elements.iter().find(|e| e.role==ballistic_core::types::Role::Switch).unwrap();
+    // The source-backed page signature now identifies this as Airplane mode. Naming it does
+    // not establish Wi-Fi state; semantic coverage is still the model verifier's job.
+    assert_eq!(switch.label.as_deref(),Some("Airplane mode"));
+    assert!(!view.elements.iter().any(|e| e.label.as_deref()==Some("Wi-Fi")));
+    // Losing the title invalidates the signature. An anonymous [off] still cannot be evidence.
+    screen.nodes.iter_mut().find(|n| n.text.as_deref()==Some("Airplane mode")).unwrap().text=None;
     let view=ballistic_core::screen_filter::filter(&screen,&ballistic_core::screen_filter::FilterContext {
         request:"Turn wifi off.",typed:&[]});
     let switch=view.elements.iter().find(|e| e.role==ballistic_core::types::Role::Switch).unwrap();
