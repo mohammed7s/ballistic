@@ -221,3 +221,25 @@ uppercase `STOP` or any other added enum. Model, token limits, action dispatch a
 unchanged. One regression covers every enum, payload exclusion and unchanged request counts;
 all **86 Python tests pass without skips**, including the existing Rust/Python bridge tests.
 Full Rust tests were not repeated for this Python-only change; the integrated base passed 173.
+
+
+## Brightness observation limit (7 November 2026)
+
+Read-only inspection of the installed AndroidEnv accessibility protobuf confirms that
+`AndroidAccessibilityNodeInfo` has no range/progress/current-value field. It has bounds, text,
+content descriptions, hints, flags and actions. Module:
+`~/android_world/.venv/lib/python3.12/site-packages/android_env/proto/a11y/android_accessibility_node_info_pb2.py`,
+SHA-256 `f3890146b3c033fac07010ceec8fe689506743c9e92b355ae587850ce83f90c1`.
+This was source/descriptor inspection only: no device command or model call.
+
+Core 4 `20261107-024334_SystemBrightnessMax.json` (SHA-256
+`afe1109b7ca89648e2c002d757356f53ed31952c4a31d25dec478565c82fd36b`) has four slider
+observations. Every one exposes `Display brightness`, bounds and flags, with no numeric value.
+Independent benchmark state passed, while agent `done` and combined success were false.
+The record does not prove which swipe first reached maximum or any value visible to core.
+
+This is an observation gap upstream of our normalization, not merely a forgotten field mapping.
+A future general range-value adapter or explicitly permitted host state-read capability needs
+real source evidence and its own contract. Do not infer maximum from swipe geometry, a changed
+screen, repeated attempts or the private benchmark checker. No host capability, verifier rule,
+AndroidWorld code or frozen Core 5 build was changed for this finding.
