@@ -15,6 +15,28 @@ confirmation dialog.**
 
 ## 2. Decisions taken (and why)
 
+**7 November 2026 — Astra recovery and Core 4 results:** the suite at `8098265`,
+`suite_core_20261107-023245.tsv`, finished all 20 tasks: **4 PASS, 9 FAIL, 7 ERROR**;
+AndroidWorld's independent state checker passed **9/20**. Agent time totals **1039.5 seconds**,
+median **53.9 seconds**, **197 model calls**. T3A's original baseline remains 13/20 and 1495.7
+seconds; differing seeds and failed tasks ending early prevent interpreting elapsed time as a
+quality-adjusted speed improvement. False completion was observed for Wi-Fi off, Calendar add
+and Markor create. Several errors were successful HTTP responses without message content; the
+SMS send 429's truncated body does not establish whether its quota was daily or per-minute.
+The new host fix records response shape/finish reason and classifies quota from the full response
+without retaining raw error bodies. Core now bounds repeated element-reader queries and rejects
+anonymous switch evidence; these follow-up fixes are **not included in the measured suite**.
+
+The recovered UniFFI entry point is committed as `a0b3e15`; `b4734de` integrates Core 4 readback,
+reader and control labels with cancellation plus the follow-up guards. Parent verification:
+**76 Rust tests with UniFFI and 34 host tests pass**. Full provenance, reader summary/facts,
+field-by-field completion evidence and skills remain unfinished. The native app APK was built
+for arm64 and x86_64 (34,618,793 bytes), with 41 JVM tests reported passing by the app agent;
+the real app prompt smoke is in progress and uses the earlier pre-Core-4 binary. Its host has
+notification observations and intent launching, not general control inside other apps. Wallet
+Android binaries also built, but new hardening changes still need rebuilding/device validation.
+Injection runner/checker and fixtures are being completed; no live injection pass is claimed.
+
 **7 November 2026 — core suite rerun, 3/20 (`docs/BENCHMARK_RUNS.md`):** commit `1331cde`
 (core code of `deeb3b0`), `gemini-flash-lite-latest`, seed 0, second API key, 01:41–01:59 UTC.
 **3 PASS / 13 FAIL / 4 ERROR**; checker view 4 passed (MarkorCreateFolder done but not claimed);
