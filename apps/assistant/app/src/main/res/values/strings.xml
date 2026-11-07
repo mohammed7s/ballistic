@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Ballistic</string>
+    <string name="notification_listener_label">Ballistic: read notifications</string>
+    <string name="confirm_channel">Approvals</string>
+</resources>

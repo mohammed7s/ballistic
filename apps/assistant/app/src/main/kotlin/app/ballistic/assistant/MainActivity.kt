@@ -1,0 +1,64 @@
+// The app's one main window: prompt box, action log, settings. Holds no state of its own; the
+// session and stores live in AppGraph.
+
+package app.ballistic.assistant
+
+import android.Manifest
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import app.ballistic.assistant.ui.BallisticTheme
+import app.ballistic.assistant.ui.LogScreen
+import app.ballistic.assistant.ui.PromptScreen
+import app.ballistic.assistant.ui.SettingsScreen
+
+class MainActivity : ComponentActivity() {
+    private val askNotifications = registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
+        // The approval notification is the only way to reach the window from the background.
+        askNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
+        val appGraph = graph
+        setContent {
+            BallisticTheme {
+                Surface(Modifier.fillMaxSize()) {
+                    var tab by rememberSaveable { mutableIntStateOf(0) }
+                    Column(Modifier.safeDrawingPadding()) {
+                        Row(Modifier.fillMaxWidth()) {
+                            listOf("Ask", "Activity", "Settings").forEachIndexed { i, name ->
+                                TextButton(onClick = { tab = i }) {
+                                    Text(name, fontWeight = if (tab == i) FontWeight.Bold else FontWeight.Normal)
+                                }
+                            }
+                        }
+                        HorizontalDivider()
+                        when (tab) {
+                            0 -> PromptScreen(appGraph, activity = this@MainActivity)
+                            1 -> LogScreen(appGraph)
+                            else -> SettingsScreen(appGraph, activity = this@MainActivity)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

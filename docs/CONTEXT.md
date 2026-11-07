@@ -15,6 +15,37 @@ confirmation dialog.**
 
 ## 2. Decisions taken (and why)
 
+**7 November 2026 — core benchmark rerun aborted (quota), no new score:** two attempts at commit
+`deeb3b0` with `gemini-flash-lite-latest`. Attempt 1 (00:54 UTC) lost all internet on the ThinkPad
+mid-suite (Tailscale offline, DNS failures): 20/20 ERROR in setup. Attempt 2 (01:05 UTC): 18 tasks
+got HTTP 429 on the first planner call, OpenAppTaskEval reached the goal state before its second
+call was refused, ContactsAddContact died on an adb timeout under host load 9.6. The 429 body is the
+**daily free-tier quota**: `GenerateRequestsPerDayPerProjectPerModel-FreeTier`, limit 500,
+`gemini-flash-lite-latest` resolves to `gemini-3.5-flash-lite`; reset 08:00 UTC. A core suite costs
+about 130 calls, a T3A suite about 280, so one key allows at most two suites a day. Harness gap: run
+JSONs record only the 429 status, not the body. Logs in local `ballistic_runs/suite_core_20261107-*/`
+(ignored). The comparison with the 13/20 baseline and the 3/20 run at `a13f59e` is still owed.
+
+**7 November 2026 — Android app skeleton started in parallel (`apps/assistant/`):** Kotlin + Compose
+shell around the Rust core, unprivileged (PLAN step 3). `core-api` is a pure-Kotlin module with the
+four ports and the types mirrored from `core/src/types.rs` (same serde JSON shapes; every fixture
+in `core/tests/screens/` parses and re-encodes identically); 36 unit tests pass with JDK 21 and
+Gradle 9.9. `app` (prompt box, confirmation window with BiometricPrompt + per-operation Keystore
+key + injected-input filter, command gate, settings, action log, notification-listener Screen,
+intent Hands, HTTP Models) is **uncompiled**: no Android SDK on the Latitude; build it on the
+ThinkPad. Runs use a scripted `FakeCoreEngine`; `UniffiCoreEngine` is a placeholder. Decisions
+taken by the agent, to review: UniFFI boundary proposed as the same JSON strings the bridge carries;
+`IntentHands` returns `not_executed` for ops that need Computer Control; policy file
+`{"version":1,"apps":{pkg:{observe,act,route,confirm}}}`; tighten-only confirmation floor lives in
+Kotlin for now (should move to core/policy, §15 rule 1); confirmation window opened from a
+notification when the app is in the background, pending approvals denied after 10 minutes;
+compileSdk/targetSdk 37, minSdk 34; API key encrypted with a Keystore AES-GCM key. Conflicts with
+`docs/ANDROID_APP.md`: it says `apps/android/` (SPEC §4.1 says `apps/assistant`, used); its
+paired-host model adapter, interrupted-run record and foreground service are not built; core must
+expose the port traits and run events before UniFFI is useful. Review found one likely runtime bug
+(ACTION_MOVE events fail `verifyInputEvent` because of sample batching) and it was fixed: full
+verification on DOWN and UP, device/source/tool checks on MOVE.
+
 **7 November 2026 — training research completed:** `docs/PIXEL_MODEL_TRAINING.md` evaluates
 teacher-generated supervision, LoRA, export/runtime fidelity and held-out evaluation. Proposed
 sequence: correct core → untuned local baseline → prove custom export → small checked SFT trial

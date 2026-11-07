@@ -1,0 +1,165 @@
+// Settings: model endpoint and key, notification access, what this build can do, and the
+// per-app policy table (observe / act / route / confirm; core/README.md §9). Policy and model
+// changes need the command gate unlocked (core/README.md §15: policy is written "behind the
+// command gate"). The table can set any value the file allows; none of them lowers the
+// code-constant hard-confirmation list (ConfirmFloor).
+
+package app.ballistic.assistant.ui
+
+import android.app.Activity
+import android.content.Intent
+import android.provider.Settings
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.unit.dp
+import app.ballistic.assistant.AppGraph
+import app.ballistic.assistant.adapters.InstalledApps
+import app.ballistic.assistant.adapters.IntentHands
+import app.ballistic.assistant.adapters.NotificationScreenService
+import app.ballistic.assistant.core.Act
+import app.ballistic.assistant.core.AppPolicy
+import app.ballistic.assistant.core.ConfirmMode
+import app.ballistic.assistant.core.Observe
+import app.ballistic.assistant.core.Route
+import app.ballistic.assistant.models.Endpoint
+import app.ballistic.assistant.models.ModelsConfig
+import app.ballistic.assistant.storage.SecretStore
+
+@Composable
+fun SettingsScreen(graph: AppGraph, activity: Activity) {
+    val unlocked by graph.gate.unlocked.collectAsState()
+    var policy by remember { mutableStateOf(graph.policyStore.load()) }
+    val apps = remember { InstalledApps.list(activity) }
+
+    LazyColumn(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        item { Section("Engine") }
+        item { Text(graph.engine.description) }
+
+        item { Section("Model") }
+        item { ModelSettings(graph, enabled = unlocked) }
+
+        item { Section("Notification access") }
+        item {
+            Column {
+                Text(if (NotificationScreenService.connected != null) "Granted: Ballistic can read notifications." else "Not granted: Ballistic cannot see anything.")
+                OutlinedButton(onClick = { activity.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)) }) { Text("Open system settings") }
+            }
+        }
+
+        item { Section("What this build can do") }
+        item {
+            Column {
+                Text("Core operations: ${IntentHands.OPERATIONS.joinToString()}.")
+                Text("Tap, type, scroll, back and home need Computer Control, which this build does not have.", style = MaterialTheme.typography.bodySmall)
+            }
+        }
+
+        item { Section("Apps") }
+        item {
+            Column {
+                if (!unlocked) Text("Unlock on the Ask tab to change these.", color = MaterialTheme.colorScheme.error)
+                Text("Send, pay, delete, post, install and grant always need your fingerprint, whatever is set here.", style = MaterialTheme.typography.bodySmall)
+            }
+        }
+        items(apps, key = { it.`package` }) { app ->
+            val p = policy.forApp(app.`package`)
+            fun save(changed: AppPolicy) {
+                if (!graph.gate.unlocked.value) return
+                policy = policy.with(app.`package`, changed)
+                graph.policyStore.save(policy)
+            }
+            Column {
+                Text(app.label, fontWeight = FontWeight.Bold)
+                Text(app.`package`, style = MaterialTheme.typography.labelSmall)
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Choice("observe", p.observe, Observe.entries, unlocked) { save(p.copy(observe = it)) }
+                    Choice("act", p.act, Act.entries, unlocked) { save(p.copy(act = it)) }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Choice("route", p.route, Route.entries, unlocked) { save(p.copy(route = it)) }
+                    Choice("confirm", p.confirm, ConfirmMode.entries, unlocked) { save(p.copy(confirm = it)) }
+                }
+                HorizontalDivider()
+            }
+        }
+    }
+}
+
+@Composable
+private fun Section(title: String) {
+    Text(title, style = MaterialTheme.typography.titleMedium)
+}
+
+@Composable
+private fun <T : Enum<T>> Choice(name: String, value: T, options: List<T>, enabled: Boolean, onPick: (T) -> Unit) {
+    var open by remember { mutableStateOf(false) }
+    Box {
+        TextButton(onClick = { open = true }, enabled = enabled) { Text("$name: ${value.name}") }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            for (option in options) {
+                DropdownMenuItem(text = { Text(option.name) }, onClick = { open = false; onPick(option) })
+            }
+        }
+    }
+}
+
+/** Planner endpoint and model; other roles fall back to it (ModelsConfig). The key is write-only. */
+@Composable
+private fun ModelSettings(graph: AppGraph, enabled: Boolean) {
+    val current = remember { graph.modelsConfig.load() }
+    var baseUrl by remember { mutableStateOf(current?.planner?.baseUrl ?: "https://generativelanguage.googleapis.com/v1beta/openai/") }
+    var model by remember { mutableStateOf(current?.planner?.model ?: "") }
+    var key by remember { mutableStateOf("") }
+    var hasKey by remember { mutableStateOf(graph.secrets.has(SecretStore.MODEL_API_KEY)) }
+    var saved by remember { mutableStateOf<String?>(null) }
+
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        OutlinedTextField(baseUrl, { baseUrl = it }, Modifier.fillMaxWidth(), enabled = enabled, label = { Text("Base URL (OpenAI-compatible)") })
+        OutlinedTextField(model, { model = it }, Modifier.fillMaxWidth(), enabled = enabled, label = { Text("Model") })
+        OutlinedTextField(
+            key, { key = it }, Modifier.fillMaxWidth(), enabled = enabled,
+            label = { Text(if (hasKey) "API key (stored; type to replace)" else "API key") },
+            visualTransformation = PasswordVisualTransformation(),
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(
+                enabled = enabled && baseUrl.isNotBlank() && model.isNotBlank(),
+                onClick = {
+                    graph.modelsConfig.save((current ?: ModelsConfig(Endpoint(baseUrl, model))).copy(planner = Endpoint(baseUrl.trim(), model.trim())))
+                    if (key.isNotEmpty()) {
+                        graph.secrets.put(SecretStore.MODEL_API_KEY, key)
+                        key = ""
+                        hasKey = true
+                    }
+                    saved = "Saved"
+                },
+            ) { Text("Save") }
+            if (hasKey) OutlinedButton(enabled = enabled, onClick = { graph.secrets.remove(SecretStore.MODEL_API_KEY); hasKey = false }) { Text("Forget key") }
+        }
+        saved?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+    }
+}

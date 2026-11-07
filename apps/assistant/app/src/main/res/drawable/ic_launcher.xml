@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Placeholder mark: a filled circle with an arrow. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path android:fillColor="#FF1B1F24" android:pathData="M54,54m-50,0a50,50 0,1 1,100 0a50,50 0,1 1,-100 0" />
+    <path android:fillColor="#FFFFFFFF" android:pathData="M34,70 L66,38 L66,58 L74,58 L74,30 L46,30 L46,38 L60,38 L28,70 Z" />
+</vector>
