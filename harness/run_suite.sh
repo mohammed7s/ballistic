@@ -2,12 +2,14 @@
 # Run a fixed set of AndroidWorld tasks one after another and print a pass table.
 # Usage: harness/run_suite.sh [--agent t3a|m3a|core] [model] [base_url]
 #   --agent defaults to t3a; core needs ballistic-core built (core/). Confirmations are approved.
-# The API key is read by run_task.py from BALLISTIC_API_KEY in the environment (~/.ballistic_env is
-# sourced and exported here); it is never put on a command line.
+# The API key is read by run_task.py from BALLISTIC_API_KEY in the environment; it is never put on
+# a command line. ~/.ballistic_env is sourced only when BALLISTIC_API_KEY is not already set, so a
+# caller can pick another key (BALLISTIC_API_KEY="$BALLISTIC_API_KEY_2" bash harness/run_suite.sh ...).
 # Env: TASKS="A B C" to override the default 20.
 set -uo pipefail
 cd "$(dirname "$0")/.."
-if [ -f ~/.ballistic_env ]; then set -a; source ~/.ballistic_env; set +a; fi
+if [ -z "${BALLISTIC_API_KEY:-}" ] && [ -f ~/.ballistic_env ]; then set -a; source ~/.ballistic_env; set +a; fi
+export BALLISTIC_API_KEY="${BALLISTIC_API_KEY:-}"
 AGENT=t3a
 POS=()
 while [ $# -gt 0 ]; do
