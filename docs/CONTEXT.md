@@ -707,6 +707,12 @@ prompt UI is planned. Subagents use GPT-6-Astra at the owner's request.
     GrapheneOS installed on the Pixel 10 Pro (§4).
 14. ~~Core language~~ Decided 7 Nov: Rust from the start (§2, `core/README.md` §15).
 
+Verified 7 Nov, 01:18 UTC (build track): baseline 2026110600 factory ZIP on the
+ThinkPad passed SHA-256, pinned factory signature, extraction and AVB key checks;
+transfer ended rc=0 at 01:16:54 UTC. Pixel USB absent, no flash/unlock performed.
+Patched test packages compiled successfully; focused Settings host tests started
+at 01:17:37 UTC. Patched signing remains active. Cloud credit $5.29.
+
 ## 7. Questions to put to the GrapheneOS team
 
 - Timeline for open-source STT/TTS; would an `OnDeviceIntelligenceService` host be the right home?
