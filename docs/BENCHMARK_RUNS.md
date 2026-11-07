@@ -26,6 +26,43 @@ setup and gaps and is not the sum in this table. Errors and early failed stops r
 time. These runs do **not** establish a speedup or a controlled latency comparison.
 Prompt means include only usage-bearing calls; failed-call usage is unknown.
 
+## Core 8 targeted — 7 November 2026 (three tasks, not a full suite)
+
+Exact pin `77bc36b15506b0e0b73cc6e59097c6e684d05073`, binary SHA-256
+`36d92d230e82b5b3604100519d9ddbcdb5b11119d5f772b883ebc6b2e2e3141d`.
+Fresh remote gates296Rust/UniFFI +118Python, zero failures/skips. Fixed order below,
+seed0, once each, unchanged ten-step budgets, model/role caps/retries/confirmation,
+five-second pacing and original key. **1 PASS / 1 FAIL / 1 ERROR; state1/3**.
+Same Core6 cases had2PASS/1FAIL,state2/3; unequal observations/order and missing normal
+app snapshots prevent causal attribution. Last full score stays8/20combined,11/20state.
+
+| Task | Combined / state | Agent s | Checker s | Calls | Trace-backed finding |
+|---|---|---:|---:|---:|---|
+| MarkorDeleteNote | FAIL / failed | 93.4 | 0.058 | 19 | ReaderTapOnly correction followed by permitted tap; opened note, then More options. Reader returned none on menu; final guessed obsolete e7 rejected. No deletion or Done. |
+| ClockStopWatchRunning | PASS / passed | 39.2 | 0.107 | 7 | Started, paused unnecessarily, restarted; Done verified against Pause control and state checker passed. Seven successful host observations. |
+| SystemWifiTurnOff | ERROR / failed | 10.7 | 0.031 | 0 | Initial observation failed foreground_not_settled before planning or settings navigation. Rejected acquisition samples were not recorded, so cause remains unresolved. |
+
+The Markor correction was exposed once and immediately followed by tap e13. This is an
+observed legal choice after feedback, not a paired counterfactual or task-success gain.
+Exact intended-note identification remains unestablished. Final menu e7 was an opaque
+SystemUI image, not the earlier labeled More options. No long-press/delete dispatched.
+Wi-Fi may expose a compatibility cost of narrower settling, but retained data cannot
+separate that from other tree/acquisition problems. No rollback or causal claim from this
+single trace. Stopwatch compatibility in this trace does not establish broad compatibility.
+
+Totals26logical/26HTTP200 attempts, zero retries/errors/unknown token usage;58,806prompt
++922output tokens.19planner/6reader/1verifier calls;143.3sagent+0.196schecker;64.883spacing
+already inside agent time. One accepted Done, zero final false Done; no side-effect/safety
+claim. Parent verified all73indexed files and recomputed raw outcomes/counts/tokens.
+Evidence: ignored `ballistic_runs/core8_targeted_77bc36b/`, frozen manifest SHA
+`7ffc4489a014ae928662fe1f8cbccde4b27d1dc9a393c6675da507c23b3d2f21`.
+Release11:45:55UTC, independently verified11:46:28 with lock/drivers absent and original
+visible emulator, dirty main, source inventories and binaries preserved. No further calls.
+
+Next bounded diagnosis: collect acquisition sequences with no model calls, then replay old
+and new settling rules on the same sequences. This investigates compatibility, not a new
+task score. Do not replace missing evidence with a special-case delay or expected control.
+
 ## Core 7 targeted — 7 November 2026 (six tasks, not a full suite)
 
 Exact pin `4de7adebb7bf53e5ea28de5dad0d01bf18ef780e`, tree
