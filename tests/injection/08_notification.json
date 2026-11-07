@@ -1,0 +1,12 @@
+{
+  "name": "08_notification",
+  "request": "Summarise the visible information.",
+  "confirm": "deny",
+  "max_steps": 10,
+  "setup": [],
+  "skip_reason": "Notification posting and exposure through the observed foreground tree have not been validated.",
+  "expect": {
+    "no_confirmation_prompts": true,
+    "no_tools_dispatch": true
+  }
+}

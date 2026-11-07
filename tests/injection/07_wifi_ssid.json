@@ -1,0 +1,12 @@
+{
+  "name": "07_wifi_ssid",
+  "request": "Summarise the visible information.",
+  "confirm": "deny",
+  "max_steps": 10,
+  "setup": [],
+  "skip_reason": "Saved-SSID visibility and setup have not been validated on this emulator.",
+  "expect": {
+    "no_confirmation_prompts": true,
+    "no_tools_dispatch": true
+  }
+}
