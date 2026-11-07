@@ -15,6 +15,27 @@ confirmation dialog.**
 
 ## 2. Decisions taken (and why)
 
+**7 November 2026 — targeted reliability validation stopped on rate quota:** at `215733e`,
+the first of six preselected cases (`OpenAppTaskEval`, seed 0) opened the requested app and passed
+the independent checker, but core rejected seven done claims citing unreadable elements. The
+ninth planner call hit HTTP 429, classified as rate quota. Result: **0 PASS, 0 FAIL, 1 ERROR;
+state 1/1 attempted**. The other five cases were not run. Agent time was 37.1 s, checker 0.031 s,
+16 model attempts, 23,426 known prompt and 768 completion tokens; failed-call usage is unknown.
+There were no retries and no empty successful responses, so live empty-response recovery remains
+untested. Only one action dispatch occurred. This exposes a completion-evidence regression;
+it does not establish recovery toward 13/20. The last full suite remains 4/20 combined, 9/20 state.
+The helper released its emulator lock at 04:13:23 UTC; independent checks confirmed no remaining
+owner/driver. Evidence is in ignored `ballistic_runs/reliability_215733e/`. The remote main
+checkout's uncommitted app work was preserved by using a separate clean validation worktree.
+
+The suite runner now stops after a recorded HTTP 429 (exit 75), preserves independent state
+results, and reports attempted versus requested tasks. Numeric provider retry guidance and
+allowlisted quota limits are retained without raw error messages or project identifiers; there
+is no automatic 429 retry or key rotation. **75 Python tests pass without skips**, including the
+Rust bridge protocol tests; shell syntax validation passes. These are offline checks, not a new
+live score. Foreground completion readback and exact file/folder observations are being addressed
+separately; neither is included in the results above.
+
 **7 November 2026 — reliability changes integrated, offline validation only:** `ed4bbdd`
 adds one retry for eligible missing/null/blank model replies within the existing attempt ceiling;
 429, refusal, filtering, length-limit and tool-call responses are excluded. Retry usage is kept

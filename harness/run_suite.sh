@@ -27,13 +27,23 @@ OUT=~/ballistic_runs/suite_${AGENT}_$(date +%Y%m%d-%H%M%S).tsv
 mkdir -p ~/ballistic_runs
 printf "# agent=%s model=%s base_url=%s seed=%s commit=%s\n" "$AGENT" "$MODEL" "$BASE_URL" "${SEED:-0}" "$(git rev-parse --short HEAD 2>/dev/null || echo "${BALLISTIC_COMMIT:-unknown}")" > "$OUT"
 printf "task\tresult\tsteps\tseconds\texit\tbenchmark\tagent_done\tfailure_category\tmodel_calls\tprompt_tokens\trun_json\n" >> "$OUT"
+attempted=0
+quota_stop=0
 for t in $TASKS; do
+  attempted=$((attempted + 1))
   log="${OUT%.tsv}_${t}.log"
   timeout --signal=INT --kill-after=15s "${TASK_TIMEOUT:-900}" "$PY" -u harness/run_task.py \
       --task "$t" --agent "$AGENT" --model "$MODEL" --base_url "$BASE_URL" \
       --seed "${SEED:-0}" --confirm approve --max_tokens 2000 --timeout 120 > "$log" 2>&1
   process_exit=$?
-  "$PY" harness/suite_row.py --task "$t" --log "$log" --exit "$process_exit" | tee -a "$OUT"
+  "$PY" harness/suite_row.py --task "$t" --log "$log" --exit "$process_exit" --stop-on-quota | tee -a "$OUT"
+  row_exit=${PIPESTATUS[0]}
+  if [ "$row_exit" -eq 75 ]; then
+    echo "HTTP 429: suite stopped; remaining tasks were not run. Inspect quota telemetry before resuming."
+    quota_stop=75
+    break
+  fi
 done
-echo "$AGENT: combined passed $(awk -F '\t' '$2 == "PASS" {n++} END {print n+0}' "$OUT") / $(echo $TASKS | wc -w)   ($OUT)"
-echo "benchmark state passed $(awk -F '\t' '$6 == "passed" {n++} END {print n+0}' "$OUT") / $(echo $TASKS | wc -w)"
+echo "$AGENT: combined passed $(awk -F '\t' '$2 == "PASS" {n++} END {print n+0}' "$OUT") / $attempted attempted ($(echo $TASKS | wc -w) requested)   ($OUT)"
+echo "benchmark state passed $(awk -F '\t' '$6 == "passed" {n++} END {print n+0}' "$OUT") / $attempted attempted"
+exit "$quota_stop"

@@ -29,7 +29,9 @@ def summarize(task, log_path, process_exit):
                   model_calls=len(record.get('model_calls', [])),
                   prompt_tokens=sum(c.get('prompt_tokens', 0) for c in record.get('model_calls', [])),
                   run_json=path)
-    if (record.get('benchmark_status') == 'error' or process_exit != 0
+    result['quota_limited'] = any(c.get('http_status') == 429
+                                 for c in record.get('model_calls', []))
+    if (result['quota_limited'] or record.get('benchmark_status') == 'error' or process_exit != 0
             or record.get('exit_code', 0) != 0 or record.get('failure_category') == 'environment'):
         result.update(result='ERROR', failure_category='environment')
     return result
@@ -40,9 +42,13 @@ def main():
     p.add_argument('--task', required=True)
     p.add_argument('--log', required=True)
     p.add_argument('--exit', dest='process_exit', required=True, type=int)
+    p.add_argument('--stop-on-quota', action='store_true',
+                   help='Print the row, then exit 75 if the run hit HTTP 429.')
     a = p.parse_args()
     row = summarize(a.task, a.log, a.process_exit)
     print('\t'.join(str(row[c]).replace('\t', ' ').replace('\n', ' ') for c in COLUMNS))
+    if a.stop_on_quota and row.get('quota_limited'):
+        raise SystemExit(75)
 
 
 if __name__ == '__main__':

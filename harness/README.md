@@ -153,6 +153,11 @@ baseline was unseeded, so comparisons with it are descriptive rather than matche
 reported separately. The harness advertises only its actual input operations and test app scopes;
 these emulator grants do not establish production Android permissions.
 
+The suite stops after the first recorded HTTP 429 and exits 75. That task is an infrastructure
+ERROR even if the independent state check passed; subsequent tasks are not run. Summary
+denominators show attempted and requested tasks separately. Inspect the quota telemetry before
+starting another run; the runner does not rotate keys, sleep until reset or retry a 429.
+
 Core binds guarded approvals to one exact resolved operation and app. A host error after dispatch
 is ambiguous: core stops instead of retrying a possible send/delete. `not_executed` is reserved
 for cases where the host can guarantee no input was dispatched. Do not classify a timeout as
@@ -163,7 +168,10 @@ for cases where the host can guarantee no input was dispatched. Do not classify 
 `ModelClient` retries HTTP 502/503/504 and connection failures up to three times (waits 2, 4,
 8 s); a success after retries is one call with a `retried` list. Read timeouts and 4xx are not
 retried. The run JSON records HTTP status and a quota classification derived from the full
-response (daily, rate, mixed or unknown), without storing the raw error body. Malformed successful
+response (daily, rate, mixed or unknown), without storing the raw error body. When supplied, it
+also retains bounded numeric retry guidance (`retry_after_seconds`) and allowlisted quota limit
+types/values (`quota_limits`), excluding provider messages, project IDs and quota dimensions.
+These fields report provider guidance, not an automatic retry decision. Malformed successful
 responses produce `ModelResponseError` with response-shape and allowlisted finish-reason fields,
 instead of a missing-content `KeyError`. Observation settles on two consecutive samples with the same foreground and size whose
 trees match, or differ only slightly (same skeleton, at most a tenth of the nodes changed); the

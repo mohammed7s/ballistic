@@ -455,7 +455,58 @@ class ModelClient:
         daily = bool(re.search(r"per[ _-]?day|daily|requests/day|tokens/day", body))
         rate = bool(re.search(r"per[ _-]?(?:minute|second)|requests/minute|tokens/minute", body))
         category = "mixed" if daily and rate else "daily" if daily else "rate" if rate else "unknown"
-        return {"quota_category": category}
+        out: dict[str, Any] = {"quota_category": category}
+        # Keep only bounded numeric guidance and code-owned metric names. Never retain
+        # provider messages, URLs, quota dimensions, project IDs or arbitrary metric IDs.
+        def seconds(value):
+            if not isinstance(value, str) or not re.fullmatch(r"[0-9]{1,5}(?:\.[0-9]{1,9})?s?", value):
+                return None
+            number = float(value.removesuffix("s"))
+            return number if 0 <= number <= 86400 else None
+
+        delays = []
+        header = seconds(getattr(r, "headers", {}).get("Retry-After"))
+        if header is not None:
+            delays.append(header)
+        try:
+            envelope = r.json()
+        except (ValueError, TypeError):
+            envelope = None
+        error = envelope.get("error") if isinstance(envelope, dict) else None
+        details = error.get("details") if isinstance(error, dict) else None
+        limits = []
+        for detail in details if isinstance(details, list) else []:
+            if not isinstance(detail, dict):
+                continue
+            if detail.get("@type") == "type.googleapis.com/google.rpc.RetryInfo":
+                delay = seconds(detail.get("retryDelay"))
+                if delay is not None:
+                    delays.append(delay)
+            if detail.get("@type") != "type.googleapis.com/google.rpc.QuotaFailure":
+                continue
+            violations = detail.get("violations")
+            for violation in violations if isinstance(violations, list) else []:
+                if not isinstance(violation, dict):
+                    continue
+                identifier = violation.get("quotaId")
+                value = violation.get("quotaValue")
+                if not isinstance(identifier, str) or not isinstance(value, str) or not re.fullmatch(r"[0-9]{1,12}", value):
+                    continue
+                metric = next((name for marker, name in (
+                    ("generaterequestsperminute", "requests_per_minute"),
+                    ("generaterequestsperday", "requests_per_day"),
+                    ("generatetokensperminute", "tokens_per_minute"),
+                    ("generatetokensperday", "tokens_per_day"),
+                ) if identifier.lower().startswith(marker)), None)
+                if metric is not None:
+                    limit = {"metric": metric, "value": int(value)}
+                    if limit not in limits:
+                        limits.append(limit)
+        if delays:
+            out["retry_after_seconds"] = max(delays)
+        if limits:
+            out["quota_limits"] = limits
+        return out
 
     @classmethod
     def _response_metadata(cls, body: Any) -> dict[str, Any]:

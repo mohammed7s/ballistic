@@ -87,6 +87,44 @@ class ModelClientTest(unittest.TestCase):
         self.assertEqual(self.post.call_count, 1)
         self.assertNotIn('error_body', self.client.calls[0])
 
+    def test_quota_guidance_is_numeric_bounded_and_does_not_retry(self):
+        body = {'error': {'message': KEY, 'details': [
+            {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '12.5s'},
+            {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [
+                {'quotaId': 'GenerateRequestsPerMinutePerProjectPerModel-FreeTier',
+                 'quotaValue': '15', 'quotaDimensions': {'secret': KEY}},
+                {'quotaId': KEY, 'quotaValue': '15'},
+                {'quotaId': 'GenerateTokensPerMinutePerModel', 'quotaValue': KEY},
+            ]},
+        ]}}
+        r = response(429, requests.compat.json.dumps(body))
+        r.headers['Retry-After'] = '30'
+        self.post.return_value = r
+        with self.assertRaises(requests.HTTPError):
+            self.complete()
+        call = self.client.calls[-1]
+        self.assertEqual(call['retry_after_seconds'], 30.0)
+        self.assertEqual(call['quota_limits'], [{'metric': 'requests_per_minute', 'value': 15}])
+        self.assertEqual(self.post.call_count, 1)
+        self.sleep.assert_not_called()
+        self.assertNotIn(KEY, repr(call))
+        self.assertNotIn('FreeTier', repr(call))
+
+    def test_malformed_quota_guidance_stays_unreported(self):
+        for value in [KEY, '-2s', 'NaN', 'infinity', '999999999999s', 12, None]:
+            with self.subTest(value=value):
+                body = {'error': {'details': [None, {'@type': 'type.googleapis.com/google.rpc.RetryInfo',
+                                                   'retryDelay': value}]}}
+                r = response(429, requests.compat.json.dumps(body))
+                r.headers['Retry-After'] = value
+                self.post.return_value = r
+                with self.assertRaises(requests.HTTPError):
+                    self.complete()
+                call = self.client.calls[-1]
+                self.assertNotIn('retry_after_seconds', call)
+                self.assertNotIn('quota_limits', call)
+                self.assertNotIn(KEY, repr(call))
+
     def test_missing_null_and_non_string_content_have_safe_typed_errors(self):
         cases = [
             ({}, 'missing_content'),
