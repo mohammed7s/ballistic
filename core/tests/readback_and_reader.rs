@@ -261,7 +261,7 @@ fn a_pick_authorizes_a_tap_only() {
     let mut view = filtered(&s, REPLY_REQUEST);
     let row = rows(&view)[0].0;
     view.reader_picks.push(row);
-    assert_eq!(actions::validate(&Action::LongPress { target: row }, &view), Err(actions::ActionError::Unidentified(row)));
+    assert_eq!(actions::validate(&Action::LongPress { target: row }, &view), Err(actions::ActionError::ReaderTapOnly(row)));
     // A pick on another screen is re-located only when identity and withheld text agree.
     let pick = reader::ReaderPick::new(&view, row).unwrap();
     assert_eq!(pick.relocate(&filtered(&s, REPLY_REQUEST)), Some(row));

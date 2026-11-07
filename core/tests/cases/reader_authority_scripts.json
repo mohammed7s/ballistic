@@ -1,0 +1,2516 @@
+[
+  {
+    "name": "fresh_to_tap",
+    "args": [
+      "run",
+      "--request",
+      "Find the requested entry",
+      "--max-steps",
+      "2"
+    ],
+    "replies": [
+      {
+        "package": "org.herbarium",
+        "activity": "Shelf",
+        "width": 400,
+        "height": 800,
+        "capabilities": {
+          "operations": [
+            "tap",
+            "long_press",
+            "back",
+            "scroll"
+          ],
+          "app_grants": [
+            "org.herbarium"
+          ]
+        },
+        "nodes": [
+          {
+            "id": 67,
+            "role": "list",
+            "bounds": {
+              "x1": 0,
+              "y1": 0,
+              "x2": 400,
+              "y2": 600
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "scrollable": true
+            }
+          },
+          {
+            "id": 98,
+            "parent": 67,
+            "role": "item",
+            "text": "PRIVATE_CEDAR_ENTRY",
+            "resource_id": "org.herbarium:id/card",
+            "bounds": {
+              "x1": 0,
+              "y1": 80,
+              "x2": 400,
+              "y2": 160
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "clickable": true,
+              "long_clickable": true
+            }
+          },
+          {
+            "id": 12,
+            "role": "button",
+            "label": "Browse",
+            "bounds": {
+              "x1": 0,
+              "y1": 600,
+              "x2": 400,
+              "y2": 680
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "clickable": true
+            }
+          }
+        ]
+      },
+      {
+        "text": "{\"action\": \"read\", \"targets\": [\"c1\"], \"question\": \"Which entry?\", \"shape\": \"element\"}"
+      },
+      {
+        "text": "e2"
+      },
+      {
+        "text": "{\"action\": \"long_press\", \"target\": \"e2\"}"
+      },
+      {
+        "text": "{\"action\": \"tap\", \"target\": \"e2\"}"
+      },
+      {
+        "result": "ok"
+      }
+    ],
+    "acts": 1,
+    "feedback_ids": [
+      2
+    ],
+    "category": null
+  },
+  {
+    "name": "fresh_to_back",
+    "args": [
+      "run",
+      "--request",
+      "Find the requested entry",
+      "--max-steps",
+      "2"
+    ],
+    "replies": [
+      {
+        "package": "org.herbarium",
+        "activity": "Shelf",
+        "width": 400,
+        "height": 800,
+        "capabilities": {
+          "operations": [
+            "tap",
+            "long_press",
+            "back",
+            "scroll"
+          ],
+          "app_grants": [
+            "org.herbarium"
+          ]
+        },
+        "nodes": [
+          {
+            "id": 67,
+            "role": "list",
+            "bounds": {
+              "x1": 0,
+              "y1": 0,
+              "x2": 400,
+              "y2": 600
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "scrollable": true
+            }
+          },
+          {
+            "id": 98,
+            "parent": 67,
+            "role": "item",
+            "text": "PRIVATE_CEDAR_ENTRY",
+            "resource_id": "org.herbarium:id/card",
+            "bounds": {
+              "x1": 0,
+              "y1": 80,
+              "x2": 400,
+              "y2": 160
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "clickable": true,
+              "long_clickable": true
+            }
+          },
+          {
+            "id": 12,
+            "role": "button",
+            "label": "Browse",
+            "bounds": {
+              "x1": 0,
+              "y1": 600,
+              "x2": 400,
+              "y2": 680
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "clickable": true
+            }
+          }
+        ]
+      },
+      {
+        "text": "{\"action\": \"read\", \"targets\": [\"c1\"], \"question\": \"Which entry?\", \"shape\": \"element\"}"
+      },
+      {
+        "text": "e2"
+      },
+      {
+        "text": "{\"action\": \"long_press\", \"target\": \"e2\"}"
+      },
+      {
+        "text": "{\"action\": \"back\"}"
+      },
+      {
+        "result": "ok"
+      }
+    ],
+    "acts": 1,
+    "feedback_ids": [
+      2
+    ],
+    "category": null
+  },
+  {
+    "name": "fresh_to_visible",
+    "args": [
+      "run",
+      "--request",
+      "Find the requested entry",
+      "--max-steps",
+      "2"
+    ],
+    "replies": [
+      {
+        "package": "org.herbarium",
+        "activity": "Shelf",
+        "width": 400,
+        "height": 800,
+        "capabilities": {
+          "operations": [
+            "tap",
+            "long_press",
+            "back",
+            "scroll"
+          ],
+          "app_grants": [
+            "org.herbarium"
+          ]
+        },
+        "nodes": [
+          {
+            "id": 67,
+            "role": "list",
+            "bounds": {
+              "x1": 0,
+              "y1": 0,
+              "x2": 400,
+              "y2": 600
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "scrollable": true
+            }
+          },
+          {
+            "id": 98,
+            "parent": 67,
+            "role": "item",
+            "text": "PRIVATE_CEDAR_ENTRY",
+            "resource_id": "org.herbarium:id/card",
+            "bounds": {
+              "x1": 0,
+              "y1": 80,
+              "x2": 400,
+              "y2": 160
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "clickable": true,
+              "long_clickable": true
+            }
+          },
+          {
+            "id": 12,
+            "role": "button",
+            "label": "Browse",
+            "bounds": {
+              "x1": 0,
+              "y1": 600,
+              "x2": 400,
+              "y2": 680
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "clickable": true
+            }
+          }
+        ]
+      },
+      {
+        "text": "{\"action\": \"read\", \"targets\": [\"c1\"], \"question\": \"Which entry?\", \"shape\": \"element\"}"
+      },
+      {
+        "text": "e2"
+      },
+      {
+        "text": "{\"action\": \"long_press\", \"target\": \"e2\"}"
+      },
+      {
+        "text": "{\"action\": \"tap\", \"target\": \"e3\"}"
+      },
+      {
+        "result": "ok"
+      }
+    ],
+    "acts": 1,
+    "feedback_ids": [
+      2
+    ],
+    "category": null
+  },
+  {
+    "name": "fresh_to_scroll",
+    "args": [
+      "run",
+      "--request",
+      "Find the requested entry",
+      "--max-steps",
+      "2"
+    ],
+    "replies": [
+      {
+        "package": "org.herbarium",
+        "activity": "Shelf",
+        "width": 400,
+        "height": 800,
+        "capabilities": {
+          "operations": [
+            "tap",
+            "long_press",
+            "back",
+            "scroll"
+          ],
+          "app_grants": [
+            "org.herbarium"
+          ]
+        },
+        "nodes": [
+          {
+            "id": 67,
+            "role": "list",
+            "bounds": {
+              "x1": 0,
+              "y1": 0,
+              "x2": 400,
+              "y2": 600
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "scrollable": true
+            }
+          },
+          {
+            "id": 98,
+            "parent": 67,
+            "role": "item",
+            "text": "PRIVATE_CEDAR_ENTRY",
+            "resource_id": "org.herbarium:id/card",
+            "bounds": {
+              "x1": 0,
+              "y1": 80,
+              "x2": 400,
+              "y2": 160
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "clickable": true,
+              "long_clickable": true
+            }
+          },
+          {
+            "id": 12,
+            "role": "button",
+            "label": "Browse",
+            "bounds": {
+              "x1": 0,
+              "y1": 600,
+              "x2": 400,
+              "y2": 680
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "clickable": true
+            }
+          }
+        ]
+      },
+      {
+        "text": "{\"action\": \"read\", \"targets\": [\"c1\"], \"question\": \"Which entry?\", \"shape\": \"element\"}"
+      },
+      {
+        "text": "e2"
+      },
+      {
+        "text": "{\"action\": \"long_press\", \"target\": \"e2\"}"
+      },
+      {
+        "text": "{\"action\": \"scroll\", \"target\": \"e1\", \"direction\": \"down\"}"
+      },
+      {
+        "result": "ok"
+      }
+    ],
+    "acts": 1,
+    "feedback_ids": [
+      2
+    ],
+    "category": null
+  },
+  {
+    "name": "repeat_long",
+    "args": [
+      "run",
+      "--request",
+      "Find the requested entry",
+      "--max-steps",
+      "2"
+    ],
+    "replies": [
+      {
+        "package": "org.herbarium",
+        "activity": "Shelf",
+        "width": 400,
+        "height": 800,
+        "capabilities": {
+          "operations": [
+            "tap",
+            "long_press",
+            "back",
+            "scroll"
+          ],
+          "app_grants": [
+            "org.herbarium"
+          ]
+        },
+        "nodes": [
+          {
+            "id": 67,
+            "role": "list",
+            "bounds": {
+              "x1": 0,
+              "y1": 0,
+              "x2": 400,
+              "y2": 600
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "scrollable": true
+            }
+          },
+          {
+            "id": 98,
+            "parent": 67,
+            "role": "item",
+            "text": "PRIVATE_CEDAR_ENTRY",
+            "resource_id": "org.herbarium:id/card",
+            "bounds": {
+              "x1": 0,
+              "y1": 80,
+              "x2": 400,
+              "y2": 160
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "clickable": true,
+              "long_clickable": true
+            }
+          },
+          {
+            "id": 12,
+            "role": "button",
+            "label": "Browse",
+            "bounds": {
+              "x1": 0,
+              "y1": 600,
+              "x2": 400,
+              "y2": 680
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "clickable": true
+            }
+          }
+        ]
+      },
+      {
+        "text": "{\"action\": \"read\", \"targets\": [\"c1\"], \"question\": \"Which entry?\", \"shape\": \"element\"}"
+      },
+      {
+        "text": "e2"
+      },
+      {
+        "text": "{\"action\": \"long_press\", \"target\": \"e2\"}"
+      },
+      {
+        "text": "{\"action\": \"long_press\", \"target\": \"e2\"}"
+      }
+    ],
+    "acts": 0,
+    "feedback_ids": [
+      2
+    ],
+    "category": "target_resolution"
+  },
+  {
+    "name": "no_pick_5",
+    "args": [
+      "run",
+      "--request",
+      "Find the requested entry",
+      "--max-steps",
+      "2"
+    ],
+    "replies": [
+      {
+        "package": "org.herbarium",
+        "activity": "Shelf",
+        "width": 400,
+        "height": 800,
+        "capabilities": {
+          "operations": [
+            "tap",
+            "long_press",
+            "back",
+            "scroll"
+          ],
+          "app_grants": [
+            "org.herbarium"
+          ]
+        },
+        "nodes": [
+          {
+            "id": 67,
+            "role": "list",
+            "bounds": {
+              "x1": 0,
+              "y1": 0,
+              "x2": 400,
+              "y2": 600
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "scrollable": true
+            }
+          },
+          {
+            "id": 98,
+            "parent": 67,
+            "role": "item",
+            "text": "PRIVATE_CEDAR_ENTRY",
+            "resource_id": "org.herbarium:id/card",
+            "bounds": {
+              "x1": 0,
+              "y1": 80,
+              "x2": 400,
+              "y2": 160
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "clickable": true,
+              "long_clickable": true
+            }
+          },
+          {
+            "id": 12,
+            "role": "button",
+            "label": "Browse",
+            "bounds": {
+              "x1": 0,
+              "y1": 600,
+              "x2": 400,
+              "y2": 680
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "clickable": true
+            }
+          }
+        ]
+      },
+      {
+        "text": "{\"action\": \"read\", \"targets\": [\"c1\"], \"question\": \"Which entry?\", \"shape\": \"element\"}"
+      },
+      {
+        "text": "none"
+      },
+      {
+        "text": "{\"action\": \"long_press\", \"target\": \"e2\"}"
+      },
+      {
+        "text": "{\"action\": \"long_press\", \"target\": \"e2\"}"
+      }
+    ],
+    "acts": 0,
+    "feedback_ids": [],
+    "category": "target_resolution"
+  },
+  {
+    "name": "no_pick_6",
+    "args": [
+      "run",
+      "--request",
+      "Find the requested entry",
+      "--max-steps",
+      "2"
+    ],
+    "replies": [
+      {
+        "package": "org.herbarium",
+        "activity": "Shelf",
+        "width": 400,
+        "height": 800,
+        "capabilities": {
+          "operations": [
+            "tap",
+            "long_press",
+            "back",
+            "scroll"
+          ],
+          "app_grants": [
+            "org.herbarium"
+          ]
+        },
+        "nodes": [
+          {
+            "id": 67,
+            "role": "list",
+            "bounds": {
+              "x1": 0,
+              "y1": 0,
+              "x2": 400,
+              "y2": 600
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "scrollable": true
+            }
+          },
+          {
+            "id": 98,
+            "parent": 67,
+            "role": "item",
+            "text": "PRIVATE_CEDAR_ENTRY",
+            "resource_id": "org.herbarium:id/card",
+            "bounds": {
+              "x1": 0,
+              "y1": 80,
+              "x2": 400,
+              "y2": 160
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "clickable": true,
+              "long_clickable": true
+            }
+          },
+          {
+            "id": 12,
+            "role": "button",
+            "label": "Browse",
+            "bounds": {
+              "x1": 0,
+              "y1": 600,
+              "x2": 400,
+              "y2": 680
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "clickable": true
+            }
+          }
+        ]
+      },
+      {
+        "text": "{\"action\": \"read\", \"targets\": [\"c1\"], \"question\": \"Which entry?\", \"shape\": \"element\"}"
+      },
+      {
+        "text": "e2; UNTRUSTED_READER_PROSE"
+      },
+      {
+        "text": "{\"action\": \"long_press\", \"target\": \"e2\"}"
+      },
+      {
+        "text": "{\"action\": \"long_press\", \"target\": \"e2\"}"
+      }
+    ],
+    "acts": 0,
+    "feedback_ids": [],
+    "category": "target_resolution"
+  },
+  {
+    "name": "no_pick_7",
+    "args": [
+      "run",
+      "--request",
+      "Find the requested entry",
+      "--max-steps",
+      "2"
+    ],
+    "replies": [
+      {
+        "package": "org.herbarium",
+        "activity": "Shelf",
+        "width": 400,
+        "height": 800,
+        "capabilities": {
+          "operations": [
+            "tap",
+            "long_press",
+            "back",
+            "scroll"
+          ],
+          "app_grants": [
+            "org.herbarium"
+          ]
+        },
+        "nodes": [
+          {
+            "id": 67,
+            "role": "list",
+            "bounds": {
+              "x1": 0,
+              "y1": 0,
+              "x2": 400,
+              "y2": 600
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "scrollable": true
+            }
+          },
+          {
+            "id": 98,
+            "parent": 67,
+            "role": "item",
+            "text": "PRIVATE_CEDAR_ENTRY",
+            "resource_id": "org.herbarium:id/card",
+            "bounds": {
+              "x1": 0,
+              "y1": 80,
+              "x2": 400,
+              "y2": 160
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "clickable": true,
+              "long_clickable": true
+            }
+          },
+          {
+            "id": 12,
+            "role": "button",
+            "label": "Browse",
+            "bounds": {
+              "x1": 0,
+              "y1": 600,
+              "x2": 400,
+              "y2": 680
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "clickable": true
+            }
+          }
+        ]
+      },
+      {
+        "text": "{\"action\": \"read\", \"targets\": [\"c1\"], \"question\": \"Which entry?\", \"shape\": \"element\"}"
+      },
+      {
+        "text": "e99"
+      },
+      {
+        "text": "{\"action\": \"long_press\", \"target\": \"e2\"}"
+      },
+      {
+        "text": "{\"action\": \"long_press\", \"target\": \"e2\"}"
+      }
+    ],
+    "acts": 0,
+    "feedback_ids": [],
+    "category": "target_resolution"
+  },
+  {
+    "name": "unpicked_target",
+    "args": [
+      "run",
+      "--request",
+      "Find the requested entry",
+      "--max-steps",
+      "2"
+    ],
+    "replies": [
+      {
+        "package": "org.herbarium",
+        "activity": "Shelf",
+        "width": 400,
+        "height": 800,
+        "capabilities": {
+          "operations": [
+            "tap",
+            "long_press",
+            "back",
+            "scroll"
+          ],
+          "app_grants": [
+            "org.herbarium"
+          ]
+        },
+        "nodes": [
+          {
+            "id": 67,
+            "role": "list",
+            "bounds": {
+              "x1": 0,
+              "y1": 0,
+              "x2": 400,
+              "y2": 600
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "scrollable": true
+            }
+          },
+          {
+            "id": 98,
+            "parent": 67,
+            "role": "item",
+            "text": "PRIVATE_CEDAR_ENTRY",
+            "resource_id": "org.herbarium:id/card",
+            "bounds": {
+              "x1": 0,
+              "y1": 80,
+              "x2": 400,
+              "y2": 160
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "clickable": true,
+              "long_clickable": true
+            }
+          },
+          {
+            "id": 12,
+            "role": "button",
+            "label": "Browse",
+            "bounds": {
+              "x1": 0,
+              "y1": 600,
+              "x2": 400,
+              "y2": 680
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "clickable": true
+            }
+          }
+        ]
+      },
+      {
+        "text": "{\"action\": \"read\", \"targets\": [\"c1\"], \"question\": \"Which entry?\", \"shape\": \"element\"}"
+      },
+      {
+        "text": "e2"
+      },
+      {
+        "text": "{\"action\": \"long_press\", \"target\": \"e3\"}"
+      },
+      {
+        "text": "{\"action\": \"back\"}"
+      },
+      {
+        "result": "ok"
+      }
+    ],
+    "acts": 1,
+    "feedback_ids": [],
+    "category": null
+  },
+  {
+    "name": "missing_element",
+    "args": [
+      "run",
+      "--request",
+      "Find the requested entry",
+      "--max-steps",
+      "2"
+    ],
+    "replies": [
+      {
+        "package": "org.herbarium",
+        "activity": "Shelf",
+        "width": 400,
+        "height": 800,
+        "capabilities": {
+          "operations": [
+            "tap",
+            "long_press",
+            "back",
+            "scroll"
+          ],
+          "app_grants": [
+            "org.herbarium"
+          ]
+        },
+        "nodes": [
+          {
+            "id": 67,
+            "role": "list",
+            "bounds": {
+              "x1": 0,
+              "y1": 0,
+              "x2": 400,
+              "y2": 600
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "scrollable": true
+            }
+          },
+          {
+            "id": 98,
+            "parent": 67,
+            "role": "item",
+            "text": "PRIVATE_CEDAR_ENTRY",
+            "resource_id": "org.herbarium:id/card",
+            "bounds": {
+              "x1": 0,
+              "y1": 80,
+              "x2": 400,
+              "y2": 160
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "clickable": true,
+              "long_clickable": true
+            }
+          },
+          {
+            "id": 12,
+            "role": "button",
+            "label": "Browse",
+            "bounds": {
+              "x1": 0,
+              "y1": 600,
+              "x2": 400,
+              "y2": 680
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "clickable": true
+            }
+          }
+        ]
+      },
+      {
+        "text": "{\"action\": \"read\", \"targets\": [\"c1\"], \"question\": \"Which entry?\", \"shape\": \"element\"}"
+      },
+      {
+        "text": "e2"
+      },
+      {
+        "text": "{\"action\": \"long_press\", \"target\": \"e987\"}"
+      },
+      {
+        "text": "{\"action\": \"back\"}"
+      },
+      {
+        "result": "ok"
+      }
+    ],
+    "acts": 1,
+    "feedback_ids": [],
+    "category": null
+  },
+  {
+    "name": "disabled",
+    "args": [
+      "run",
+      "--request",
+      "Find the requested entry",
+      "--max-steps",
+      "2"
+    ],
+    "replies": [
+      {
+        "package": "org.herbarium",
+        "activity": "Shelf",
+        "width": 400,
+        "height": 800,
+        "capabilities": {
+          "operations": [
+            "tap",
+            "long_press",
+            "back",
+            "scroll"
+          ],
+          "app_grants": [
+            "org.herbarium"
+          ]
+        },
+        "nodes": [
+          {
+            "id": 67,
+            "role": "list",
+            "bounds": {
+              "x1": 0,
+              "y1": 0,
+              "x2": 400,
+              "y2": 600
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "scrollable": true
+            }
+          },
+          {
+            "id": 98,
+            "parent": 67,
+            "role": "item",
+            "text": "PRIVATE_CEDAR_ENTRY",
+            "resource_id": "org.herbarium:id/card",
+            "bounds": {
+              "x1": 0,
+              "y1": 80,
+              "x2": 400,
+              "y2": 160
+            },
+            "flags": {
+              "enabled": false,
+              "visible": true,
+              "clickable": true,
+              "long_clickable": true
+            }
+          },
+          {
+            "id": 12,
+            "role": "button",
+            "label": "Browse",
+            "bounds": {
+              "x1": 0,
+              "y1": 600,
+              "x2": 400,
+              "y2": 680
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "clickable": true
+            }
+          }
+        ]
+      },
+      {
+        "text": "{\"action\": \"read\", \"targets\": [\"c1\"], \"question\": \"Which entry?\", \"shape\": \"element\"}"
+      },
+      {
+        "text": "e2"
+      },
+      {
+        "text": "{\"action\": \"long_press\", \"target\": \"e2\"}"
+      },
+      {
+        "text": "{\"action\": \"back\"}"
+      },
+      {
+        "result": "ok"
+      }
+    ],
+    "acts": 1,
+    "feedback_ids": [],
+    "category": null
+  },
+  {
+    "name": "not_long_clickable",
+    "args": [
+      "run",
+      "--request",
+      "Find the requested entry",
+      "--max-steps",
+      "2"
+    ],
+    "replies": [
+      {
+        "package": "org.herbarium",
+        "activity": "Shelf",
+        "width": 400,
+        "height": 800,
+        "capabilities": {
+          "operations": [
+            "tap",
+            "long_press",
+            "back",
+            "scroll"
+          ],
+          "app_grants": [
+            "org.herbarium"
+          ]
+        },
+        "nodes": [
+          {
+            "id": 67,
+            "role": "list",
+            "bounds": {
+              "x1": 0,
+              "y1": 0,
+              "x2": 400,
+              "y2": 600
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "scrollable": true
+            }
+          },
+          {
+            "id": 98,
+            "parent": 67,
+            "role": "item",
+            "text": "PRIVATE_CEDAR_ENTRY",
+            "resource_id": "org.herbarium:id/card",
+            "bounds": {
+              "x1": 0,
+              "y1": 80,
+              "x2": 400,
+              "y2": 160
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "clickable": true,
+              "long_clickable": false
+            }
+          },
+          {
+            "id": 12,
+            "role": "button",
+            "label": "Browse",
+            "bounds": {
+              "x1": 0,
+              "y1": 600,
+              "x2": 400,
+              "y2": 680
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "clickable": true
+            }
+          }
+        ]
+      },
+      {
+        "text": "{\"action\": \"read\", \"targets\": [\"c1\"], \"question\": \"Which entry?\", \"shape\": \"element\"}"
+      },
+      {
+        "text": "e2"
+      },
+      {
+        "text": "{\"action\": \"long_press\", \"target\": \"e2\"}"
+      },
+      {
+        "text": "{\"action\": \"back\"}"
+      },
+      {
+        "result": "ok"
+      }
+    ],
+    "acts": 1,
+    "feedback_ids": [],
+    "category": null
+  },
+  {
+    "name": "not_tappable",
+    "args": [
+      "run",
+      "--request",
+      "Find the requested entry",
+      "--max-steps",
+      "2"
+    ],
+    "replies": [
+      {
+        "package": "org.herbarium",
+        "activity": "Shelf",
+        "width": 400,
+        "height": 800,
+        "capabilities": {
+          "operations": [
+            "tap",
+            "long_press",
+            "back",
+            "scroll"
+          ],
+          "app_grants": [
+            "org.herbarium"
+          ]
+        },
+        "nodes": [
+          {
+            "id": 67,
+            "role": "list",
+            "bounds": {
+              "x1": 0,
+              "y1": 0,
+              "x2": 400,
+              "y2": 600
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "scrollable": true
+            }
+          },
+          {
+            "id": 98,
+            "parent": 67,
+            "role": "item",
+            "text": "PRIVATE_CEDAR_ENTRY",
+            "resource_id": "org.herbarium:id/card",
+            "bounds": {
+              "x1": 0,
+              "y1": 80,
+              "x2": 400,
+              "y2": 160
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "clickable": false,
+              "long_clickable": true
+            }
+          },
+          {
+            "id": 12,
+            "role": "button",
+            "label": "Browse",
+            "bounds": {
+              "x1": 0,
+              "y1": 600,
+              "x2": 400,
+              "y2": 680
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "clickable": true
+            }
+          }
+        ]
+      },
+      {
+        "text": "{\"action\": \"read\", \"targets\": [\"c1\"], \"question\": \"Which entry?\", \"shape\": \"element\"}"
+      },
+      {
+        "text": "e2"
+      },
+      {
+        "text": "{\"action\": \"long_press\", \"target\": \"e2\"}"
+      },
+      {
+        "text": "{\"action\": \"back\"}"
+      },
+      {
+        "result": "ok"
+      }
+    ],
+    "acts": 1,
+    "feedback_ids": [],
+    "category": null
+  },
+  {
+    "name": "field",
+    "args": [
+      "run",
+      "--request",
+      "Find the requested entry",
+      "--max-steps",
+      "2"
+    ],
+    "replies": [
+      {
+        "package": "org.herbarium",
+        "activity": "Shelf",
+        "width": 400,
+        "height": 800,
+        "capabilities": {
+          "operations": [
+            "tap",
+            "long_press",
+            "back",
+            "scroll"
+          ],
+          "app_grants": [
+            "org.herbarium"
+          ]
+        },
+        "nodes": [
+          {
+            "id": 67,
+            "role": "list",
+            "bounds": {
+              "x1": 0,
+              "y1": 0,
+              "x2": 400,
+              "y2": 600
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "scrollable": true
+            }
+          },
+          {
+            "id": 98,
+            "parent": 67,
+            "role": "item",
+            "text": "PRIVATE_CEDAR_ENTRY",
+            "resource_id": "org.herbarium:id/card",
+            "bounds": {
+              "x1": 0,
+              "y1": 80,
+              "x2": 400,
+              "y2": 160
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "clickable": true,
+              "long_clickable": true,
+              "editable": true
+            }
+          },
+          {
+            "id": 12,
+            "role": "button",
+            "label": "Browse",
+            "bounds": {
+              "x1": 0,
+              "y1": 600,
+              "x2": 400,
+              "y2": 680
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "clickable": true
+            }
+          }
+        ]
+      },
+      {
+        "text": "{\"action\": \"read\", \"targets\": [\"c1\"], \"question\": \"Which entry?\", \"shape\": \"element\"}"
+      },
+      {
+        "text": "e2"
+      },
+      {
+        "text": "{\"action\": \"long_press\", \"target\": \"e2\"}"
+      },
+      {
+        "text": "{\"action\": \"back\"}"
+      },
+      {
+        "result": "ok"
+      }
+    ],
+    "acts": 1,
+    "feedback_ids": [],
+    "category": null
+  },
+  {
+    "name": "slider",
+    "args": [
+      "run",
+      "--request",
+      "Find the requested entry",
+      "--max-steps",
+      "2"
+    ],
+    "replies": [
+      {
+        "package": "org.herbarium",
+        "activity": "Shelf",
+        "width": 400,
+        "height": 800,
+        "capabilities": {
+          "operations": [
+            "tap",
+            "long_press",
+            "back",
+            "scroll"
+          ],
+          "app_grants": [
+            "org.herbarium"
+          ]
+        },
+        "nodes": [
+          {
+            "id": 67,
+            "role": "list",
+            "bounds": {
+              "x1": 0,
+              "y1": 0,
+              "x2": 400,
+              "y2": 600
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "scrollable": true
+            }
+          },
+          {
+            "id": 98,
+            "parent": 67,
+            "role": "slider",
+            "text": "PRIVATE_CEDAR_ENTRY",
+            "resource_id": "org.herbarium:id/card",
+            "bounds": {
+              "x1": 0,
+              "y1": 80,
+              "x2": 400,
+              "y2": 160
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "clickable": true,
+              "long_clickable": true
+            }
+          },
+          {
+            "id": 12,
+            "role": "button",
+            "label": "Browse",
+            "bounds": {
+              "x1": 0,
+              "y1": 600,
+              "x2": 400,
+              "y2": 680
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "clickable": true
+            }
+          }
+        ]
+      },
+      {
+        "text": "{\"action\": \"read\", \"targets\": [\"c1\"], \"question\": \"Which entry?\", \"shape\": \"element\"}"
+      },
+      {
+        "text": "e2"
+      },
+      {
+        "text": "{\"action\": \"long_press\", \"target\": \"e2\"}"
+      },
+      {
+        "text": "{\"action\": \"back\"}"
+      },
+      {
+        "result": "ok"
+      }
+    ],
+    "acts": 1,
+    "feedback_ids": [],
+    "category": null
+  },
+  {
+    "name": "shade",
+    "args": [
+      "run",
+      "--request",
+      "Find the requested entry",
+      "--max-steps",
+      "2"
+    ],
+    "replies": [
+      {
+        "package": "com.android.systemui",
+        "activity": "Shelf",
+        "width": 400,
+        "height": 800,
+        "capabilities": {
+          "operations": [
+            "tap",
+            "long_press",
+            "back",
+            "scroll"
+          ],
+          "app_grants": [
+            "com.android.systemui"
+          ]
+        },
+        "nodes": [
+          {
+            "id": 67,
+            "role": "list",
+            "bounds": {
+              "x1": 0,
+              "y1": 0,
+              "x2": 400,
+              "y2": 600
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "scrollable": true
+            }
+          },
+          {
+            "id": 98,
+            "parent": 67,
+            "role": "item",
+            "text": "PRIVATE_CEDAR_ENTRY",
+            "resource_id": "org.herbarium:id/card",
+            "bounds": {
+              "x1": 0,
+              "y1": 80,
+              "x2": 400,
+              "y2": 160
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "clickable": true,
+              "long_clickable": true
+            }
+          },
+          {
+            "id": 12,
+            "role": "button",
+            "label": "Browse",
+            "bounds": {
+              "x1": 0,
+              "y1": 600,
+              "x2": 400,
+              "y2": 680
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "clickable": true
+            }
+          }
+        ]
+      },
+      {
+        "text": "{\"action\": \"read\", \"targets\": [\"c1\"], \"question\": \"Which entry?\", \"shape\": \"element\"}"
+      },
+      {
+        "text": "e2"
+      },
+      {
+        "text": "{\"action\": \"long_press\", \"target\": \"e2\"}"
+      },
+      {
+        "text": "{\"action\": \"back\"}"
+      },
+      {
+        "result": "ok"
+      }
+    ],
+    "acts": 1,
+    "feedback_ids": [],
+    "category": null
+  },
+  {
+    "name": "legitimate_tap",
+    "args": [
+      "run",
+      "--request",
+      "Find the requested entry",
+      "--max-steps",
+      "2"
+    ],
+    "replies": [
+      {
+        "package": "org.herbarium",
+        "activity": "Shelf",
+        "width": 400,
+        "height": 800,
+        "capabilities": {
+          "operations": [
+            "tap",
+            "long_press",
+            "back",
+            "scroll"
+          ],
+          "app_grants": [
+            "org.herbarium"
+          ]
+        },
+        "nodes": [
+          {
+            "id": 67,
+            "role": "list",
+            "bounds": {
+              "x1": 0,
+              "y1": 0,
+              "x2": 400,
+              "y2": 600
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "scrollable": true
+            }
+          },
+          {
+            "id": 98,
+            "parent": 67,
+            "role": "item",
+            "text": "PRIVATE_CEDAR_ENTRY",
+            "resource_id": "org.herbarium:id/card",
+            "bounds": {
+              "x1": 0,
+              "y1": 80,
+              "x2": 400,
+              "y2": 160
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "clickable": true,
+              "long_clickable": true
+            }
+          },
+          {
+            "id": 12,
+            "role": "button",
+            "label": "Browse",
+            "bounds": {
+              "x1": 0,
+              "y1": 600,
+              "x2": 400,
+              "y2": 680
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "clickable": true
+            }
+          }
+        ]
+      },
+      {
+        "text": "{\"action\": \"read\", \"targets\": [\"c1\"], \"question\": \"Which entry?\", \"shape\": \"element\"}"
+      },
+      {
+        "text": "e2"
+      },
+      {
+        "text": "{\"action\": \"tap\", \"target\": \"e2\"}"
+      },
+      {
+        "result": "ok"
+      }
+    ],
+    "acts": 1,
+    "feedback_ids": [],
+    "category": null
+  },
+  {
+    "name": "one_step",
+    "args": [
+      "run",
+      "--request",
+      "Find the requested entry",
+      "--max-steps",
+      "1"
+    ],
+    "replies": [
+      {
+        "package": "org.herbarium",
+        "activity": "Shelf",
+        "width": 400,
+        "height": 800,
+        "capabilities": {
+          "operations": [
+            "tap",
+            "long_press",
+            "back",
+            "scroll"
+          ],
+          "app_grants": [
+            "org.herbarium"
+          ]
+        },
+        "nodes": [
+          {
+            "id": 67,
+            "role": "list",
+            "bounds": {
+              "x1": 0,
+              "y1": 0,
+              "x2": 400,
+              "y2": 600
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "scrollable": true
+            }
+          },
+          {
+            "id": 98,
+            "parent": 67,
+            "role": "item",
+            "text": "PRIVATE_CEDAR_ENTRY",
+            "resource_id": "org.herbarium:id/card",
+            "bounds": {
+              "x1": 0,
+              "y1": 80,
+              "x2": 400,
+              "y2": 160
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "clickable": true,
+              "long_clickable": true
+            }
+          },
+          {
+            "id": 12,
+            "role": "button",
+            "label": "Browse",
+            "bounds": {
+              "x1": 0,
+              "y1": 600,
+              "x2": 400,
+              "y2": 680
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "clickable": true
+            }
+          }
+        ]
+      },
+      {
+        "text": "{\"action\": \"read\", \"targets\": [\"c1\"], \"question\": \"Which entry?\", \"shape\": \"element\"}"
+      },
+      {
+        "text": "e2"
+      }
+    ],
+    "acts": 0,
+    "feedback_ids": [],
+    "category": null
+  },
+  {
+    "name": "repeat_read_stop",
+    "args": [
+      "run",
+      "--request",
+      "Find the requested entry",
+      "--max-steps",
+      "2"
+    ],
+    "replies": [
+      {
+        "package": "org.herbarium",
+        "activity": "Shelf",
+        "width": 400,
+        "height": 800,
+        "capabilities": {
+          "operations": [
+            "tap",
+            "long_press",
+            "back",
+            "scroll"
+          ],
+          "app_grants": [
+            "org.herbarium"
+          ]
+        },
+        "nodes": [
+          {
+            "id": 67,
+            "role": "list",
+            "bounds": {
+              "x1": 0,
+              "y1": 0,
+              "x2": 400,
+              "y2": 600
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "scrollable": true
+            }
+          },
+          {
+            "id": 98,
+            "parent": 67,
+            "role": "item",
+            "text": "PRIVATE_CEDAR_ENTRY",
+            "resource_id": "org.herbarium:id/card",
+            "bounds": {
+              "x1": 0,
+              "y1": 80,
+              "x2": 400,
+              "y2": 160
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "clickable": true,
+              "long_clickable": true
+            }
+          },
+          {
+            "id": 12,
+            "role": "button",
+            "label": "Browse",
+            "bounds": {
+              "x1": 0,
+              "y1": 600,
+              "x2": 400,
+              "y2": 680
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "clickable": true
+            }
+          }
+        ]
+      },
+      {
+        "text": "{\"action\": \"read\", \"targets\": [\"c1\"], \"question\": \"Which entry?\", \"shape\": \"element\"}"
+      },
+      {
+        "text": "e2"
+      },
+      {
+        "text": "{\"action\": \"long_press\", \"target\": \"e2\"}"
+      },
+      {
+        "text": "{\"action\": \"read\", \"targets\": [\"c1\"], \"question\": \"Which entry?\", \"shape\": \"element\"}"
+      }
+    ],
+    "acts": 0,
+    "feedback_ids": [
+      2
+    ],
+    "category": "target_resolution"
+  },
+  {
+    "name": "hard_cap",
+    "args": [
+      "run",
+      "--request",
+      "Find the requested entry",
+      "--max-steps",
+      "8"
+    ],
+    "replies": [
+      {
+        "package": "org.herbarium",
+        "activity": "Shelf",
+        "width": 400,
+        "height": 800,
+        "capabilities": {
+          "operations": [
+            "tap",
+            "long_press",
+            "back",
+            "scroll"
+          ],
+          "app_grants": [
+            "org.herbarium"
+          ]
+        },
+        "nodes": [
+          {
+            "id": 67,
+            "role": "list",
+            "bounds": {
+              "x1": 0,
+              "y1": 0,
+              "x2": 400,
+              "y2": 600
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "scrollable": true
+            }
+          },
+          {
+            "id": 98,
+            "parent": 67,
+            "role": "item",
+            "text": "PRIVATE_CEDAR_ENTRY",
+            "resource_id": "org.herbarium:id/card",
+            "bounds": {
+              "x1": 0,
+              "y1": 80,
+              "x2": 400,
+              "y2": 160
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "clickable": true,
+              "long_clickable": true
+            }
+          },
+          {
+            "id": 12,
+            "role": "button",
+            "label": "Browse",
+            "bounds": {
+              "x1": 0,
+              "y1": 600,
+              "x2": 400,
+              "y2": 680
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "clickable": true
+            }
+          }
+        ]
+      },
+      {
+        "text": "{\"action\": \"read\", \"targets\": [\"c1\"], \"question\": \"first\", \"shape\": \"element\"}"
+      },
+      {
+        "text": "e2"
+      },
+      {
+        "text": "{\"action\": \"read\", \"targets\": [\"c1\"], \"question\": \"second\", \"shape\": \"element\"}"
+      },
+      {
+        "text": "e2"
+      },
+      {
+        "text": "{\"action\": \"read\", \"targets\": [\"c1\"], \"question\": \"third\", \"shape\": \"element\"}"
+      },
+      {
+        "text": "e2"
+      },
+      {
+        "text": "{\"action\": \"long_press\", \"target\": \"e2\"}"
+      },
+      {
+        "text": "{\"action\": \"read\", \"targets\": [\"c1\"], \"question\": \"fourth\", \"shape\": \"element\"}"
+      }
+    ],
+    "acts": 0,
+    "feedback_ids": [
+      2
+    ],
+    "category": "target_resolution"
+  },
+  {
+    "name": "grant_denial",
+    "args": [
+      "run",
+      "--request",
+      "Find the requested entry",
+      "--max-steps",
+      "2"
+    ],
+    "replies": [
+      {
+        "package": "org.herbarium",
+        "activity": "Shelf",
+        "width": 400,
+        "height": 800,
+        "capabilities": {
+          "operations": [
+            "tap",
+            "long_press",
+            "back",
+            "scroll"
+          ],
+          "app_grants": []
+        },
+        "nodes": [
+          {
+            "id": 67,
+            "role": "list",
+            "bounds": {
+              "x1": 0,
+              "y1": 0,
+              "x2": 400,
+              "y2": 600
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "scrollable": true
+            }
+          },
+          {
+            "id": 98,
+            "parent": 67,
+            "role": "item",
+            "text": "PRIVATE_CEDAR_ENTRY",
+            "resource_id": "org.herbarium:id/card",
+            "bounds": {
+              "x1": 0,
+              "y1": 80,
+              "x2": 400,
+              "y2": 160
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "clickable": true,
+              "long_clickable": true
+            }
+          },
+          {
+            "id": 12,
+            "role": "button",
+            "label": "Browse",
+            "bounds": {
+              "x1": 0,
+              "y1": 600,
+              "x2": 400,
+              "y2": 680
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "clickable": true
+            }
+          }
+        ]
+      },
+      {
+        "text": "{\"action\": \"read\", \"targets\": [\"c1\"], \"question\": \"Which entry?\", \"shape\": \"element\"}"
+      },
+      {
+        "text": "e2"
+      },
+      {
+        "text": "{\"action\": \"long_press\", \"target\": \"e2\"}"
+      },
+      {
+        "text": "{\"action\": \"tap\", \"target\": \"e2\"}"
+      }
+    ],
+    "acts": 0,
+    "feedback_ids": [
+      2
+    ],
+    "category": "permission"
+  },
+  {
+    "name": "confirmation_approved",
+    "args": [
+      "run",
+      "--request",
+      "Find the requested entry",
+      "--max-steps",
+      "2"
+    ],
+    "replies": [
+      {
+        "package": "org.herbarium",
+        "activity": "Shelf",
+        "width": 400,
+        "height": 800,
+        "capabilities": {
+          "operations": [
+            "tap",
+            "long_press",
+            "back",
+            "scroll"
+          ],
+          "app_grants": [
+            "org.herbarium"
+          ]
+        },
+        "nodes": [
+          {
+            "id": 67,
+            "role": "list",
+            "bounds": {
+              "x1": 0,
+              "y1": 0,
+              "x2": 400,
+              "y2": 600
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "scrollable": true
+            }
+          },
+          {
+            "id": 98,
+            "parent": 67,
+            "role": "item",
+            "text": "Delete private cedar entry",
+            "resource_id": "org.herbarium:id/card",
+            "bounds": {
+              "x1": 0,
+              "y1": 80,
+              "x2": 400,
+              "y2": 160
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "clickable": true,
+              "long_clickable": true
+            }
+          },
+          {
+            "id": 12,
+            "role": "button",
+            "label": "Browse",
+            "bounds": {
+              "x1": 0,
+              "y1": 600,
+              "x2": 400,
+              "y2": 680
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "clickable": true
+            }
+          }
+        ]
+      },
+      {
+        "text": "{\"action\": \"read\", \"targets\": [\"c1\"], \"question\": \"Which entry?\", \"shape\": \"element\"}"
+      },
+      {
+        "text": "e2"
+      },
+      {
+        "text": "{\"action\": \"long_press\", \"target\": \"e2\"}"
+      },
+      {
+        "text": "{\"action\": \"tap\", \"target\": \"e2\"}"
+      },
+      "approved",
+      {
+        "result": "ok"
+      },
+      {
+        "package": "org.herbarium",
+        "activity": "Shelf",
+        "width": 400,
+        "height": 800,
+        "capabilities": {
+          "operations": [
+            "tap",
+            "long_press",
+            "back",
+            "scroll"
+          ],
+          "app_grants": [
+            "org.herbarium"
+          ]
+        },
+        "nodes": [
+          {
+            "id": 67,
+            "role": "list",
+            "bounds": {
+              "x1": 0,
+              "y1": 0,
+              "x2": 400,
+              "y2": 600
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "scrollable": true
+            }
+          },
+          {
+            "id": 98,
+            "parent": 67,
+            "role": "item",
+            "text": "Delete private cedar entry",
+            "resource_id": "org.herbarium:id/card",
+            "bounds": {
+              "x1": 0,
+              "y1": 80,
+              "x2": 400,
+              "y2": 160
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "clickable": true,
+              "long_clickable": true
+            }
+          },
+          {
+            "id": 12,
+            "role": "button",
+            "label": "Browse",
+            "bounds": {
+              "x1": 0,
+              "y1": 600,
+              "x2": 400,
+              "y2": 680
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "clickable": true
+            }
+          }
+        ]
+      }
+    ],
+    "acts": 1,
+    "feedback_ids": [
+      2
+    ],
+    "category": null
+  },
+  {
+    "name": "confirmation_denied",
+    "args": [
+      "run",
+      "--request",
+      "Find the requested entry",
+      "--max-steps",
+      "2"
+    ],
+    "replies": [
+      {
+        "package": "org.herbarium",
+        "activity": "Shelf",
+        "width": 400,
+        "height": 800,
+        "capabilities": {
+          "operations": [
+            "tap",
+            "long_press",
+            "back",
+            "scroll"
+          ],
+          "app_grants": [
+            "org.herbarium"
+          ]
+        },
+        "nodes": [
+          {
+            "id": 67,
+            "role": "list",
+            "bounds": {
+              "x1": 0,
+              "y1": 0,
+              "x2": 400,
+              "y2": 600
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "scrollable": true
+            }
+          },
+          {
+            "id": 98,
+            "parent": 67,
+            "role": "item",
+            "text": "Delete private cedar entry",
+            "resource_id": "org.herbarium:id/card",
+            "bounds": {
+              "x1": 0,
+              "y1": 80,
+              "x2": 400,
+              "y2": 160
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "clickable": true,
+              "long_clickable": true
+            }
+          },
+          {
+            "id": 12,
+            "role": "button",
+            "label": "Browse",
+            "bounds": {
+              "x1": 0,
+              "y1": 600,
+              "x2": 400,
+              "y2": 680
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "clickable": true
+            }
+          }
+        ]
+      },
+      {
+        "text": "{\"action\": \"read\", \"targets\": [\"c1\"], \"question\": \"Which entry?\", \"shape\": \"element\"}"
+      },
+      {
+        "text": "e2"
+      },
+      {
+        "text": "{\"action\": \"long_press\", \"target\": \"e2\"}"
+      },
+      {
+        "text": "{\"action\": \"tap\", \"target\": \"e2\"}"
+      },
+      "denied"
+    ],
+    "acts": 0,
+    "feedback_ids": [
+      2
+    ],
+    "category": "policy_denial"
+  },
+  {
+    "name": "stale_after_navigation",
+    "args": [
+      "run",
+      "--request",
+      "Find the requested entry",
+      "--max-steps",
+      "3"
+    ],
+    "replies": [
+      {
+        "package": "org.herbarium",
+        "activity": "Shelf",
+        "width": 400,
+        "height": 800,
+        "capabilities": {
+          "operations": [
+            "tap",
+            "long_press",
+            "back",
+            "scroll"
+          ],
+          "app_grants": [
+            "org.herbarium"
+          ]
+        },
+        "nodes": [
+          {
+            "id": 67,
+            "role": "list",
+            "bounds": {
+              "x1": 0,
+              "y1": 0,
+              "x2": 400,
+              "y2": 600
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "scrollable": true
+            }
+          },
+          {
+            "id": 98,
+            "parent": 67,
+            "role": "item",
+            "text": "PRIVATE_CEDAR_ENTRY",
+            "resource_id": "org.herbarium:id/card",
+            "bounds": {
+              "x1": 0,
+              "y1": 80,
+              "x2": 400,
+              "y2": 160
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "clickable": true,
+              "long_clickable": true
+            }
+          },
+          {
+            "id": 12,
+            "role": "button",
+            "label": "Browse",
+            "bounds": {
+              "x1": 0,
+              "y1": 600,
+              "x2": 400,
+              "y2": 680
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "clickable": true
+            }
+          }
+        ]
+      },
+      {
+        "text": "{\"action\": \"read\", \"targets\": [\"c1\"], \"question\": \"Which entry?\", \"shape\": \"element\"}"
+      },
+      {
+        "text": "e2"
+      },
+      {
+        "text": "{\"action\": \"back\"}"
+      },
+      {
+        "result": "ok"
+      },
+      {
+        "package": "org.herbarium",
+        "activity": "Shelf",
+        "width": 400,
+        "height": 800,
+        "capabilities": {
+          "operations": [
+            "tap",
+            "long_press",
+            "back",
+            "scroll"
+          ],
+          "app_grants": [
+            "org.herbarium"
+          ]
+        },
+        "nodes": [
+          {
+            "id": 67,
+            "role": "list",
+            "bounds": {
+              "x1": 0,
+              "y1": 0,
+              "x2": 400,
+              "y2": 600
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "scrollable": true
+            }
+          },
+          {
+            "id": 98,
+            "parent": 67,
+            "role": "item",
+            "text": "PRIVATE_REPLACEMENT_ROW",
+            "resource_id": "org.herbarium:id/card",
+            "bounds": {
+              "x1": 0,
+              "y1": 80,
+              "x2": 400,
+              "y2": 160
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "clickable": true,
+              "long_clickable": true
+            }
+          },
+          {
+            "id": 12,
+            "role": "button",
+            "label": "Browse",
+            "bounds": {
+              "x1": 0,
+              "y1": 600,
+              "x2": 400,
+              "y2": 680
+            },
+            "flags": {
+              "enabled": true,
+              "visible": true,
+              "clickable": true
+            }
+          }
+        ]
+      },
+      {
+        "text": "{\"action\": \"long_press\", \"target\": \"e2\"}"
+      },
+      {
+        "text": "{\"action\": \"long_press\", \"target\": \"e2\"}"
+      }
+    ],
+    "acts": 1,
+    "feedback_ids": [],
+    "category": "target_resolution"
+  }
+]

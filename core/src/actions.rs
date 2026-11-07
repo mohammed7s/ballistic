@@ -46,6 +46,8 @@ pub enum ActionError {
     NotActionable(u32),
     #[error("e{0} has no identified control or matched item; hidden content and generic resource ids cannot authorize a guessed target")]
     Unidentified(u32),
+    #[error("e{0} has a current reader pick authorizing tap only; long_press remains unsupported for this target. Use current permitted controls")]
+    ReaderTapOnly(u32),
     #[error("no installed app matches {0:?}")]
     UnknownApp(String),
     #[error("c{0} is not on this screen")]
@@ -192,7 +194,21 @@ pub fn validate(action: &Action, view: &FilteredScreen) -> Result<(), ActionErro
             else { Err(ActionError::NotActionable(*target)) }
         }
         Action::LongPress { target } => {
-            if identified(*target)?.flags.long_clickable { Ok(()) }
+            let e = identified(*target).map_err(|error| {
+                // Explain only an existing identity rejection. Independently identified
+                // controls keep their authority, even if also picked. Require the original
+                // tap validation to pass; a pick alone does not authorize every target.
+                if matches!(error, ActionError::Unidentified(_))
+                    && view.reader_picks.contains(target)
+                    && view.element(*target).is_some_and(|e| e.flags.long_clickable)
+                    && validate(&Action::Tap { target: *target }, view).is_ok()
+                {
+                    ActionError::ReaderTapOnly(*target)
+                } else {
+                    error
+                }
+            })?;
+            if e.flags.long_clickable { Ok(()) }
             else { Err(ActionError::NotActionable(*target)) }
         }
         Action::Swipe { target, .. } => {
