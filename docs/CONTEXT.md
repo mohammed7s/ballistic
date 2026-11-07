@@ -15,6 +15,29 @@ confirmation dialog.**
 
 ## 2. Decisions taken (and why)
 
+**7 November 2026 — training research completed:** `docs/PIXEL_MODEL_TRAINING.md` evaluates
+teacher-generated supervision, LoRA, export/runtime fidelity and held-out evaluation. Proposed
+sequence: correct core → untuned local baseline → prove custom export → small checked SFT trial
+→ held-out comparison → actual Pixel measurements. E2B remains the first hardware candidate;
+Qwen3-4B is the training control, E4B the quality challenger. Stock Tensor NPU bundles do not
+establish custom tuned-weight deployment: the report links current compiler limitations and
+reported export regressions. No numerical uplift forecast is justified; improvements would
+first mean fewer errors/calls, not inherently faster same-size inference. Teacher service terms
+need checking for the selected training use. No training, downloads or provisioning performed.
+The owner's phone-control/app-workflow distinction supports testing a small typed-operation
+interpreter before investing in general UI-policy training; structured adapters remain pending.
+
+**7 November 2026 — observation consistency patch, offline validation:** harness now brackets
+acquisition with foreground-activity reads, requires two matching ready foreground samples in
+active/focused application/system windows, and rejects an unchanged app tree when the observed
+activity changed. Six attempts and a 15-second soft deadline end in a sanitized ObservationError
+instead of returning an unready tree. No AndroidWorld changes. Trace inspection established
+identical trees paired with different activities in Wi-Fi and Brightness cases; the exact
+producer-side cause is unproven. Raw forests expose no capture generation tied to actions, so
+same-activity stale trees remain undetectable; legitimate identical trees across activities can
+be conservatively rejected. Blocking transport calls can exceed the soft deadline. Parent reran
+all **25 Python harness tests**, passing. Live window metadata and latency still need validation.
+
 **7 November 2026 — benchmark safety patch reviewed:** core now rejects unidentified tap,
 long-press, edit and slider targets, including the recorded anonymous Quick Settings guesses.
 Filtering retains package ownership, prevents cross-package folding and supplies code-owned

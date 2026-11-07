@@ -14,6 +14,7 @@ Protocol: core/src/bridge.rs.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
@@ -62,8 +63,12 @@ def _none_if_empty(s: Optional[str]) -> Optional[str]:
 
 def forest_to_nodes(forest: Any) -> list[dict[str, Any]]:
     """Flatten the a11y forest into our Node dicts, keeping parent ids and reading order."""
+    return _windows_to_nodes(forest.windows)
+
+
+def _windows_to_nodes(windows: Any) -> list[dict[str, Any]]:
     nodes: list[dict[str, Any]] = []
-    for window in forest.windows:
+    for window in windows:
         by_uid: dict[int, Any] = {n.unique_id: n for n in window.tree.nodes}
         parent_of: dict[int, int] = {}
         for n in window.tree.nodes:
@@ -134,6 +139,33 @@ def foreground_tree_ready(nodes: list[dict[str, Any]], package: str) -> bool:
     )
 
 
+def _foreground_signature(forest: Any, package: str) -> Optional[str]:
+    """Fingerprint meaningful foreground windows, excluding background chrome/IME.
+
+    AndroidEnv's forest has no capture time or generation. Window/node IDs are
+    identities, not freshness markers. Focus/active flags only describe the
+    supplied forest; they do not establish that it was captured after an action.
+    """
+    if forest is None:
+        return None
+    windows = [w for w in forest.windows
+               if w.window_type in (1, 3)  # TYPE_APPLICATION, TYPE_SYSTEM
+               and (w.is_active or w.is_focused)]
+    nodes = _windows_to_nodes(windows)
+    if not foreground_tree_ready(nodes, package):
+        return None
+    # Restrict to this package: clock/keyboard updates must not make an old app
+    # tree look new. Normalize per-observation IDs after removing other nodes.
+    nodes = [n for n in nodes if n.get("package") == package]
+    ids = {n["id"]: i for i, n in enumerate(nodes)}
+    canonical = [{**n, "id": ids[n["id"]], "parent": ids.get(n["parent"])} for n in nodes]
+    return hashlib.sha256(json.dumps(canonical, sort_keys=True).encode()).hexdigest()
+
+
+class ObservationError(RuntimeError):
+    """The host could not obtain a sufficiently consistent, ready observation."""
+
+
 class CoreHost:
     """Answers core's asks. `confirm_policy` is "approve" or "deny"."""
 
@@ -147,22 +179,75 @@ class CoreHost:
         self.events: list[dict[str, Any]] = []     # core's log events
         self.confirmations: list[dict[str, Any]] = []
         self._apps: Optional[list[dict[str, Any]]] = None
+        self._last_observation: Optional[tuple[str, str]] = None
 
     # ---- observe -------------------------------------------------------------------------
     def observe(self) -> dict[str, Any]:
-        nodes: list[dict[str, Any]] = []
-        for attempt in range(6):  # the step-1 Bluetooth failure: Settings returned an empty tree
-            state = self.env.get_state(wait_to_stabilize=True)
-            nodes = forest_to_nodes(state.forest) if state.forest is not None else []
-            # The status bar can have six labelled nodes while the app window is
-            # still loading. Only foreground-app content makes the tree ready.
-            foreground = (self.env.foreground_activity_name or "").partition("/")[0]
-            if foreground_tree_ready(nodes, foreground):
+        """Bounded consistency checks, not a guarantee of post-action freshness.
+
+        AndroidWorld's stable-state check compares ui_elements and can return an
+        unchanged old forest (or a changing state at its timeout). Require two
+        consecutive ready foreground samples as well. Reject unchanged app trees
+        across observed activity transitions, even when they look stable. This
+        deliberately may reject legitimate identical screens in distinct activities.
+        Same-activity stale trees, and transitions wholly between activity reads,
+        remain undetectable without a source capture generation. Never mutate the
+        environment's private state or use benchmark state as a readiness oracle.
+
+        Six acquisitions and a 15-second soft deadline bound our retries; a
+        blocking environment/ADB call still depends on its own transport timeout.
+        """
+        deadline = time.monotonic() + 15.0
+        previous_candidate = None
+        baselines = [self._last_observation] if self._last_observation else []
+        reason = "no_ready_foreground"
+        for attempt in range(6):
+            if time.monotonic() >= deadline:
                 break
-            time.sleep(0.7 * (attempt + 1))
-        fg = self.env.foreground_activity_name or ""
-        package, _, activity = fg.partition("/")
-        w, h = self.env.logical_screen_size
+            before = self.env.foreground_activity_name or ""
+            state = self.env.get_state(wait_to_stabilize=True)
+            w, h = self.env.logical_screen_size
+            foreground = self.env.foreground_activity_name or ""
+            package, _, activity = foreground.partition("/")
+            signature = _foreground_signature(state.forest, package)
+            if time.monotonic() >= deadline:
+                reason = "acquisition_deadline"
+                break
+            if before != foreground:
+                # Even on the first observation, remember a tree obtained across
+                # a transition. Its association is uncertain: retry until changed.
+                prior_signature = _foreground_signature(state.forest, before.partition("/")[0])
+                if prior_signature is not None:
+                    baselines.append((before, prior_signature))
+                reason = "activity_changed_during_observation"
+            elif not package or not activity:
+                reason = "missing_foreground_activity"
+            elif signature is None:
+                reason = "no_ready_foreground"
+            elif any(old_activity != foreground and old_signature == signature
+                     for old_activity, old_signature in baselines):
+                reason = "unchanged_tree_after_activity_change"
+            else:
+                candidate = (foreground, signature, w, h)
+                if candidate == previous_candidate:
+                    nodes = forest_to_nodes(state.forest)
+                    break
+                previous_candidate = candidate
+                # Also catch transitions between acquisitions before there is
+                # any accepted observation (e.g. at startup).
+                baselines.append((foreground, signature))
+                reason = "foreground_not_settled"
+                # get_state(True) already polls with a settling interval. No
+                # unconditional post-action sleep or delay on a ready sample.
+                continue
+            previous_candidate = None
+            remaining = deadline - time.monotonic()
+            if attempt < 5 and remaining > 0:
+                time.sleep(min(0.7 * (attempt + 1), remaining))
+        else:
+            raise ObservationError(f"environment observation failed: {reason}")
+        if time.monotonic() >= deadline:
+            raise ObservationError(f"environment observation failed: {reason}")
         if self._apps is None:
             self._apps = installed_apps(self.env.controller)
         # The emulator harness is explicitly granted the synthetic test environment.
@@ -170,6 +255,7 @@ class CoreHost:
         capabilities = {"operations": ["open_app", "tap", "long_press", "type", "scroll",
                                        "swipe", "back", "home", "wait"],
                         "app_grants": sorted({a["package"] for a in self._apps} | {package})}
+        self._last_observation = (foreground, signature)
         return {"package": package, "activity": activity, "width": w, "height": h,
                 "nodes": nodes, "installed_apps": self._apps, "capabilities": capabilities}
 
@@ -267,6 +353,11 @@ class CoreHost:
                 return {"id": ask.get("id", 0), "ok": False, "error": f"unknown ask {kind}"}
             return {"id": ask["id"], "ok": True, "data": data}
         except Exception as e:  # noqa: BLE001
+            if kind == "observe":
+                # Environment exceptions can contain device text or raw responses.
+                # Keep observation failures distinguishable without logging them.
+                detail = str(e) if isinstance(e, ObservationError) else f"environment observation failed: {type(e).__name__}"
+                return {"id": ask.get("id", 0), "ok": False, "error": f"ObservationError: {detail}"}
             return {"id": ask.get("id", 0), "ok": False, "error": f"{type(e).__name__}: {e}"}
 
 
