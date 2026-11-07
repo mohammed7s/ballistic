@@ -14,6 +14,7 @@ core seed 0; the T3A baseline was unseeded. Goals therefore differ. Run artefact
 | Core 2 | 7 Nov 2026 00:54 and 01:05 | core | `deeb3b0` | aborted: ThinkPad network outage, then Gemini daily quota (500/day free tier) | | | | |
 | Core 3 | 7 Nov 2026 01:41–01:59 | core | `1331cde` (core code of `deeb3b0`) | 3 / 13 / 4 | 558.9 s | 19.5 s | 113 | 2,345 |
 | **Core 4** | **7 Nov 2026 02:32–03:02** | **core** | **`8098265`** | **4 / 9 / 7** | **1,039.5 s** | **53.9 s** | **197** | **2,158** |
+| Core 5 (incomplete) | 7 Nov 2026 05:23–05:37 | core | `7a9238e` | **4 / 5 / 2; 9 NOT RUN** | 553.8 s (11 attempts) | — | 113 | 2,427 (112 known-usage attempts) |
 
 Core 3 was run on a second API key after the first key's daily quota was used up.
 This records the historical run; daily-quota exhaustion must stop a run, without automatic key rotation.
@@ -23,6 +24,81 @@ setup and checker. Core 3 adds 15.93 s checker time; Core 4 adds 17.40 s. Suite 
 setup and gaps and is not the sum in this table. Errors and early failed stops reduce recorded
 time. These runs do **not** establish a speedup or a controlled latency comparison.
 Prompt means include only usage-bearing calls; failed-call usage is unknown.
+
+## Core 5 stopped on daily quota — 7 November 2026
+
+**This is an incomplete round: 11 attempted, 4 PASS / 5 FAIL / 2 ERROR, 9 NOT RUN.**
+Independent state: **6 passed / 5 failed**, no checker errors. Zero final false-done reports.
+The last completed 20-task result remains Core 4 (4 combined, 9 state); the original target of
+at least 13/20 is not achieved. Unrun tasks have no measured result or time.
+
+Frozen commit `7a9238eba3880036dc507238ff2ff33b45c27e16`, binary SHA-256
+`c2c73741bcc4b43cfa1134a2f699c3ea30b81f94e674c4956959c0a46bf92fb5`.
+Original suite order, seed 0, unchanged complexity-based step budgets, same Gemini model,
+planner/reader/verifier caps 800/64/400, five-second shared model pacing. No task reruns.
+Remote preflight reproduced **188 Rust/UniFFI and 86 Python passes, zero skips**.
+Owner excerpts, optional text-only request control and reader-navigation feedback were added
+later and are excluded from this run.
+
+| Task | Result | State | Agent s | Checker s | Calls | Cause / evidence |
+|---|---|---|---:|---:|---:|---|
+| ContactsAddContact | PASS | passed | 54.7 | 1.096 | 10 | Contact created; agent and checker agree. |
+| ClockTimerEntry | FAIL | failed | 48.5 | 0.184 | 10 | Wrong digit/backspace sequence exhausted ten steps; requested timer value not reached. |
+| ClockStopWatchRunning | PASS | passed | 23.5 | 0.127 | 5 | Stopwatch running; agent and checker agree. |
+| OpenAppTaskEval | ERROR | passed | 22.7 | 0.037 | 5 | Settings opened; later HTTP 200 tool-call response had no text. Terminal response-format error. |
+| SystemWifiTurnOff | PASS | passed | 66.5 | 0.027 | 13 | Wi-Fi disabled; agent and checker agree. |
+| SystemBluetoothTurnOn | FAIL | failed | 63.3 | 0.036 | 13 | Ignored visible Bluetooth navigation row; queried unrelated hidden rows and hit no-progress guard. |
+| SystemBrightnessMax | FAIL | failed | 18.7 | 0.03 | 4 | Display was offscreen; repeated homepage read without scrolling. Never reached slider. |
+| TurnOnWifiAndOpenApp | PASS | passed | 48.2 | 0.058 | 10 | Both requested state conditions passed; agent and checker agree. |
+| SimpleSmsSend | FAIL | failed | 48.2 | 6.236 | 10 | Unlabeled new-conversation confirmation icon could not be authorized; stopped before composer. |
+| SimpleSmsReplyMostRecent | FAIL | passed | 52.8 | 6.256 | 11 | Reply body appeared, but verifier returned unknown; subsequent guarded repeats stopped. Final state passed. |
+| SimpleCalendarAddOneEvent | ERROR | failed | 106.7 | 0.093 | 22 | Daily HTTP 429 on planner call 22; unsaved event and wrong start/end time beforehand. No retry. |
+| SimpleCalendarEventsOnDate | NOT RUN | not_run | — | — | — | Not attempted after daily-quota stop. |
+| MarkorCreateNote | NOT RUN | not_run | — | — | — | Not attempted after daily-quota stop. |
+| MarkorDeleteNote | NOT RUN | not_run | — | — | — | Not attempted after daily-quota stop. |
+| MarkorCreateFolder | NOT RUN | not_run | — | — | — | Not attempted after daily-quota stop. |
+| ExpenseAddSingle | NOT RUN | not_run | — | — | — | Not attempted after daily-quota stop. |
+| ExpenseDeleteSingle | NOT RUN | not_run | — | — | — | Not attempted after daily-quota stop. |
+| RecipeAddSingleRecipe | NOT RUN | not_run | — | — | — | Not attempted after daily-quota stop. |
+| FilesDeleteFile | NOT RUN | not_run | — | — | — | Not attempted after daily-quota stop. |
+| CameraTakePhoto | NOT RUN | not_run | — | — | — | Not attempted after daily-quota stop. |
+
+Totals: **113 logical calls / 113 HTTP attempts / zero retries**: 94 planner, 13 reader,
+6 verifier. Known usage **271,786 prompt + 3,942 completion tokens**; one attempt (429) has
+unknown usage. Agent time **553.8 s**, checker **14.180 s**, including **194.846 s** of model
+pacing within agent time. First-task start to last-task finish was **860.866 s**, including
+setup and gaps; build/tests are separate. These boundaries and the incomplete run prevent a
+speedup claim against the unseeded T3A baseline.
+
+For only these first 11 tasks, Core 4 had 3 PASS / 6 FAIL / 2 ERROR and 6 state passes;
+Core 5 has 4 PASS / 5 FAIL / 2 ERROR and 6 state passes. Wi-Fi cases improved, while Bluetooth
+and brightness failed earlier than before. This is a descriptive subset comparison, not a
+full-suite recovery or a controlled estimate of individual patch effects.
+
+The terminal Calendar response explicitly records `HTTPError`, HTTP 429 and
+`quota_category=daily`. No quota count, limit or retry/reset guidance was supplied. All model
+access stopped immediately; no retry, quota probe or key rotation. Earlier OpenApp metadata
+records HTTP 200, `missing_content`, `finish_reason=tool_calls`, tool calls present, refusal and
+legacy function call absent. No tool payload was executed. That explains this response only;
+it cannot retrospectively classify Core 4's missing-content failures.
+
+SMS reply's requested body was visible before the verifier rejected completion, but its
+independent state check ran only after the agent ended. It is not proof of delivery timing,
+absence of duplicates, unrelated side effects, or injection resistance. Calendar's unsaved
+partial state does not predict what an uninterrupted attempt would have done. Both provider
+errors remain ERROR; ordinary guarded/identity stops remain FAIL.
+
+Supervisor PID 650968 released its own emulator lock at **05:37:30.497169 UTC**. Independent
+process/lock check at **05:38:04.772663 UTC** found no lock or recognized live driver and the
+original visible emulator still alive. Remote dirty main, validation source/binary and AndroidWorld
+source inventories were preserved; final fetch only updated the remote tracking ref.
+
+Raw records, TSV, diagnoses, frozen manifest, release and preservation evidence are in ignored
+`ballistic_runs/core5_7a9238e/`. Parent independently verified **52 original artifact hashes and
+9 derived analysis hashes**, plus archive SHA-256
+`802a0d106ef581a94a370772994bcddc884b1afead8a0a32a47f3660d5b1ce91`.
+A remote credential-value scan found no matches before transfer. No production APK was rebuilt
+or installed, no physical phone was used, and no additional device/model call followed the stop.
 
 ## Core 3, per task, against the baseline
 
