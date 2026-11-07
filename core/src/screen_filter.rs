@@ -48,6 +48,8 @@ pub struct Element {
     pub flags: Flags,
     /// Label strings joined with " · " (what the control IS). Never content.
     pub label: Option<String>,
+    /// Observed row kind only; never a control label, item identity or completion evidence.
+    pub file_kind: Option<FileKind>,
     pub resource_id: Option<String>,
     /// Content strings shown because they matched the request.
     pub shown_content: Vec<String>,
@@ -55,6 +57,12 @@ pub struct Element {
     pub typed: Vec<String>,
     /// The `cN` holding this element's withheld content, if any.
     pub content: Option<u32>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FileKind {
+    File,
+    Folder,
 }
 
 /// Content the planner did not see. For the reader (§7), never for the planner.
@@ -250,6 +258,8 @@ enum PieceKind {
     Label,
     /// the node's `text`
     Text,
+    /// Exact file-row resource: content even if this piece folds into another node.
+    FileCaption,
 }
 
 #[derive(Debug, Clone)]
@@ -275,6 +285,45 @@ fn on_screen(b: &Bounds, w: i32, h: i32) -> bool {
 
 fn is_toggle_role(r: Role) -> bool {
     matches!(r, Role::Switch | Role::Checkbox)
+}
+
+const MARKOR_ROW: &str = "net.gsantner.markor:id/opoc_filesystem_item__root";
+
+/// Markor v2.10.9 (versionCode 146), GsFileBrowserListAdapter.onBindViewHolder:
+/// localized kind + " " + full displayed title + " " + optional description. See
+/// docs/OBSERVATION_CAPTIONS_20261107.md for pinned source and compatibility limits.
+/// Only recognize the English, unselected file-browser row envelope. The ENTIRE remainder
+/// is untrusted: never split at a space/newline/extension to discard a possible suffix.
+/// A description ending in a space is indistinguishable from part of the title; keeping it
+/// in the match candidate is conservative. The original caption remains the reader identity.
+fn markor_caption<'a>(screen: &ScreenState, n: &'a Node, parent: Option<&Node>) -> Option<(FileKind, &'a str)> {
+    const PKG: &str = "net.gsantner.markor";
+    let p = parent?;
+    if screen.package != PKG || screen.activity != "net.gsantner.markor.activity.MainActivity"
+        || n.package.as_deref() != Some(PKG) || n.resource_id.as_deref() != Some(MARKOR_ROW)
+        || n.role != Role::Item || n.class_name.as_deref() != Some("android.widget.LinearLayout")
+        || !n.flags.clickable || n.flags.editable || n.flags.checkable || n.flags.scrollable || n.flags.selected
+        || n.text.is_some()
+        || p.package.as_deref() != Some(PKG) || p.role != Role::List
+        || p.class_name.as_deref() != Some("androidx.recyclerview.widget.RecyclerView")
+        || p.resource_id.as_deref() != Some("net.gsantner.markor:id/ui__filesystem_dialog__list")
+        || !p.flags.scrollable || !p.flags.visible || p.bounds.area() == 0
+        || !on_screen(&p.bounds, screen.width, screen.height) {
+        return None;
+    }
+    let raw = n.label.as_deref()?;
+    let (kind, rest) = if let Some(rest) = raw.strip_prefix("File ") {
+        (FileKind::File, rest)
+    } else {
+        (FileKind::Folder, raw.strip_prefix("Folder ")?)
+    };
+    let title = rest.strip_suffix(' ')?;
+    // Ambiguous whitespace and navigation pseudo-items are not normalized. In particular,
+    // do not trim a title into a shorter match. Internal Unicode/spaces remain intact.
+    if title.is_empty() || title.trim() != title || matches!(title, "." | "..") {
+        return None;
+    }
+    Some((kind, title))
 }
 
 pub fn role_name(r: Role) -> &'static str {
@@ -319,8 +368,15 @@ pub fn filter(screen: &ScreenState, ctx: &FilterContext) -> FilteredScreen {
     for (i, n) in nodes.iter().enumerate() {
         let visible = n.flags.visible && n.bounds.area() > 0 && on_screen(&n.bounds, screen.width, screen.height);
         let mut pieces = Vec::new();
-        if let Some(l) = non_empty(&n.label) {
-            pieces.push(Piece { text: l.to_string(), kind: PieceKind::Label });
+        // Preserve file-row captions byte-for-byte, including the grammar's final separator.
+        let label = if n.resource_id.as_deref() == Some(MARKOR_ROW) {
+            n.label.as_deref().filter(|s| !s.trim().is_empty())
+        } else { non_empty(&n.label) };
+        if let Some(l) = label {
+            let kind = if n.resource_id.as_deref() == Some(MARKOR_ROW) {
+                PieceKind::FileCaption
+            } else { PieceKind::Label };
+            pieces.push(Piece { text: l.to_string(), kind });
         }
         if let Some(t) = non_empty(&n.text) {
             // An empty edit field reports its hint as its text; that is the label, not content.
@@ -435,14 +491,19 @@ pub fn filter(screen: &ScreenState, ctx: &FilterContext) -> FilteredScreen {
             && (device_page || w.item_root.is_some_and(|r| device_row.contains(&r)));
 
         let static_label = code_owned_label(nodes, i, raw_parent(i));
+        let file_row = n.resource_id.as_deref() == Some(MARKOR_ROW);
+        // Never normalize a caption assembled from multiple nodes/strings or a folded toggle.
+        let caption = if w.pieces.len() == 1 && w.pieces[0].kind == PieceKind::FileCaption && w.role == n.role {
+            markor_caption(screen, n, raw_parent(i).map(|p| &nodes[p]))
+        } else { None };
         let keyboard_text = IME_PACKAGES.contains(&package.as_str())
             && !is_keyboard_key(&package, n.resource_id.as_deref());
         let mut labels: Vec<String> = static_label.iter().cloned().collect();
         let mut content: Vec<String> = Vec::new();
         let mut typed: Vec<String> = Vec::new();
         for p in &w.pieces {
-            let is_label = if static_label.is_some() || settings_device_text {
-                false // Keep all displayed strings separate from code-owned control labels.
+            let is_label = if file_row || p.kind == PieceKind::FileCaption || static_label.is_some() || settings_device_text {
+                false // File captions and displayed strings on code-owned controls stay content.
             } else if w.flags.editable && p.kind == PieceKind::Text {
                 false
             } else if package == SYSTEMUI || keyboard_text {
@@ -455,6 +516,7 @@ pub fn filter(screen: &ScreenState, ctx: &FilterContext) -> FilteredScreen {
                 false
             } else {
                 match p.kind {
+                    PieceKind::FileCaption => false,
                     PieceKind::Label => true,
                     PieceKind::Text => {
                         is_toggle_role(w.role)
@@ -467,7 +529,7 @@ pub fn filter(screen: &ScreenState, ctx: &FilterContext) -> FilteredScreen {
                 if !labels.iter().any(|l| l.eq_ignore_ascii_case(&p.text)) {
                     labels.push(p.text.clone());
                 }
-            } else if ctx.typed.iter().any(|t| t == &p.text) {
+            } else if !file_row && p.kind != PieceKind::FileCaption && ctx.typed.iter().any(|t| t == &p.text) {
                 typed.push(p.text.clone());
             } else {
                 content.push(p.text.clone());
@@ -478,9 +540,10 @@ pub fn filter(screen: &ScreenState, ctx: &FilterContext) -> FilteredScreen {
         let mut withheld = Vec::new();
         let mut long_match = false;
         for c in content {
-            let m = matches_request(ctx.request, &c);
-            if m && c.chars().count() <= MATCH_SHOW_MAX_CHARS {
-                shown.push(c);
+            let candidate = caption.map(|(_, title)| title).unwrap_or(&c);
+            let m = matches_request(ctx.request, candidate);
+            if m && candidate.chars().count() <= MATCH_SHOW_MAX_CHARS {
+                shown.push(candidate.to_string());
             } else {
                 long_match |= m;
                 withheld.push(c);
@@ -512,6 +575,7 @@ pub fn filter(screen: &ScreenState, ctx: &FilterContext) -> FilteredScreen {
             bounds: n.bounds,
             flags: w.flags,
             label,
+            file_kind: caption.map(|(kind, _)| kind),
             resource_id: non_empty(&n.resource_id).map(str::to_string),
             shown_content: shown,
             typed,
@@ -547,6 +611,9 @@ fn quote(s: &str) -> String {
 /// `e9 item "Nora Pereira" (matches request) «c4: 19 chars»`.
 fn render_line(e: &Element, content: Option<&ContentRef>) -> String {
     let mut s = format!("e{} {}", e.id, role_name(e.role));
+    if let Some(kind) = e.file_kind {
+        s.push_str(match kind { FileKind::File => " [kind:file]", FileKind::Folder => " [kind:folder]" });
+    }
     if let Some(l) = &e.label {
         s.push(' ');
         s.push_str(&quote(l));

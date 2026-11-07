@@ -57,7 +57,8 @@ pub fn assess_with_feedback(text: &str, screen: &FilteredScreen) -> Assessment {
             return unknown("citation does not identify the control");
         }
         // An opaque cN reference says only that content exists. Resource ids and geometry
-        // cannot reveal its value. Require something the verifier actually received.
+        // cannot reveal its value. file_kind is also only structure, never readable identity.
+        // Require something the verifier actually received.
         if !named && element.shown_content.is_empty() && element.typed.is_empty() {
             return unknown("citation has no readable evidence; inspect the requested result");
         }

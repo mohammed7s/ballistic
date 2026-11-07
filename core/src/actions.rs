@@ -169,7 +169,7 @@ pub fn validate(action: &Action, view: &FilteredScreen) -> Result<(), ActionErro
     let identified = |id: u32| {
         let e = element(id)?;
         // Match-only item titles support selection, but never identify an unknown toggle,
-        // slider or input control. A resource id by itself is not a semantic identity.
+        // slider or input control. A resource id or file_kind by itself is not an identity.
         let matched_item = e.package != "com.android.systemui" && !e.shown_content.is_empty() && !e.flags.checkable
             && !e.flags.editable && e.role != Role::Slider;
         if e.label.is_none() && !matched_item { return Err(ActionError::Unidentified(id)); }
