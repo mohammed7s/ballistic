@@ -1373,3 +1373,10 @@ comparison, verified training examples, a bounded LoRA experiment, then held-out
 export/quantization. Training cannot provide missing observations or platform permissions, and
 approval rules remain in code. Harness/benchmark work stays paused. See the
 [model setup record](log/2026-11-07-model-download.md) for evidence and limitations.
+
+## Physical-phone installation — 7 November 2026
+
+The model-setup debug APK was transferred through the ThinkPad, hash-verified, installed on
+the owner's USB-connected Pixel 10 Pro (Android 17, ARM64), and launched successfully as far
+as Android's notification permission prompt. Biometric unlock, model setup/inference and an
+agent task on this phone are still unverified. See [installation evidence](log/2026-11-07-phone-install.md).
