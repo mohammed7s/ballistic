@@ -15,6 +15,20 @@ confirmation dialog.**
 
 ## 2. Decisions taken (and why)
 
+**7 November 2026 — benchmark safety patch reviewed:** core now rejects unidentified tap,
+long-press, edit and slider targets, including the recorded anonymous Quick Settings guesses.
+Filtering retains package ownership, prevents cross-package folding and supplies code-owned
+labels for a small set of exact notification-footer/SMS control identifiers; network/device
+strings remain content. After an acknowledged guarded input (Send, keyboard action, type+submit
+and other confirmation-requiring activations), the loop stops with task `pending`, execution
+`executed`, verification `unknown`. Only guaranteed `not_executed` permits replanning. This blocks
+the observed blind repeats but also stops recipient/search submissions early; it does not prove
+delivery, prevent every possible duplicate, or improve completion scoring. Anonymous tiles,
+stale observations, semantic recipient/body binding and postcondition readback remain unresolved.
+Parent reran **42 Rust + 9 Python tests**, all passing, including 12 new regressions from three
+recorded screen fixtures and hostile variants. No live model/emulator task was run for this patch;
+there is no new benchmark score. The earlier 3/20 score below belongs to code `a13f59e`.
+
 **7 November 2026 — completed core suite:** all 20 outcomes collected from
 `suite_core_20261106-234941.tsv`, code `a13f59e`, Gemini `gemini-flash-lite-latest`, seed 0.
 Suite exited; emulator alive and no task/chat/core process at 00:17:11 UTC. **3 PASS, 9 FAIL,

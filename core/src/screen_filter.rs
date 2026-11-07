@@ -41,6 +41,8 @@ pub struct Element {
     /// The `N` in `eN`.
     pub id: u32,
     pub node: NodeId,
+    /// Owning package retained for action validation, including overlays on another app.
+    pub package: String,
     pub role: Role,
     pub bounds: Bounds,
     pub flags: Flags,
@@ -101,7 +103,7 @@ pub fn approx_tokens(text: &str) -> usize {
 
 /// Packages whose text is written by the OS (or the OS vendor) and counts as label.
 /// `com.android.systemui` is deliberately absent: the notification shade shows other people's
-/// words, so all its strings are content.
+/// words. A few controls get code-owned labels from exact structural identifiers below.
 const OS_LABEL_PACKAGES: &[&str] = &[
     "android",
     "com.android.settings",
@@ -116,13 +118,36 @@ const OS_LABEL_PACKAGES: &[&str] = &[
 const SYSTEMUI: &str = "com.android.systemui";
 const SETTINGS: &str = "com.android.settings";
 
+/// Recorded controls whose identity does not depend on displayed text. Never use a caption,
+/// tile position, generic switch id or a resource-id substring as an identity. In particular,
+/// the recorded Quick Settings tiles have no individual ids: their names stay content.
+fn static_control_label(node: &Node, parent: Option<&Node>) -> Option<&'static str> {
+    if node.role != Role::Button || node.flags.editable || node.flags.checkable {
+        return None;
+    }
+    match (node.package.as_deref()?, node.resource_id.as_deref()?) {
+        (SYSTEMUI, id) if parent.is_some_and(|p|
+            p.package.as_deref() == Some(SYSTEMUI)
+                && p.resource_id.as_deref() == Some("com.android.systemui:id/notification_stack_scroller")) => {
+            match id {
+                "com.android.systemui:id/manage_text" => Some("Manage notifications"),
+                "com.android.systemui:id/dismiss_text" => Some("Clear all notifications"),
+                _ => None,
+            }
+        },
+        ("com.simplemobiletools.smsmessenger", "com.simplemobiletools.smsmessenger:id/conversations_fab") => Some("New conversation"),
+        ("com.simplemobiletools.smsmessenger", "com.simplemobiletools.smsmessenger:id/thread_send_message") => Some("Send message"),
+        _ => None,
+    }
+}
+
 /// Words that mark a Settings page or row as listing Wi-Fi networks or Bluetooth devices, whose
 /// names are chosen by whoever runs the network or owns the device, so they are content.
 /// Checked against the activity name and the resource ids and content descriptions in a row,
 /// never against the row's text. Best effort until checked on recorded screens; errs towards
 /// content (e.g. "Pair new device" on a device page becomes a reference too).
 const DEVICE_PAGE_WORDS: &[&str] =
-    &["wifi", "wi-fi", "wi_fi", "wlan", "ssid", "network", "bluetooth", "device", "pairing"];
+    &["wifi", "wi-fi", "wi_fi", "wlan", "ssid", "network", "internet", "bluetooth", "device", "pairing"];
 
 fn mentions_device_or_network(s: &str) -> bool {
     let s = s.to_lowercase();
@@ -269,7 +294,9 @@ pub fn filter(screen: &ScreenState, ctx: &FilterContext) -> FilteredScreen {
         // A clickable parent covering half the screen or more is a root some apps make clickable,
         // not a control; folding into it would merge the whole screen into one element.
         let big = screen_area > 0 && nodes[p].bounds.area() * 2 >= screen_area;
-        if work[p].flags.clickable && !work[p].flags.editable && !big {
+        let same_package = nodes[i].package.as_deref().unwrap_or(&screen.package)
+            == nodes[p].package.as_deref().unwrap_or(&screen.package);
+        if same_package && work[p].flags.clickable && !work[p].flags.editable && !big {
             let moved = std::mem::take(&mut work[i].pieces);
             work[p].pieces.extend(moved);
             work[i].absorbed_into = Some(p);
@@ -283,7 +310,8 @@ pub fn filter(screen: &ScreenState, ctx: &FilterContext) -> FilteredScreen {
             continue;
         }
         let toggles: Vec<usize> = (0..nodes.len())
-            .filter(|&c| work[c].keep && work[c].absorbed_into.is_none() && work[c].parent == Some(r) && work[c].flags.checkable)
+            .filter(|&c| work[c].keep && work[c].absorbed_into.is_none() && work[c].parent == Some(r) && work[c].flags.checkable
+                && nodes[c].package.as_deref().unwrap_or(&screen.package) == nodes[r].package.as_deref().unwrap_or(&screen.package))
             .collect();
         if let [c] = toggles[..] {
             let child_role = work[c].role;
@@ -302,7 +330,12 @@ pub fn filter(screen: &ScreenState, ctx: &FilterContext) -> FilteredScreen {
     }
 
     // Rule 4 inputs: which list items are Settings device/network rows.
-    let device_page = mentions_device_or_network(&screen.activity);
+    // Settings often uses the generic SubSettings activity. A device/network toolbar can
+    // tighten filtering too; its text can never grant label trust to another node.
+    let device_page = mentions_device_or_network(&screen.activity) || nodes.iter().any(|n|
+        n.package.as_deref().unwrap_or(&screen.package) == SETTINGS
+            && n.resource_id.as_deref() == Some("com.android.settings:id/collapsing_toolbar")
+            && [non_empty(&n.label), non_empty(&n.text)].into_iter().flatten().any(mentions_device_or_network));
     let mut device_row: HashSet<usize> = HashSet::new();
     for (i, n) in nodes.iter().enumerate() {
         if let Some(root) = work[i].item_root {
@@ -327,21 +360,23 @@ pub fn filter(screen: &ScreenState, ctx: &FilterContext) -> FilteredScreen {
         let in_item = w.item_root.is_some();
         let os = OS_LABEL_PACKAGES.contains(&package.as_str());
         let settings_device_text = package == SETTINGS
-            && !w.flags.checkable
             && (device_page || w.item_root.is_some_and(|r| device_row.contains(&r)));
 
-        let mut labels: Vec<String> = Vec::new();
+        let static_label = static_control_label(n, raw_parent(i).map(|p| &nodes[p]));
+        let mut labels: Vec<String> = static_label.into_iter().map(str::to_string).collect();
         let mut content: Vec<String> = Vec::new();
         let mut typed: Vec<String> = Vec::new();
         for p in &w.pieces {
-            let is_label = if w.flags.editable && p.kind == PieceKind::Text {
+            let is_label = if static_label.is_some() || settings_device_text {
+                false // Keep all displayed strings separate from code-owned control labels.
+            } else if w.flags.editable && p.kind == PieceKind::Text {
                 false
             } else if package == SYSTEMUI {
                 false
             } else if w.flags.editable && p.kind == PieceKind::Label {
                 true // Explicit field hints name the control, including inside scrolling forms.
             } else if os {
-                !(settings_device_text && p.kind == PieceKind::Text)
+                true
             } else if in_item {
                 false
             } else {
@@ -398,6 +433,7 @@ pub fn filter(screen: &ScreenState, ctx: &FilterContext) -> FilteredScreen {
         let element = Element {
             id,
             node: n.id,
+            package,
             role: w.role,
             bounds: n.bounds,
             flags: w.flags,

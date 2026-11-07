@@ -3,6 +3,12 @@
 Current implementation (7 November 2026): initial tree agent, action validation, compact filter,
 confirmation hooks, verifier and stdio bridge. Contract and evidence refinements are described
 below; see the implementation status and test results in `docs/CONTEXT.md`.
+The 7 November benchmark safety patch rejects unidentified mutation targets, preserves package
+ownership through filtering and supplies a few code-owned labels from exact control identifiers.
+Anonymous Quick Settings tiles remain blocked. After an acknowledged guarded input the loop
+stops with `pending` / verification `unknown`; it does not retry through Send, Enter or another
+route. This also stops recipient/search submissions because semantic effects are not yet bound.
+These are conservative safety restrictions, not reliable completion checks or measured score gains.
 Reader/taint/Rule of Two, deny-only judge, full policy/configuration and skill execution below are the **design still to implement**.
 Live Contacts validation passed (8 steps, 65.5 s, 7 November 2026). Harness terminal prompt input
 and offline port replay exist; offline replay is not live skill execution. The terminal is the

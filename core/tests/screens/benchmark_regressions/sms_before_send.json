@@ -1,0 +1,257 @@
+{
+  "source": "20261107-000222_SimpleSmsSend.json",
+  "observe_reply_id": 17,
+  "selection": "Recorded compose controls and keyboard action key with ancestors; conversation and suggestion content omitted",
+  "screen": {
+    "package": "com.simplemobiletools.smsmessenger",
+    "activity": "com.simplemobiletools.smsmessenger.activities.ThreadActivity",
+    "width": 1080,
+    "height": 2400,
+    "nodes": [
+      {
+        "id": 1,
+        "parent": null,
+        "role": "container",
+        "class_name": "android.widget.FrameLayout",
+        "label": null,
+        "text": null,
+        "resource_id": null,
+        "package": "com.simplemobiletools.smsmessenger",
+        "bounds": {
+          "x1": 0,
+          "y1": 0,
+          "x2": 1080,
+          "y2": 2400
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 2,
+        "parent": 1,
+        "role": "container",
+        "class_name": "android.view.ViewGroup",
+        "label": null,
+        "text": null,
+        "resource_id": "com.simplemobiletools.smsmessenger:id/thread_coordinator",
+        "package": "com.simplemobiletools.smsmessenger",
+        "bounds": {
+          "x1": 0,
+          "y1": 128,
+          "x2": 1080,
+          "y2": 1517
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 12,
+        "parent": 2,
+        "role": "edit",
+        "class_name": "android.widget.EditText",
+        "label": "Type a message…",
+        "text": "The squeaky wheel gets the grease.",
+        "resource_id": "com.simplemobiletools.smsmessenger:id/thread_type_message",
+        "package": "com.simplemobiletools.smsmessenger",
+        "bounds": {
+          "x1": 148,
+          "y1": 1391,
+          "x2": 932,
+          "y2": 1517
+        },
+        "flags": {
+          "clickable": true,
+          "long_clickable": true,
+          "editable": true,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 13,
+        "parent": 2,
+        "role": "button",
+        "class_name": "android.widget.Button",
+        "label": "OK",
+        "text": "SMS",
+        "resource_id": "com.simplemobiletools.smsmessenger:id/thread_send_message",
+        "package": "com.simplemobiletools.smsmessenger",
+        "bounds": {
+          "x1": 943,
+          "y1": 1391,
+          "x2": 1069,
+          "y2": 1517
+        },
+        "flags": {
+          "clickable": true,
+          "long_clickable": true,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 14,
+        "parent": null,
+        "role": "container",
+        "class_name": "android.widget.FrameLayout",
+        "label": null,
+        "text": null,
+        "resource_id": null,
+        "package": "com.google.android.inputmethod.latin",
+        "bounds": {
+          "x1": 0,
+          "y1": 128,
+          "x2": 1080,
+          "y2": 2400
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 15,
+        "parent": 14,
+        "role": "container",
+        "class_name": "android.widget.FrameLayout",
+        "label": null,
+        "text": null,
+        "resource_id": null,
+        "package": "com.google.android.inputmethod.latin",
+        "bounds": {
+          "x1": 0,
+          "y1": 128,
+          "x2": 1080,
+          "y2": 2274
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 62,
+        "parent": 15,
+        "role": "button",
+        "class_name": "android.widget.FrameLayout",
+        "label": "Enter",
+        "text": null,
+        "resource_id": "com.google.android.inputmethod.latin:id/key_pos_ime_action",
+        "package": "com.google.android.inputmethod.latin",
+        "bounds": {
+          "x1": 914,
+          "y1": 2118,
+          "x2": 1075,
+          "y2": 2274
+        },
+        "flags": {
+          "clickable": true,
+          "long_clickable": true,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      }
+    ],
+    "capabilities": {
+      "operations": [
+        "open_app",
+        "tap",
+        "long_press",
+        "type",
+        "scroll",
+        "swipe",
+        "back",
+        "home",
+        "wait"
+      ],
+      "app_grants": [
+        "ca.zgrs.clipper",
+        "code.name.monkey.retromusic",
+        "com.android.camera2",
+        "com.android.chrome",
+        "com.android.settings",
+        "com.android.vending",
+        "com.arduia.expense",
+        "com.dimowner.audiorecorder",
+        "com.example.androidworld",
+        "com.flauschcode.broccoli",
+        "com.google.android.apps.docs",
+        "com.google.android.apps.maps",
+        "com.google.android.apps.messaging",
+        "com.google.android.apps.photos",
+        "com.google.android.calendar",
+        "com.google.android.contacts",
+        "com.google.android.deskclock",
+        "com.google.android.dialer",
+        "com.google.android.documentsui",
+        "com.google.android.gm",
+        "com.google.android.googlequicksearchbox",
+        "com.google.android.youtube",
+        "com.google.androidenv.miniwob",
+        "com.simplemobiletools.calendar.pro",
+        "com.simplemobiletools.draw.pro",
+        "com.simplemobiletools.gallery.pro",
+        "com.simplemobiletools.smsmessenger",
+        "de.dennisguse.opentracks",
+        "net.cozic.joplin",
+        "net.gsantner.markor",
+        "net.osmand",
+        "org.tasks",
+        "org.videolan.vlc"
+      ]
+    }
+  }
+}

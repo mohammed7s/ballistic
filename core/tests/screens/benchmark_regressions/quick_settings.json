@@ -1,0 +1,818 @@
+{
+  "source": "20261107-000058_TurnOnWifiAndOpenApp.json",
+  "observe_reply_id": 4,
+  "selection": "Full recorded shade tree",
+  "screen": {
+    "package": "com.google.android.apps.nexuslauncher",
+    "activity": "com.google.android.apps.nexuslauncher.NexusLauncherActivity",
+    "width": 1080,
+    "height": 2400,
+    "nodes": [
+      {
+        "id": 1,
+        "parent": null,
+        "role": "container",
+        "class_name": "android.widget.FrameLayout",
+        "label": null,
+        "text": null,
+        "resource_id": null,
+        "package": "com.android.systemui",
+        "bounds": {
+          "x1": 0,
+          "y1": 0,
+          "x2": 1080,
+          "y2": 2400
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 2,
+        "parent": 1,
+        "role": "container",
+        "class_name": "android.widget.FrameLayout",
+        "label": null,
+        "text": null,
+        "resource_id": "com.android.systemui:id/notification_panel",
+        "package": "com.android.systemui",
+        "bounds": {
+          "x1": 0,
+          "y1": 0,
+          "x2": 1080,
+          "y2": 2400
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 3,
+        "parent": 2,
+        "role": "container",
+        "class_name": "android.view.ViewGroup",
+        "label": null,
+        "text": null,
+        "resource_id": "com.android.systemui:id/qqs_tile_layout",
+        "package": "com.android.systemui",
+        "bounds": {
+          "x1": 42,
+          "y1": 126,
+          "x2": 1038,
+          "y2": 463
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 4,
+        "parent": 3,
+        "role": "switch",
+        "class_name": "android.widget.Switch",
+        "label": "Internet",
+        "text": "On",
+        "resource_id": null,
+        "package": "com.android.systemui",
+        "bounds": {
+          "x1": 42,
+          "y1": 126,
+          "x2": 529,
+          "y2": 284
+        },
+        "flags": {
+          "clickable": true,
+          "long_clickable": true,
+          "editable": false,
+          "scrollable": false,
+          "checkable": true,
+          "checked": true,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 5,
+        "parent": 3,
+        "role": "switch",
+        "class_name": "android.widget.Switch",
+        "label": "Bluetooth.",
+        "text": "On",
+        "resource_id": null,
+        "package": "com.android.systemui",
+        "bounds": {
+          "x1": 550,
+          "y1": 126,
+          "x2": 1037,
+          "y2": 284
+        },
+        "flags": {
+          "clickable": true,
+          "long_clickable": true,
+          "editable": false,
+          "scrollable": false,
+          "checkable": true,
+          "checked": true,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 6,
+        "parent": 3,
+        "role": "switch",
+        "class_name": "android.widget.Switch",
+        "label": "Flashlight",
+        "text": "Off",
+        "resource_id": null,
+        "package": "com.android.systemui",
+        "bounds": {
+          "x1": 42,
+          "y1": 305,
+          "x2": 529,
+          "y2": 463
+        },
+        "flags": {
+          "clickable": true,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": true,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 7,
+        "parent": 3,
+        "role": "switch",
+        "class_name": "android.widget.Switch",
+        "label": "Do Not Disturb.",
+        "text": "Off",
+        "resource_id": null,
+        "package": "com.android.systemui",
+        "bounds": {
+          "x1": 550,
+          "y1": 305,
+          "x2": 1037,
+          "y2": 463
+        },
+        "flags": {
+          "clickable": true,
+          "long_clickable": true,
+          "editable": false,
+          "scrollable": false,
+          "checkable": true,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 8,
+        "parent": 2,
+        "role": "list",
+        "class_name": "android.widget.ScrollView",
+        "label": null,
+        "text": null,
+        "resource_id": "com.android.systemui:id/notification_stack_scroller",
+        "package": "com.android.systemui",
+        "bounds": {
+          "x1": 0,
+          "y1": 0,
+          "x2": 1080,
+          "y2": 2316
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 9,
+        "parent": 8,
+        "role": "text",
+        "class_name": "android.widget.TextView",
+        "label": null,
+        "text": "Silent",
+        "resource_id": "com.android.systemui:id/header_label",
+        "package": "com.android.systemui",
+        "bounds": {
+          "x1": 53,
+          "y1": 568,
+          "x2": 207,
+          "y2": 694
+        },
+        "flags": {
+          "clickable": true,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 10,
+        "parent": 8,
+        "role": "container",
+        "class_name": "android.widget.FrameLayout",
+        "label": null,
+        "text": null,
+        "resource_id": "com.android.systemui:id/expandableNotificationRow",
+        "package": "com.android.systemui",
+        "bounds": {
+          "x1": 42,
+          "y1": 699,
+          "x2": 1038,
+          "y2": 1059
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": true,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 11,
+        "parent": 10,
+        "role": "button",
+        "class_name": "android.widget.Button",
+        "label": null,
+        "text": null,
+        "resource_id": "com.android.systemui:id/veto",
+        "package": "com.android.systemui",
+        "bounds": {
+          "x1": 42,
+          "y1": 699,
+          "x2": 168,
+          "y2": 699
+        },
+        "flags": {
+          "clickable": true,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": false
+        }
+      },
+      {
+        "id": 12,
+        "parent": 10,
+        "role": "container",
+        "class_name": "android.view.ViewGroup",
+        "label": null,
+        "text": null,
+        "resource_id": "android:id/notification_top_line",
+        "package": "com.android.systemui",
+        "bounds": {
+          "x1": 42,
+          "y1": 699,
+          "x2": 891,
+          "y2": 846
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 13,
+        "parent": 12,
+        "role": "text",
+        "class_name": "android.widget.TextView",
+        "label": null,
+        "text": "Android System",
+        "resource_id": "android:id/app_name_text",
+        "package": "com.android.systemui",
+        "bounds": {
+          "x1": 179,
+          "y1": 751,
+          "x2": 405,
+          "y2": 794
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 14,
+        "parent": 10,
+        "role": "button",
+        "class_name": "android.widget.Button",
+        "label": "Collapse",
+        "text": null,
+        "resource_id": "android:id/expand_button",
+        "package": "com.android.systemui",
+        "bounds": {
+          "x1": 891,
+          "y1": 699,
+          "x2": 1038,
+          "y2": 846
+        },
+        "flags": {
+          "clickable": true,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 15,
+        "parent": 10,
+        "role": "text",
+        "class_name": "android.widget.TextView",
+        "label": null,
+        "text": "Serial console enabled",
+        "resource_id": "android:id/title",
+        "package": "com.android.systemui",
+        "bounds": {
+          "x1": 179,
+          "y1": 830,
+          "x2": 996,
+          "y2": 887
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 16,
+        "parent": 10,
+        "role": "text",
+        "class_name": "android.widget.TextView",
+        "label": null,
+        "text": "Performance is impacted. To disable, check bootloader.",
+        "resource_id": "android:id/text",
+        "package": "com.android.systemui",
+        "bounds": {
+          "x1": 179,
+          "y1": 903,
+          "x2": 996,
+          "y2": 1007
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 17,
+        "parent": 8,
+        "role": "button",
+        "class_name": "android.widget.Button",
+        "label": "Manage",
+        "text": "Manage",
+        "resource_id": "com.android.systemui:id/manage_text",
+        "package": "com.android.systemui",
+        "bounds": {
+          "x1": 84,
+          "y1": 1096,
+          "x2": 321,
+          "y2": 1222
+        },
+        "flags": {
+          "clickable": true,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 18,
+        "parent": 8,
+        "role": "button",
+        "class_name": "android.widget.Button",
+        "label": "Clear all notifications.",
+        "text": "Clear all",
+        "resource_id": "com.android.systemui:id/dismiss_text",
+        "package": "com.android.systemui",
+        "bounds": {
+          "x1": 759,
+          "y1": 1096,
+          "x2": 996,
+          "y2": 1222
+        },
+        "flags": {
+          "clickable": true,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": false
+        }
+      },
+      {
+        "id": 19,
+        "parent": 2,
+        "role": "container",
+        "class_name": "android.view.ViewGroup",
+        "label": null,
+        "text": null,
+        "resource_id": "com.android.systemui:id/split_shade_status_bar",
+        "package": "com.android.systemui",
+        "bounds": {
+          "x1": 0,
+          "y1": 0,
+          "x2": 1080,
+          "y2": 126
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 20,
+        "parent": 19,
+        "role": "text",
+        "class_name": "android.widget.TextView",
+        "label": "16:34",
+        "text": "15:34",
+        "resource_id": "com.android.systemui:id/clock",
+        "package": "com.android.systemui",
+        "bounds": {
+          "x1": 50,
+          "y1": 0,
+          "x2": 150,
+          "y2": 126
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 21,
+        "parent": 19,
+        "role": "text",
+        "class_name": "android.widget.TextView",
+        "label": null,
+        "text": "Sun, Oct 15",
+        "resource_id": "com.android.systemui:id/date",
+        "package": "com.android.systemui",
+        "bounds": {
+          "x1": 171,
+          "y1": 31,
+          "x2": 481,
+          "y2": 94
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 22,
+        "parent": 19,
+        "role": "container",
+        "class_name": "android.widget.LinearLayout",
+        "label": null,
+        "text": null,
+        "resource_id": "com.android.systemui:id/carrier_group",
+        "package": "com.android.systemui",
+        "bounds": {
+          "x1": 784,
+          "y1": 0,
+          "x2": 1038,
+          "y2": 126
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": false
+        }
+      },
+      {
+        "id": 23,
+        "parent": 22,
+        "role": "button",
+        "class_name": "android.widget.LinearLayout",
+        "label": null,
+        "text": null,
+        "resource_id": "com.android.systemui:id/carrier1",
+        "package": "com.android.systemui",
+        "bounds": {
+          "x1": 884,
+          "y1": 0,
+          "x2": 1038,
+          "y2": 126
+        },
+        "flags": {
+          "clickable": true,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": false
+        }
+      },
+      {
+        "id": 24,
+        "parent": 23,
+        "role": "text",
+        "class_name": "android.widget.TextView",
+        "label": null,
+        "text": "T-Mobile",
+        "resource_id": "com.android.systemui:id/qs_carrier_text",
+        "package": "com.android.systemui",
+        "bounds": {
+          "x1": 884,
+          "y1": 37,
+          "x2": 1027,
+          "y2": 88
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": true,
+          "enabled": true,
+          "focused": false,
+          "visible": false
+        }
+      },
+      {
+        "id": 25,
+        "parent": 19,
+        "role": "container",
+        "class_name": "android.widget.FrameLayout",
+        "label": "Phone signal full.",
+        "text": null,
+        "resource_id": "com.android.systemui:id/mobile_combo",
+        "package": "com.android.systemui",
+        "bounds": {
+          "x1": 784,
+          "y1": 34,
+          "x2": 888,
+          "y2": 92
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 26,
+        "parent": 25,
+        "role": "image",
+        "class_name": "android.widget.ImageView",
+        "label": "No internet",
+        "text": null,
+        "resource_id": "com.android.systemui:id/mobile_type",
+        "package": "com.android.systemui",
+        "bounds": {
+          "x1": 784,
+          "y1": 42,
+          "x2": 849,
+          "y2": 84
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      },
+      {
+        "id": 27,
+        "parent": 19,
+        "role": "container",
+        "class_name": "android.widget.LinearLayout",
+        "label": "Battery 100 percent.",
+        "text": null,
+        "resource_id": "com.android.systemui:id/batteryRemainingIcon",
+        "package": "com.android.systemui",
+        "bounds": {
+          "x1": 904,
+          "y1": 32,
+          "x2": 1027,
+          "y2": 95
+        },
+        "flags": {
+          "clickable": false,
+          "long_clickable": false,
+          "editable": false,
+          "scrollable": false,
+          "checkable": false,
+          "checked": false,
+          "selected": false,
+          "enabled": true,
+          "focused": false,
+          "visible": true
+        }
+      }
+    ],
+    "capabilities": {
+      "operations": [
+        "open_app",
+        "tap",
+        "long_press",
+        "type",
+        "scroll",
+        "swipe",
+        "back",
+        "home",
+        "wait"
+      ],
+      "app_grants": [
+        "ca.zgrs.clipper",
+        "code.name.monkey.retromusic",
+        "com.android.camera2",
+        "com.android.chrome",
+        "com.android.settings",
+        "com.android.vending",
+        "com.arduia.expense",
+        "com.dimowner.audiorecorder",
+        "com.example.androidworld",
+        "com.flauschcode.broccoli",
+        "com.google.android.apps.docs",
+        "com.google.android.apps.maps",
+        "com.google.android.apps.messaging",
+        "com.google.android.apps.nexuslauncher",
+        "com.google.android.apps.photos",
+        "com.google.android.calendar",
+        "com.google.android.contacts",
+        "com.google.android.deskclock",
+        "com.google.android.dialer",
+        "com.google.android.documentsui",
+        "com.google.android.gm",
+        "com.google.android.googlequicksearchbox",
+        "com.google.android.youtube",
+        "com.google.androidenv.miniwob",
+        "com.simplemobiletools.calendar.pro",
+        "com.simplemobiletools.draw.pro",
+        "com.simplemobiletools.gallery.pro",
+        "com.simplemobiletools.smsmessenger",
+        "de.dennisguse.opentracks",
+        "net.cozic.joplin",
+        "net.gsantner.markor",
+        "net.osmand",
+        "org.tasks",
+        "org.videolan.vlc"
+      ]
+    }
+  }
+}

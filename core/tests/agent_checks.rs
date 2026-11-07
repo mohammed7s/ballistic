@@ -93,6 +93,7 @@ fn contacts_form_hints_survive_scrolling_form_classification() {
 #[test]
 fn timeout_after_submit_never_duplicates_input() {
     let mut s=screen(); s.nodes[0].role=Role::Edit;s.nodes[0].flags.editable=true;
+    s.nodes[0].label=Some("Message".into());
     let (result,calls)=run(vec![json!(s),completion(r#"{"action":"type","target":"e1","text":"hello","submit":true}"#),json!("approved"),json!({"result":"error","message":"timeout after Enter"})],5);
     assert_eq!(result["execution_status"],"unknown");
     assert_eq!(result["verification"]["status"],"unknown");

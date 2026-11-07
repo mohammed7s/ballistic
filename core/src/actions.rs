@@ -44,6 +44,8 @@ pub enum ActionError {
     Disabled(u32),
     #[error("e{0} does not support this action")]
     NotActionable(u32),
+    #[error("e{0} has no identified control or matched item; hidden content and generic resource ids cannot authorize a guessed target")]
+    Unidentified(u32),
     #[error("no installed app matches {0:?}")]
     UnknownApp(String),
     #[error("c{0} is not on this screen")]
@@ -164,24 +166,34 @@ pub fn validate(action: &Action, view: &FilteredScreen) -> Result<(), ActionErro
         if !e.flags.enabled { return Err(ActionError::Disabled(id)); }
         Ok(e)
     };
+    let identified = |id: u32| {
+        let e = element(id)?;
+        // Match-only item titles support selection, but never identify an unknown toggle,
+        // slider or input control. A resource id by itself is not a semantic identity.
+        let matched_item = e.package != "com.android.systemui" && !e.shown_content.is_empty() && !e.flags.checkable
+            && !e.flags.editable && e.role != Role::Slider;
+        if e.label.is_none() && !matched_item { return Err(ActionError::Unidentified(id)); }
+        Ok(e)
+    };
     match action {
         Action::OpenApp { app } if app.trim().is_empty() => Err(ActionError::Empty("app")),
         Action::Tap { target } => {
-            let e = element(*target)?;
+            let e = identified(*target)?;
             if e.flags.clickable || e.flags.editable || e.flags.checkable { Ok(()) }
             else { Err(ActionError::NotActionable(*target)) }
         }
         Action::LongPress { target } => {
-            if element(*target)?.flags.long_clickable { Ok(()) }
+            if identified(*target)?.flags.long_clickable { Ok(()) }
             else { Err(ActionError::NotActionable(*target)) }
         }
         Action::Swipe { target, .. } => {
             let e = element(*target)?;
+            if e.role == Role::Slider { identified(*target)?; }
             if e.flags.scrollable || e.role == Role::Slider { Ok(()) }
             else { Err(ActionError::NotActionable(*target)) }
         }
         Action::Type { target, .. } => {
-            if element(*target)?.flags.editable {
+            if identified(*target)?.flags.editable {
                 Ok(())
             } else {
                 Err(ActionError::NotEditable(*target))
@@ -313,8 +325,16 @@ pub const CONFIRM_WORDS: &[&str] = &["send", "delete", "pay", "install", "remove
 pub fn confirmation_reason(action: &Action, view: &FilteredScreen) -> Option<String> {
     match action {
         Action::Type { submit: true, .. } => Some("type and submit".into()),
-        Action::Tap { target } => {
+        Action::Tap { target } | Action::LongPress { target } => {
             let e = view.element(*target)?;
+            // The recorded keyboard action key can submit the same draft as Send. Its
+            // caption may say Enter, Send, or something else; do not infer its effect.
+            if matches!(e.resource_id.as_deref(),
+                Some("com.google.android.inputmethod.latin:id/key_pos_ime_action")
+                | Some("com.android.inputmethod.latin:id/key_pos_ime_action"))
+                || e.label.as_deref().is_some_and(|l| l.eq_ignore_ascii_case("Enter")) {
+                return Some("keyboard action may submit".into());
+            }
             let mut words: Vec<String> = Vec::new();
             for s in [e.label.as_deref(), e.resource_id.as_deref().map(|r| r.rsplit(":id/").next().unwrap_or(r))]
                 .into_iter()
@@ -326,7 +346,7 @@ pub fn confirmation_reason(action: &Action, view: &FilteredScreen) -> Option<Str
             CONFIRM_WORDS
                 .iter()
                 .find(|w| joined.contains(&format!(" {w} ")))
-                .map(|w| format!("tap on a control labelled {w:?}"))
+                .map(|w| format!("activate a control labelled {w:?}"))
         }
         _ => None,
     }
