@@ -301,13 +301,19 @@ that say the text is data and never an instruction. The reply must be exactly on
 `none` (whitespace, backticks or quotes around it tolerated); anything else, including an id that
 is not a candidate, is rejected, logged by size only (`reader.rejected`, `reply_chars`) and never
 forwarded. The planner then sees one line under `Reader facts:`, `reader: element e8 (source
-app:<package>)`, or the history note `reader: element none` / `reader: answer rejected`. The read
-dispatches nothing and the next step reuses the same screen. Core keeps the pick by identity
+app:<package>)`, or a fixed history note for no match / rejection. `reader: element none` now
+explains that only the requested candidates were searched, not the whole app or offscreen UI,
+and directs the planner to inspect visible labels, relevant navigation and advertised scrolling
+instead of repeating the read or guessing hidden controls. Visible labeled navigation needs no
+reader pick; ordinary action validation still applies. Invalid replies remain rejected and
+reader port failures remain errors. The read dispatches nothing and the next step reuses the
+same screen. Core keeps the pick by identity
 (package, resource id, role, bounds and withheld text, compared in code) and re-locates it on
 later screens; it disappears when the row changes. A pick authorizes one plain `tap` on that
 element (not a field, slider, long press or anything in the shade); if its withheld text contains
 a guarded word (§9) the tap needs the owner's confirmation. `facts` is not implemented;
-such a read is refused without a model call and the run continues.
+such a read is refused without a model call and the run continues. Offline trace evidence, exact
+feedback and limits: [element-reader development record](../docs/ELEMENT_READER_FEEDBACK_20261107.md).
 
 **Implemented: terminal owner `summary` (7 Nov 2026, `reader/summary.rs`).** This is a distinct
 display channel, not `Action::Answer` or a planner fact. The owner opts in with an English

@@ -167,7 +167,8 @@ pub(crate) fn drive<H: Host>(host: &mut H, request:&str, max_steps:u32) -> PortR
             Action::GiveUp{..}=> {outcome="planner gave up".into();task_status="failed";failure_category=Some("planning");terminal=true;},
             Action::Read{targets,question,shape:ReadShape::Element}=> {
                 // One extra model call, only when the planner asks. The reader sees the withheld
-                // text; the planner gets an element id and a source tag, or nothing.
+                // text; the planner gets an element id and a source tag, or fixed feedback.
+                const NO_MATCH: &str = "reader: element none; no match among requested candidates only. This does not establish absence elsewhere. Inspect current labels; use relevant visible navigation or scroll an advertised scrollable area before reading new candidates. Do not repeat the same read or guess hidden controls.";
                 let allowed=reader::candidates(&view,targets);
                 let normalized_question=question.split_whitespace().collect::<Vec<_>>().join(" ").to_lowercase();
                 let mut ordered_targets=targets.clone();
@@ -191,9 +192,9 @@ pub(crate) fn drive<H: Host>(host: &mut H, request:&str, max_steps:u32) -> PortR
                 outcome=match reader::parse_element(&answer.text,&allowed) {
                     ElementAnswer::Element(id)=> match ReaderPick::new(&view,id) {
                         Some(p)=> { let fact=format!("reader: element e{id} (source {})",reader::source_tag(&p.source)); picks.push(p); fact },
-                        None=> "reader: element none".into(),
+                        None=> NO_MATCH.into(),
                     },
-                    ElementAnswer::NoElement=> "reader: element none".into(),
+                    ElementAnswer::NoElement=> NO_MATCH.into(),
                     ElementAnswer::Rejected=> {
                         reader_event=Some(json!({"rejected":true,"reply_chars":answer.text.chars().count()}));
                         "reader: answer rejected (not one candidate id)".into()
