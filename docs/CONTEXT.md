@@ -15,20 +15,53 @@ confirmation dialog.**
 
 ## 2. Decisions taken (and why)
 
-**7 November 2026 — partial core suite, not a final score:** Astra trace review downloaded the
-first 10 tasks from `suite_core_20261106-234941.tsv`: combined 3/10 versus baseline's matching
-7/10; independent state success 6/10. Bluetooth and both SMS cases succeeded without agent done.
-These 10 total 513.2 s (median 40.8 s, excludes checker/setup), 91 calls, 203,246 prompt tokens
-(2,233/call); no HTTP/quota errors in those records. Baseline is unseeded, current seed 0, and
-timing boundaries differ, so this is descriptive, not a controlled speed comparison. Parent later
-observed an eleventh row, CalendarAdd ERROR (172.4 s, environment), with CalendarEvents active;
-its detailed JSON was not fetched before SSH failed. Suite completion remains unverified.
-Trace-backed urgent findings: `TurnOnWifiAndOpenApp` toggled Flashlight and Do Not Disturb after
-their Quick Settings labels were hidden; SMS tasks repeatedly attempted Send after success
-(duplicate delivery not established). Fix target visibility/resolution and post-action completion
-before expanding actions. Local evidence: `ballistic_runs/core_suite_20261107/report.txt` and
-`comparison.json` (ignored artifacts). The monitor returned after three SSH failures; reconnect
-and inspect the existing suite before any new run or restoration of terminal chat.
+**7 November 2026 — completed core suite:** all 20 outcomes collected from
+`suite_core_20261106-234941.tsv`, code `a13f59e`, Gemini `gemini-flash-lite-latest`, seed 0.
+Suite exited; emulator alive and no task/chat/core process at 00:17:11 UTC. **3 PASS, 9 FAIL,
+8 ERROR**, versus original T3A **13/20 PASS**. Independent state: **6 passed, 13 failed,
+1 unknown**; Bluetooth and both SMS tasks passed state without agent done. Zero final false-done.
+Errors are separate from model failures: 5 HTTP 429 responses (daily quota versus rate limit
+unknown), 2 Gemini read timeouts, 1 setup DNS failure before any JSON/checker. There is no
+established emulator crash. All 20 logs and 19 JSONs downloaded; MarkorCreateNote has no JSON.
+
+Recorded time across 19 JSONs: **950.8 s**, median **37.9 s**, plus 15.449 s checker time;
+missing setup-failure time is unknown. Baseline: **1495.7 s**, median **66.4 s**, includes checker.
+Neither includes a comparable full wall-clock measurement. Baseline unseeded versus current
+seed 0, different goals and early infrastructure stops prevent a controlled speed comparison.
+132 model attempts: 125 succeeded, 7 errors; recorded usage **290,616 prompt + 4,357 completion
+tokens**, mean **2,325 prompt tokens per usage-bearing call**, versus baseline **10,707**.
+Failed-call usage is unknown, not zero. Seventeen approvals were automatic harness decisions,
+not evidence of a working biometric gate.
+
+Trace-backed priority: Quick Settings labels were hidden, causing unrelated Flashlight and DND
+changes. Stale trees affected Settings navigation. SMS tasks kept attempting Send after success;
+duplicate delivery is not established. A benchmark state pass does not prove absence of side
+effects. Fix these before expanding action coverage. Full ignored local evidence is in
+`ballistic_runs/core_suite_20261107/` (`report.txt`, `comparison.json`, source logs/JSONs and
+`release_status.json`). The table below preserves the comparison in tracked documentation.
+
+| Task | T3A result / s | Core result / s | Core state | Cause |
+|---|---|---|---|---|
+| ContactsAddContact | PASS / 57.2 | PASS / 44.3 | passed | Passed |
+| ClockTimerEntry | FAIL / 64.3 | FAIL / 37.9 | failed | Wrong timer digits; repeated backspacing |
+| ClockStopWatchRunning | PASS / 21.0 | PASS / 28.8 | passed | Passed |
+| OpenAppTaskEval | PASS / 10.1 | PASS / 15.1 | passed | Passed |
+| SystemWifiTurnOff | PASS / 73.6 | FAIL / 20.2 | failed | Stale tree, wrong navigation, invalid targets |
+| SystemBluetoothTurnOn | FAIL / 101.9 | FAIL / 42.0 | passed | Bluetooth on; agent never reported done |
+| SystemBrightnessMax | FAIL / 70.2 | FAIL / 44.7 | failed | Old Display tree while BrightnessDialog active |
+| TurnOnWifiAndOpenApp | PASS / 68.5 | FAIL / 195.7 | failed | Hidden labels: toggled Flashlight and DND instead of Wi-Fi |
+| SimpleSmsSend | PASS / 75.3 | FAIL / 44.9 | passed | Sent; repeated Send attempts, no done |
+| SimpleSmsReplyMostRecent | PASS / 47.3 | FAIL / 39.6 | passed | Replied; repeated Send attempts, no done |
+| SimpleCalendarAddOneEvent | FAIL / 90.2 | ERROR / 172.4 | failed | Gemini read timeout (not established as quota) |
+| SimpleCalendarEventsOnDate | FAIL / 171.7 | ERROR / 153.8 | failed | Gemini read timeout (not established as quota) |
+| MarkorCreateNote | FAIL / 48.0 | ERROR / unknown | unknown | Setup DNS failure fetching accessibility forwarder; no JSON |
+| MarkorDeleteNote | PASS / 190.9 | FAIL / 10.8 | failed | Required reader path is unimplemented |
+| MarkorCreateFolder | PASS / 28.6 | FAIL / 49.0 | failed | Created/opened a document instead of folder |
+| ExpenseAddSingle | FAIL / 81.8 | ERROR / 27.7 | failed | HTTP 429 on call 7; exact limit unknown |
+| ExpenseDeleteSingle | PASS / 35.5 | ERROR / 7.2 | failed | HTTP 429 on first call |
+| RecipeAddSingleRecipe | PASS / 171.1 | ERROR / 7.2 | failed | HTTP 429 on first call |
+| FilesDeleteFile | PASS / 63.9 | ERROR / 7.4 | failed | HTTP 429 on first call |
+| CameraTakePhoto | PASS / 24.6 | ERROR / 2.1 | failed | HTTP 429 on first call |
 
 **7 November 2026 — first APK plan:** `docs/ANDROID_APP.md` now details the native text-first
 Kotlin UI, run/Stop/approval/results, lifecycle and four implementation milestones. Verified:
