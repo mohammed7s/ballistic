@@ -188,7 +188,12 @@ also retains bounded numeric retry guidance (`retry_after_seconds`) and allowlis
 types/values (`quota_limits`), excluding provider messages, project IDs and quota dimensions.
 These fields report provider guidance, not an automatic retry decision. Malformed successful
 responses produce `ModelResponseError` with response-shape and allowlisted finish-reason fields,
-instead of a missing-content `KeyError`. Observation settles on two consecutive samples with the same foreground and size whose
+instead of a missing-content `KeyError`. Empty replies also record boolean refusal/tool-call/
+function-call presence and fixed documented Gemini finish enums; unknown values remain `other`.
+Provider text and tool arguments are never copied into diagnostics. These additional enums do
+not broaden retries: only an eligible empty reply with existing `stop`/missing finish reason can
+receive one recovery attempt within the same total ceiling. Historical `other` cannot be decoded
+retrospectively. Observation settles on two consecutive samples with the same foreground and size whose
 trees match, or differ only slightly (same skeleton, at most a tenth of the nodes changed); the
 later sample is returned. Unsettled samples are spaced 0.3 s, doubling; six acquisitions and a
 30-second soft deadline bound the wait.

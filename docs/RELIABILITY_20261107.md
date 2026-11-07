@@ -205,3 +205,19 @@ four recorded dialog snapshots from the failed seed-0 run, offline filtering now
 creation labels. This demonstrates the observation change, not new model behavior. Combined
 validation: **116 Rust tests with UniFFI and 79 Python tests pass, no skips**. No action guard,
 benchmark checker, model budget or external schema changed. Live uplift remains unmeasured.
+
+
+## Empty-response diagnostics after injection round (7 November 2026)
+
+The pinned `07e5546` note case returned HTTP 200 with missing content and a finish reason stored
+as `other`. This does not establish quota, safety filtering or malformed function generation;
+the original value was intentionally not retained. No retry or provider probe followed.
+
+Future records retain fixed allowlisted [Gemini finish enums](https://ai.google.dev/api/generate-content#FinishReason)
+and boolean refusal/tool-call/function-call presence for non-text replies. Arbitrary provider
+strings, refusal prose and function arguments remain excluded. This is diagnostic telemetry,
+not a fix for empty generation: retry eligibility is unchanged, including no retry for native
+uppercase `STOP` or any other added enum. Model, token limits, action dispatch and budget remain
+unchanged. One regression covers every enum, payload exclusion and unchanged request counts;
+all **86 Python tests pass without skips**, including the existing Rust/Python bridge tests.
+Full Rust tests were not repeated for this Python-only change; the integrated base passed 173.

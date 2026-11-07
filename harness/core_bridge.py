@@ -438,6 +438,16 @@ class ModelClient:
 
     RETRY_STATUSES = (502, 503, 504)
     FINISH_REASONS = {"stop", "length", "tool_calls", "function_call", "content_filter"}
+    # Documented Gemini enums can pass through its OpenAI-compatible endpoint. Keep only
+    # code-owned names, never arbitrary provider strings. These do not broaden retry policy.
+    # https://ai.google.dev/api/generate-content#FinishReason
+    PROVIDER_FINISH_REASONS = {
+        "FINISH_REASON_UNSPECIFIED", "STOP", "MAX_TOKENS", "SAFETY", "RECITATION", "LANGUAGE",
+        "OTHER", "BLOCKLIST", "PROHIBITED_CONTENT", "SPII", "MALFORMED_FUNCTION_CALL",
+        "IMAGE_SAFETY", "IMAGE_PROHIBITED_CONTENT", "IMAGE_OTHER", "NO_IMAGE", "IMAGE_RECITATION",
+        "UNEXPECTED_TOOL_CALL", "TOO_MANY_TOOL_CALLS", "MISSING_THOUGHT_SIGNATURE",
+        "MALFORMED_RESPONSE", "ESCALATION",
+    }
 
     def __init__(self, routes: dict[str, tuple[str, str, str]], temperature: float = 0.0, timeout: int = 120,
                  retries: int = 3, backoff_seconds: float = 2.0, min_interval_seconds: float = 0.0):
@@ -547,6 +557,8 @@ class ModelClient:
         finish = choice.get("finish_reason")
         metadata["finish_reason"] = finish if isinstance(finish, str) and finish in cls.FINISH_REASONS else (
             "missing" if finish is None else "other")
+        if isinstance(finish, str) and finish not in cls.FINISH_REASONS and finish.upper() in cls.PROVIDER_FINISH_REASONS:
+            metadata["finish_reason"] = finish.upper()
         message = choice.get("message")
         if not isinstance(message, dict):
             return {**metadata, "response_shape": "missing_or_invalid_message"}
@@ -560,6 +572,9 @@ class ModelClient:
             shape = "empty_content"
         else:
             shape = "text_content"
+        if shape != "text_content":
+            for field in ("refusal", "tool_calls", "function_call"):
+                metadata[field + "_present"] = bool(message.get(field))
         return {**metadata, "response_shape": shape}
 
     @staticmethod

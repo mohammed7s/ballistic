@@ -104,6 +104,27 @@ class RecoveryTest(unittest.TestCase):
         self.assertNotIn('prompt_tokens', retry)
         self.assertNotIn('completion_tokens', retry)
 
+    def test_provider_finish_diagnostics_do_not_expand_retry_or_leak_payloads(self):
+        for finish in ModelClient.PROVIDER_FINISH_REASONS:
+            with self.subTest(finish=finish):
+                self.post.reset_mock()
+                self.post.side_effect = [empty({'tool_calls': [{'name': 'private-tool-secret'}]}, finish), ok()]
+                with self.assertRaises(ModelResponseError):
+                    self.complete()
+                self.assertEqual(self.post.call_count, 1)
+                call = self.client.calls[-1]
+                self.assertEqual(call['finish_reason'], finish)
+                self.assertTrue(call['tool_calls_present'])
+                self.assertFalse(call['refusal_present'])
+                self.assertFalse(call['function_call_present'])
+                self.assertNotIn('private-tool-secret', repr(call))
+        # Even an otherwise empty provider-native STOP is still outside existing retry rules.
+        self.post.reset_mock()
+        self.post.side_effect = [empty(finish='STOP'), ok()]
+        with self.assertRaises(ModelResponseError):
+            self.complete()
+        self.assertEqual(self.post.call_count, 1)
+
     @unittest.skipUnless(os.environ.get('BALLISTIC_TEST_CORE_BIN'), 'set BALLISTIC_TEST_CORE_BIN for offline bridge integration')
     def test_p8_recovery_or_exhaustion_after_guarded_input_never_redispatches(self):
         screen = {'package': 'org.fixture.dispatch', 'activity': 'Compose', 'width': 320, 'height': 640,
