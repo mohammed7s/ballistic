@@ -15,6 +15,21 @@ confirmation dialog.**
 
 ## 2. Decisions taken (and why)
 
+**7 November 2026 — partial core suite, not a final score:** Astra trace review downloaded the
+first 10 tasks from `suite_core_20261106-234941.tsv`: combined 3/10 versus baseline's matching
+7/10; independent state success 6/10. Bluetooth and both SMS cases succeeded without agent done.
+These 10 total 513.2 s (median 40.8 s, excludes checker/setup), 91 calls, 203,246 prompt tokens
+(2,233/call); no HTTP/quota errors in those records. Baseline is unseeded, current seed 0, and
+timing boundaries differ, so this is descriptive, not a controlled speed comparison. Parent later
+observed an eleventh row, CalendarAdd ERROR (172.4 s, environment), with CalendarEvents active;
+its detailed JSON was not fetched before SSH failed. Suite completion remains unverified.
+Trace-backed urgent findings: `TurnOnWifiAndOpenApp` toggled Flashlight and Do Not Disturb after
+their Quick Settings labels were hidden; SMS tasks repeatedly attempted Send after success
+(duplicate delivery not established). Fix target visibility/resolution and post-action completion
+before expanding actions. Local evidence: `ballistic_runs/core_suite_20261107/report.txt` and
+`comparison.json` (ignored artifacts). The monitor returned after three SSH failures; reconnect
+and inspect the existing suite before any new run or restoration of terminal chat.
+
 **7 November 2026 — first APK plan:** `docs/ANDROID_APP.md` now details the native text-first
 Kotlin UI, run/Stop/approval/results, lifecycle and four implementation milestones. Verified:
 there is no Android project, Kotlin binding or APK yet; the Rust loop still takes the concrete
