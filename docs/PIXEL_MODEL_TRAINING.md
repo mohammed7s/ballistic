@@ -61,8 +61,8 @@ Read for this report: [CLAUDE.md](../CLAUDE.md), [context](CONTEXT.md),
 [Pixel model research](PIXEL10PRO_MODELS.md). The recorded suite is the historical baseline
 at commit `a13f59e`, not a claim about fixes currently being made elsewhere.
 
-The completed suite's [report](../ballistic_runs/core_suite_20261107/report.txt) and
-[comparison](../ballistic_runs/core_suite_20261107/comparison.json) record:
+The completed suite's report and comparison (`ballistic_runs/core_suite_20261107/report.txt` and
+`comparison.json`, local run output that is not committed) record:
 
 - **3 PASS, 9 FAIL, 8 infrastructure ERROR**, with **6 independent state passes**, 13 state
   failures and 1 unknown. Bluetooth and both SMS tasks reached the requested state without

@@ -70,7 +70,7 @@ Privileged benchmark inspection must never become a production agent capability.
 This repository owns adapters, API requirements and behavior when capabilities are unavailable.
 [ballistic-os](https://github.com/mohammed7s/ballistic-os) owns GrapheneOS gate implementation,
 privileged packaging, OS signing, flashing, updates and platform validation. Its
-[patch design](https://github.com/mohammed7s/ballistic-os/blob/main/docs/patches.md) explains how
+[patch design](https://github.com/mohammed7s/ballistic-os/blob/master/docs/patches.md) explains how
 that platform can provide access. Neither repository's successful build proves the other's
 end-to-end integration.
 

@@ -97,7 +97,7 @@ and dropped with the app-only decision (7 Nov 2026).
 [PLATFORM.md](docs/PLATFORM.md) owns availability, grants and host behavior. The OS must supply
 its access controls and revocation; the app must enforce operation-level policy on every route.
 GrapheneOS implementation details and validation live in the
-[OS patch design](https://github.com/mohammed7s/ballistic-os/blob/main/docs/patches.md).
+[OS patch design](https://github.com/mohammed7s/ballistic-os/blob/master/docs/patches.md).
 
 ### 4.5 Core library (`core/`)
 
@@ -281,7 +281,7 @@ actual phone before selecting a backend. See `docs/PIXEL10PRO_MODELS.md` for dat
 Build the APK using [apps/assistant/README.md](apps/assistant/README.md). Rebuild bindings and native
 libraries together when the core interface changes. APK delivery and the supported capability set
 are app concerns; OS images, keys, flashing and OTA are owned by
-[ballistic-os](https://github.com/mohammed7s/ballistic-os/blob/main/docs/build.md).
+[ballistic-os](https://github.com/mohammed7s/ballistic-os/blob/master/docs/build.md).
 
 ## 9. Acceptance tests
 

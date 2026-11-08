@@ -54,7 +54,6 @@ judging a run. The harness supports terminal prompts and repeatable benchmark ta
 - [docs](docs/README.md): app specification, decisions, roadmap and research.
 
 Contributions are welcome, especially reproducible failures, device measurements and safety tests.
-[Hackathon notes](docs/HACKATHON_MUMBA.md) track the submission separately from product claims.
 
 Apache-2.0. Maintainer: [@mohammed7s](https://github.com/mohammed7s).
 Not affiliated with or endorsed by GrapheneOS.

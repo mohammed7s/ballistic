@@ -2,7 +2,7 @@
 
 Dated research preserved from the former CONTEXT.md. These are historical findings, not current compatibility promises. Original section references refer to the [handoff snapshot](log/2026-11-07-before-reorganization-context.md). Later entries can supersede earlier ones.
 
-Current support: [PLATFORM.md](PLATFORM.md). Current decisions: [CONTEXT.md](CONTEXT.md). Detailed OS gate research now belongs to [ballistic-os](https://github.com/mohammed7s/ballistic-os/blob/main/docs/FACTS.md).
+Current support: [PLATFORM.md](PLATFORM.md). Current decisions: [CONTEXT.md](CONTEXT.md). Detailed OS gate research now belongs to [ballistic-os](https://github.com/mohammed7s/ballistic-os/blob/master/docs/FACTS.md).
 
 ## Historical verified facts (checked against AOSP `android17-release` source on 5 Nov 2026)
 

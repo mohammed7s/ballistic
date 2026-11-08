@@ -26,4 +26,4 @@ the distinction between what an agent reads and what it is authorized to do.
 
 See [the app specification](../SPEC.md) for the target design and [current context](CONTEXT.md)
 for the implementation boundary. OS proposals belong in
-[ballistic-os](https://github.com/mohammed7s/ballistic-os/blob/main/docs/PLAN.md).
+[ballistic-os](https://github.com/mohammed7s/ballistic-os/blob/master/docs/PLAN.md).

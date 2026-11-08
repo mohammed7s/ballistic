@@ -2,7 +2,7 @@
 
 This repository delivers the assistant APK, shared Rust core and development harness.
 The [platform contract](PLATFORM.md) defines dependencies. OS builds, gates, updates and upstream
-work have their own [roadmap](https://github.com/mohammed7s/ballistic-os/blob/main/docs/PLAN.md).
+work have their own [roadmap](https://github.com/mohammed7s/ballistic-os/blob/master/docs/PLAN.md).
 
 ## 1. Harness and baseline
 

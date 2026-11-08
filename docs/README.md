@@ -19,7 +19,6 @@ OS implementation lives in [ballistic-os](https://github.com/mohammed7s/ballisti
 - [Research facts](FACTS.md): historical source findings and reported claims.
 - [Security survey](AGENT_SECURITY_SURVEY.md): background for the safety design.
 - [Experiment log](log/README.md): dated work and preserved earlier documents.
-- [Hackathon notes](HACKATHON_MUMBA.md): submission material, separate from product status.
 
 The HTML guides in `guide/` predate this documentation reorganization. Use the Markdown design
 and implementation docs for current status. `SPEC.html`, `SPEC.pdf` and `archive/` are historical

@@ -72,7 +72,7 @@ This document records the plan; it does not assert any old session or job is sti
 - [FACTS.md](FACTS.md): dated source research and reported claims, with their original qualifiers.
 - [log/README.md](log/README.md): experiments, earlier handoffs and pre-reorganization snapshots.
 - [AGENT_SECURITY_SURVEY.md](AGENT_SECURITY_SURVEY.md): safety design research.
-- [OS context](https://github.com/mohammed7s/ballistic-os/blob/main/docs/CONTEXT.md): platform decisions and validation.
+- [OS context](https://github.com/mohammed7s/ballistic-os/blob/master/docs/CONTEXT.md): platform decisions and validation.
 
 The legacy HTML/PDF spec exports are stale; SPEC.md is authoritative. Old log entries can contain
 superseded plans and old section numbers. Do not promote them into current decisions.
@@ -96,7 +96,7 @@ measurements in the log. Do not append session transcripts to this page. Update 
 repo when ownership changes; link across repos instead of duplicating build instructions.
 
 The owner's correction about project start dates and Mumbai Standard-track submission remains in
-[the hackathon notes](HACKATHON_MUMBA.md) and original handoff. Do not infer eligibility dates from
+the local hackathon notes (`docs/HACKATHON_MUMBA.md`, deliberately not committed) and original handoff. Do not infer eligibility dates from
 old research headings.
 
 ## App focus — 7 November 2026
