@@ -1,5 +1,7 @@
-// The app's one main window: prompt box, action log, settings. Holds no state of its own; the
-// session and stores live in AppGraph.
+// The app's one main window: top bar (mark, route label, gear), the screen, the task bar while a
+// task runs, and bottom navigation (Ask / Activity / Local AI). Settings and the capability page
+// are pushed screens behind the gear. Holds no state of its own; the session and stores live in
+// AppGraph (docs/UX_SYNTHESIS.md §4.1).
 
 package app.ballistic.assistant
 
@@ -7,39 +9,37 @@ import android.Manifest
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.selected
+import app.ballistic.assistant.ui.ActivityScreen
+import app.ballistic.assistant.ui.AppShell
 import app.ballistic.assistant.ui.BallisticTheme
+import app.ballistic.assistant.ui.CapabilityScreen
+import app.ballistic.assistant.ui.FirstRunScreen
 import app.ballistic.assistant.ui.LocalAiScreen
-import app.ballistic.assistant.ui.LogScreen
 import app.ballistic.assistant.ui.PromptScreen
+import app.ballistic.assistant.ui.Screen
 import app.ballistic.assistant.ui.SettingsScreen
 
 class MainActivity : ComponentActivity() {
-    private val askNotifications = registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
+    /** Asked from first run's last step, after the explanation (never on launch). */
+    val askNotifications = registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
+
+    fun requestNotificationPermission() = askNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
 
     override fun onResume() {
         super.onResume()
@@ -49,8 +49,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        // The approval notification is the only way to reach the window from the background.
-        askNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
         val appGraph = graph
         setContent {
             val localBusy by appGraph.localAi.busy.collectAsState()
@@ -63,21 +61,24 @@ class MainActivity : ComponentActivity() {
             }
             BallisticTheme {
                 Surface(Modifier.fillMaxSize()) {
-                    var tab by rememberSaveable { mutableIntStateOf(0) }
-                    Column(Modifier.safeDrawingPadding()) {
-                        Row(Modifier.fillMaxWidth()) {
-                            listOf("Ask", "Local AI", "Activity", "Settings").forEachIndexed { i, name ->
-                                TextButton(onClick = { tab = i }, modifier = Modifier.weight(1f).semantics { selected = tab == i }, contentPadding = PaddingValues(horizontal = 2.dp, vertical = 12.dp)) {
-                                    Text(name, textAlign = TextAlign.Center, fontWeight = if (tab == i) FontWeight.Bold else FontWeight.Normal)
-                                }
+                    var screen by rememberSaveable { mutableStateOf(Screen.Ask) }
+                    var tab by rememberSaveable { mutableStateOf(Screen.Ask) }
+                    var setupDone by rememberSaveable { mutableStateOf(appGraph.firstRunDone()) }
+                    fun open(s: Screen) { if (s.isTab) tab = s; screen = s }
+                    BackHandler(enabled = !screen.isTab) { screen = if (screen == Screen.Capabilities) Screen.Settings else tab }
+                    Box(Modifier.safeDrawingPadding()) {
+                        if (!setupDone) {
+                            FirstRunScreen(appGraph, this@MainActivity) { appGraph.markFirstRunDone(); setupDone = true }
+                        } else AppShell(appGraph, this@MainActivity, screen, onOpen = ::open, onBack = {
+                            screen = if (screen == Screen.Capabilities) Screen.Settings else tab
+                        }) {
+                            when (screen) {
+                                Screen.Ask -> PromptScreen(appGraph, activity = this@MainActivity, onOpen = ::open)
+                                Screen.Activity -> ActivityScreen(appGraph)
+                                Screen.LocalAi -> LocalAiScreen(appGraph, activity = this@MainActivity, onOpenAsk = { open(Screen.Ask) }, onOpenSettings = { open(Screen.Settings) })
+                                Screen.Settings -> SettingsScreen(appGraph, activity = this@MainActivity, onOpen = ::open)
+                                Screen.Capabilities -> CapabilityScreen(appGraph)
                             }
-                        }
-                        HorizontalDivider()
-                        when (tab) {
-                            0 -> PromptScreen(appGraph, activity = this@MainActivity, onOpenLocalAi = { tab = 1 })
-                            1 -> LocalAiScreen(appGraph, activity = this@MainActivity, onOpenAsk = { tab = 0 }, onOpenSettings = { tab = 3 })
-                            2 -> LogScreen(appGraph)
-                            else -> SettingsScreen(appGraph, activity = this@MainActivity)
                         }
                     }
                 }

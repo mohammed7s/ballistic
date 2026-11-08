@@ -61,6 +61,18 @@ import app.ballistic.assistant.core.HandsOp
 import app.ballistic.assistant.core.Source
 import app.ballistic.assistant.graph
 import app.ballistic.assistant.ui.BallisticTheme
+import app.ballistic.assistant.ui.BButton
+import app.ballistic.assistant.ui.Disclosure
+import app.ballistic.assistant.ui.Hairline
+import app.ballistic.assistant.ui.KeyValue
+import app.ballistic.assistant.ui.LocalBallisticExtras
+import app.ballistic.assistant.ui.StatusLabel
+import app.ballistic.assistant.ui.WarnBlock
+import androidx.compose.foundation.background
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.sp
 
 class ConfirmActivity : ComponentActivity() {
     private lateinit var filter: InjectedInputFilter
@@ -84,10 +96,10 @@ class ConfirmActivity : ComponentActivity() {
                     val current = pending
                     if (current == null) {
                         // Decided, stopped or timed out while the window was away.
-                        Column(Modifier.safeDrawingPadding().padding(24.dp)) {
-                            Text("Nothing is waiting for approval.")
+                        Column(Modifier.safeDrawingPadding().padding(12.dp)) {
+                            Text("Nothing is waiting for approval.", style = MaterialTheme.typography.titleMedium)
                             Spacer(Modifier.height(16.dp))
-                            OutlinedButton(onClick = { finish() }) { Text("Close") }
+                            BButton("Close", { finish() })
                         }
                     } else {
                         ConfirmContent(current, status, onApprove = { approve(current) }, onDeny = { deny(current, "denied by owner") })
@@ -218,41 +230,66 @@ class ConfirmActivity : ComponentActivity() {
     }
 }
 
+/**
+ * Layout only (docs/UX_SYNTHESIS.md §4.3): the loudest element is the reason to hesitate, never
+ * Approve. Values not from the owner come first, in the warning form; Deny and Approve are the
+ * same size and nothing here is coloured. Every touch still passes the activity's filter.
+ */
 @Composable
 private fun ConfirmContent(pending: ConfirmBroker.Pending, status: String?, onApprove: () -> Unit, onDeny: () -> Unit) {
     val r = pending.request
-    Column(
-        Modifier.safeDrawingPadding().padding(24.dp).verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Text(
-            if (pending.required == ConfirmClass.Hard) "Approve with fingerprint" else "Approve",
-            style = MaterialTheme.typography.headlineSmall,
-        )
-        Field("App", r.app)
-        Field("Action", r.verb)
-        Field("Target", r.target)
-        Field("Exact operation", operationText(r.operation), mono = true)
-        if (r.values.isNotEmpty()) {
-            Text("Values", style = MaterialTheme.typography.labelLarge)
-            for (v in r.values) {
-                Text("“${v.value}”  from ${sourceText(v.source)}", fontWeight = if (v.source.isOwner) FontWeight.Normal else FontWeight.Bold)
+    val c = MaterialTheme.colorScheme
+    val hard = pending.required == ConfirmClass.Hard
+    Column(Modifier.safeDrawingPadding()) {
+        Text("APPROVAL WINDOW · CAPTURE BLOCKED · OVERLAYS HIDDEN",
+            Modifier.fillMaxWidth().background(c.inverseSurface).padding(horizontal = 12.dp, vertical = 4.dp),
+            style = MaterialTheme.typography.labelSmall, color = c.inverseOnSurface)
+        Column(
+            Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            StatusLabel(when (pending.required) {
+                ConfirmClass.Hard -> "Needs your fingerprint"
+                ConfirmClass.Soft -> "Needs your OK"
+                ConfirmClass.Refuse -> "Not allowed by your rules"
+            })
+            Text("${r.verb.replaceFirstChar { it.uppercase() }}?", style = MaterialTheme.typography.headlineSmall)
+            Column {
+                KeyValue("App", r.app, mono = false)
+                Hairline()
+                KeyValue("Target", r.target, mono = false)
             }
+            // Untrusted sources first, in the warning form.
+            for (v in r.values.filter { !it.source.isOwner }) {
+                WarnBlock("! Not from you", "“${v.value}” comes from ${sourceText(v.source)}.")
+            }
+            val owned = r.values.filter { it.source.isOwner }
+            if (owned.isNotEmpty()) Hairline()
+            for (v in owned) {
+                Column {
+                    Text("“${v.value}”", style = MaterialTheme.typography.bodyLarge.copy(fontSize = 17.sp))
+                    Text("source: ${sourceText(v.source)}", style = LocalBallisticExtras.current.monoSmall, color = c.onSurfaceVariant)
+                }
+            }
+            Text(buildAnnotatedString {
+                withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append("Why I'm asking: ") }
+                append(r.reason)
+            }, style = MaterialTheme.typography.bodyMedium)
+            Hairline()
+            Disclosure("Exact operation (raw)", key = "op-${pending.id}") {
+                Text(operationText(r.operation), fontFamily = FontFamily.Monospace, style = LocalBallisticExtras.current.monoSmall)
+            }
+            status?.let { Text(it, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold) }
         }
-        Field("Why core asks", r.reason)
-        status?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            OutlinedButton(onClick = onDeny, modifier = Modifier.weight(1f)) { Text("Deny") }
-            Button(onClick = onApprove, modifier = Modifier.weight(1f)) { Text("Approve") }
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                BButton("Deny", onDeny, Modifier.weight(1f).height(56.dp))
+                BButton(if (hard) "Approve with fingerprint" else "Approve", onApprove, Modifier.weight(1f).height(56.dp),
+                    emphasis = true)
+            }
+            Text("Only your finger on this screen can approve. Ballistic's assistant can't press these buttons. Back denies.",
+                style = MaterialTheme.typography.bodySmall, color = c.onSurfaceVariant)
         }
-    }
-}
-
-@Composable
-private fun Field(name: String, value: String, mono: Boolean = false) {
-    Column {
-        Text(name, style = MaterialTheme.typography.labelLarge)
-        Text(value, fontFamily = if (mono) FontFamily.Monospace else FontFamily.Default)
     }
 }
 

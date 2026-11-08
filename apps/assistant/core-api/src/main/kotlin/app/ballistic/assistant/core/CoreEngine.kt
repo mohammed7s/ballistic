@@ -73,6 +73,11 @@ data class RunResult(
     @SerialName("blocked_by") val blockedBy: String? = null,
     /** A skill recorded from this verified run; store it and pass it back in [CoreOptions.skills]. */
     val skill: JsonElement? = null,
+    /**
+     * Terminal source excerpts for the owner (`{"status","items"}`; core/README.md §7 summary).
+     * [reason] already renders them. Shown, never fed back to a model.
+     */
+    @SerialName("owner_output") val ownerOutput: JsonElement? = null,
 )
 
 /** Set by Stop. Core checks it before every model call and immediately before every dispatch. */

@@ -30,11 +30,12 @@ core-api/            pure Kotlin/JVM; builds and tests without an Android SDK
   models/ModelDownload.kt, ManagedModel.kt  pinned catalogue, verified download/import, model library
   models/SpeedCheck.kt   short and ~2K-token prefill speed checks
 app/.../models/LiteRtLmDriver.kt  LiteRT-LM engine (CPU/GPU/Tensor NPU) behind the same port
-  session/PromptSession.kt  prompt-box state machine (gate, run, approval, Stop, log)
-  session/Labels.kt      result/evidence/action wording ("acknowledged" is never "sent")
+  session/PromptSession.kt  Ask thread state: gate, one core turn per message (converse), approval, Stop, log
+  session/ConversationStore.kt  the turns core returned (last 12), app-private conversation.json
+  session/Labels.kt      outcome labels and wording ("acknowledged" is never "sent"; an answer is the result)
 app/                 the Android application
   BallisticApp.kt        AppGraph: which adapter fills which port; app-scoped session
-  MainActivity.kt        tabs: Ask (prompt box), Activity (log), Settings
+  MainActivity.kt        first run, then the shell: Ask / Activity / Local AI tabs, Settings behind the gear
   gate/CommandGate.kt    BiometricPrompt before the first request of a session (SPEC §7.8)
   confirm/ConfirmActivity.kt   confirmation window (SPEC §7.1)
   confirm/InjectedInputFilter.kt  verifyInputEvent + device/source/flag checks
@@ -46,14 +47,17 @@ app/                 the Android application
   adapters/InstalledApps.kt      launchable apps (installed_apps, policy table)
   storage/SecretStore.kt         API key encrypted with a Keystore AES-GCM key
   storage/ModelsConfigStore.kt   models.json
-  ui/                            Compose screens
+  ui/Theme.kt, Components.kt      raw greyscale theme (UX_SYNTHESIS §6) and building blocks
+  ui/AppShell.kt                 top bar (mark, route label, gear), task bar with Stop, bottom tabs
+  ui/                            screens: Prompt (Ask), Activity, LocalAi, Settings, Capability, FirstRun
   src/main/jniLibs/<abi>/libballistic_core.so   built by scripts/build_core.sh; git-ignored
 app/src/debug/.../DebugTools.kt  debug builds only: adb file import, command-gate test PIN
 app/src/release/.../DebugTools.kt  release: the same names, doing nothing
 scripts/build_core.sh  Android libraries + host library + Kotlin binding
 ```
 
-App-private files: `files/policy.json`, `files/logs/actions.jsonl`, `files/models.json`, and
+App-private files: `files/policy.json`, `files/logs/actions.jsonl`, `files/models.json`,
+`files/conversation.json` (Ask's conversation: the turns core returned, last 12), and
 SharedPreferences `secrets`, which holds only ciphertext. Backup and device transfer exclude all of them.
 
 ## What is real and what is a stub
@@ -63,7 +67,7 @@ SharedPreferences `secrets`, which holds only ciphertext. Backup and device tran
 | Kotlin data shapes and JSON | Real. Tested against serde output of core/src/types.rs and every recorded screen in core/tests/screens. |
 | Ports | Real interfaces. Synchronous, because core calls them from its own thread and blocks on each call. |
 | Engine | **Real** when libballistic_core is in the APK and a model is configured: `UniffiCoreEngine` runs core's loop in-process (same loop, prompts, filter, checks and step events as the harness). Otherwise `FakeCoreEngine.demo()` replays a fixed script. The Ask and Settings tabs say which, and why ("no model configured", "libballistic_core is not in this build"). |
-| Prompt box | Real UI over `PromptSession`: gate check, one run at a time, steps as they arrive (action, why, outcome), Stop, result wording per ANDROID_APP.md. Each run card is collapsed by default: the active run shows the request with elapsed time and one plain progress line (`runStatusLine` in `session/Labels.kt`, built from known lifecycle strings and step metadata only, never model text, typed text or error bodies); a finished run shows one line (result and duration). The 48dp header row toggles details (latest six timestamped events while running, full feed afterwards, step list, evidence, error). Expansion is saved per run id and new events do not expand it. Stop stays in the input row; while awaiting approval the card keeps a Review approval button visible. |
+| Ask | Since the 9 Nov release (below) a conversation over `RustCore.converse`; the description that follows is the earlier task-only prompt box. Real UI over `PromptSession`: gate check, one run at a time, steps as they arrive (action, why, outcome), Stop, result wording per ANDROID_APP.md. Each run card is collapsed by default: the active run shows the request with elapsed time and one plain progress line (`runStatusLine` in `session/Labels.kt`, built from known lifecycle strings and step metadata only, never model text, typed text or error bodies); a finished run shows one line (result and duration). The 48dp header row toggles details (latest six timestamped events while running, full feed afterwards, step list, evidence, error). Expansion is saved per run id and new events do not expand it. Stop stays in the input row; while awaiting approval the card keeps a Review approval button visible. |
 | Command gate | Real BiometricPrompt (BIOMETRIC_STRONG). The session locks when no Ballistic activity is visible or the screen turns off. Passkey and voice are not built. |
 | Confirmation window | Real: FLAG_SECURE, overlays hidden, input filter, Back denies, a hard request needs a biometric bound to a per-operation key that signs the exact request. **Untested on a device.** |
 | Policy settings | Real table. Edits need the gate unlocked. A file that does not parse falls back to the defaults. |
@@ -320,3 +324,46 @@ symbol that dispatch 2.3.2 exports (symbol and source evidence in [LOCAL_AI.md](
 failed NPU start now names its cause (not a Tensor device, Ballistic's packaging, the vendor NPU
 stack, or a bundle for another chip) and shows the deciding LiteRT log line. This build has not
 been built, installed or measured on the phone yet.
+
+## Next release: greyscale UI, chat in Ask, run-card fixes — 9 November 2026 update
+
+The owner approved the raw greyscale design on 8 Nov ("The last UX/UI is decent. Let's include that
+in the next release"), with every UX_SYNTHESIS §8 question taking its default. Implemented in the
+app only; core is unchanged.
+
+- **Run-card fixes (from the owner's Pixel).** Ask shows at most the 3 most recent items
+  (`recentForAsk`); the rest are in Activity. A collapsed task shows the owner's request on line
+  1 with elapsed time and the plain result on line 2. `Labels.outcome` maps a run to a status
+  label (outlined, or inverted when it needs the owner) and a first-person line: a planner
+  answer (`RunResult.answer`, evidence `answer_values_sourced`) or source excerpts
+  (`owner_output`) are shown as the result, with value sources; a run that dispatched nothing
+  never says an input was accepted.
+- **Chat in Ask.** Each message is one `RustCore.converse` turn with the stored history. A
+  `reply` or `clarify` shows as plain text with the route used and "no phone actions"; a `task`
+  becomes a task card as soon as core observes, plans or reports a step, and its finished line
+  is core's own `TurnResult.text`. The app stores exactly `TurnResult.history` (last 12 turns,
+  `files/conversation.json`, excluded from backup), rebuilds the thread from it after a restart,
+  and offers Clear conversation. Activity lists tasks only. The demo engine replays its script as
+  a task turn and stores nothing.
+- **Visual release.** Theme tokens per UX_SYNTHESIS §6 (greys for dark and light following the
+  phone, no dynamic colour, 0–2dp shapes, monospace labels and values; the system monospace font
+  stands in for Roboto Mono, which is not bundled). Mint appears only on the live marker (task
+  box, task bar, running Activity entry) and as the task notification colour. Shell: greyscale B
+  mark, route label (outlined ON THIS PHONE, inverted LEAVES PHONE, tap for an explanation),
+  inverted REQUESTS LOCKED, gear to Settings, task bar with Stop on every tab while a turn is
+  active, bottom tabs Ask / Activity / Local AI. Ask, Activity, Local AI, Settings, the approval
+  window, a capability page generated from `AppGraph.capabilities()` and a four-step first run
+  follow `design/ballistic-merged-proposal.html`. Launcher icon redrawn from logo v1 (grey B,
+  mint chevron; an approximation, not final artwork).
+- **Unchanged behaviour.** The approval window change is layout only (FLAG_SECURE, overlay
+  hiding, touch and key filters, Back denies, the verified-lift window, biometric binding are the
+  same code); the injected-input checks still need to be re-run on a device. Local AI controls
+  call the same `LocalAiController` functions with the same enabling rules.
+- **Not done here.** Per-run "what was read" and approval records in Activity (need new log
+  records); route recorded per run in the action log (only this process's runs carry it);
+  long-press "run as task / answer only" override (needs a core option); streaming replies.
+
+Tests: `:core-api:test` covers the label mapping (answers, excerpts, nothing-dispatched,
+three-item limit, error lines) and the chat session with a scripted engine (`ChatSessionTest`);
+the scripted engine stands in for core, so these are not chat-model results. Build and phone
+evidence for this release is recorded separately; a successful build is not runtime proof.

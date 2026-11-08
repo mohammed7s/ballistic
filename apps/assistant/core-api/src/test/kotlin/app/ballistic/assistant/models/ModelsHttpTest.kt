@@ -4,6 +4,7 @@ package app.ballistic.assistant.models
 
 import app.ballistic.assistant.core.ChatMessage
 import app.ballistic.assistant.core.ModelRole
+import app.ballistic.assistant.core.Completion
 import app.ballistic.assistant.core.PortException
 import app.ballistic.assistant.core.Bounds
 import app.ballistic.assistant.core.CancelToken
@@ -186,6 +187,9 @@ class ModelsHttpTest {
                     hands = { acted++; HandsResult.Ok },
                     confirm = { confirmed++; ConfirmResult.Approved },
                     models = { role, messages, maxTokens ->
+                        // The app default runs core's deny-only judge before a state change; it
+                        // allows here, without an HTTP request, so the counts below are unchanged.
+                        if (role == ModelRole.Judge) Completion("""{"verdict":"allow"}""") else {
                         calls++
                         val text = when {
                             afterAction && calls == 1 -> """{"action":"tap","target":"e1"}"""
@@ -198,6 +202,7 @@ class ModelsHttpTest {
                         val signal = if (native) "\"tool_calls\":[{\"function\":{\"name\":\"PRIVATE_TOOL\",\"arguments\":\"PRIVATE_ARGS\"}}]" else "\"role\":\"assistant\""
                         replyOverride = """{"choices":[{"message":{$content$signal},"finish_reason":"${if (native) "tool_calls" else "stop"}"}]}"""
                         http.complete(role, messages, maxTokens)
+                        }
                     },
                 )
                 val before = requestCount

@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Compose draws everything; the platform theme only sets the window. -->
-    <style name="Theme.Ballistic" parent="android:Theme.Material.Light.NoActionBar" />
+    <!-- Compose draws everything; the platform theme only sets the window. Greys match ui/Theme.kt. -->
+    <style name="Theme.Ballistic" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">#FFE4E4E4</item>
+        <item name="android:colorAccent">#FF151515</item>
+    </style>
 </resources>

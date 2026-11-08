@@ -40,8 +40,11 @@ class UniffiCoreEngineTest {
         hands = { op -> acted += op; HandsResult.Ok },
         models = { role, messages, _ ->
             check(messages.first().role == "system")
-            roles += role
-            Completion(replies.getOrElse(roles.size - 1) { """{"action":"give_up","reason":"end of script"}""" }, Usage(10, 5))
+            // The app default runs core's deny-only judge before each state change; it allows.
+            if (role == ModelRole.Judge) Completion("""{"verdict":"allow"}""", Usage(10, 5)) else {
+                roles += role
+                Completion(replies.getOrElse(roles.size - 1) { """{"action":"give_up","reason":"end of script"}""" }, Usage(10, 5))
+            }
         },
         confirm = { ConfirmResult.Denied },
     )
@@ -60,7 +63,8 @@ class UniffiCoreEngineTest {
         assertEquals("asked", recorder.steps[0].why)
         assertEquals(TaskStatus.Failed, result.taskStatus, "the second plan gives up")
         assertEquals(ExecutionStatus.Executed, result.executionStatus)
-        assertTrue("planning" in recorder.activities && "acting" in recorder.activities)
+        // The activity lines UniffiCoreEngine emits around the planner call and the dispatch.
+        assertTrue("Waiting for planner model" in recorder.activities && "Dispatching an action" in recorder.activities, recorder.activities.toString())
     }
 
     @Test
@@ -189,8 +193,9 @@ class UniffiCoreEngineTest {
                 assertTrue("Delivery is on Wednesday." in result.reason)
                 assertTrue("app:example.notes" in result.reason)
                 assertTrue("coverage" in result.reason)
-                assertEquals("Source excerpts available; task completion is not confirmed",
-                    app.ballistic.assistant.session.resultLabel(result))
+                // The excerpts are the visible result (with core's caveats and sources), labelled EXCERPTS.
+                assertEquals(result.reason.trim(), app.ballistic.assistant.session.resultLabel(result))
+                assertEquals("EXCERPTS", app.ballistic.assistant.session.outcome(result).label)
             }
         }
     }
