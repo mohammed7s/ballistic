@@ -69,4 +69,9 @@ data class CoreOptions(
     @SerialName("max_steps") val maxSteps: Int = 15,
     val judge: Boolean = true,
     @SerialName("chat_history_turns") val chatHistoryTurns: Int = 12,
+    /**
+     * Skills core returned in earlier verified reports ([RunResult.skill]), passed back as they
+     * came. A run whose request matches one exactly replays it with every check still applied.
+     */
+    @EncodeDefault(EncodeDefault.Mode.NEVER) val skills: List<JsonElement> = emptyList(),
 )

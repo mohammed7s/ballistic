@@ -23,11 +23,15 @@ pub struct Options {
     pub judge: bool,
     /// Earlier conversation turns kept in the chat prompt (`chat.rs`), at most 50.
     pub chat_history_turns: u32,
+    /// Skills the host stored from earlier verified runs (`skills.rs`). A run whose request
+    /// matches one exactly replays it; every check still applies.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub skills: Vec<crate::skills::Skill>,
 }
 
 impl Options {
     pub fn app() -> Self {
-        Options { max_steps: 15, judge: true, chat_history_turns: crate::chat::DEFAULT_HISTORY_TURNS }
+        Options { max_steps: 15, judge: true, chat_history_turns: crate::chat::DEFAULT_HISTORY_TURNS, skills: vec![] }
     }
     pub fn harness() -> Self {
         Options { judge: false, ..Options::app() }

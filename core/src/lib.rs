@@ -15,6 +15,7 @@ pub mod agent;
 pub mod run;
 pub mod reader;
 pub mod judge;
+pub mod skills;
 pub mod readback;
 
 pub mod values;

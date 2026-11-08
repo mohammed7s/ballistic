@@ -68,6 +68,8 @@ data class RunResult(
     val answer: JsonElement? = null,
     /** `"judge"` when core's deny-only safety check stopped the run; [reason] says why. */
     @SerialName("blocked_by") val blockedBy: String? = null,
+    /** A skill recorded from this verified run; store it and pass it back in [CoreOptions.skills]. */
+    val skill: JsonElement? = null,
 )
 
 /** Set by Stop. Core checks it before every model call and immediately before every dispatch. */

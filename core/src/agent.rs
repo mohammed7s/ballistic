@@ -5,7 +5,7 @@ use std::io::{BufRead, Write};
 use std::time::Instant;
 use serde_json::{json, Value};
 use crate::{capabilities, verification, launch_completion, actions, bridge::Bridge, ports::*, run::{Host, Options},
-    readback::{self, Readback}, reader::{self, summary, ElementAnswer, ReaderPick}, judge::{self, Verdict}, values,
+    readback::{self, Readback}, reader::{self, summary, ElementAnswer, ReaderPick}, judge::{self, Verdict}, values, skills,
     screen_filter::{self, FilterContext, FilteredScreen}, types::*};
 
 const RULES: &str = include_str!("../prompts/planner.txt");
@@ -99,6 +99,13 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, optio
     let mut fact_sets: Vec<reader::facts::Facts> = Vec::new();
     // A facts read repeats only when its content or question changed.
     let mut facts_queries = Vec::<String>::new();
+    // Skills (§11): replay an exact-request skill instead of planning; record a verified run.
+    // A request carrying values the owner did not say neither replays nor records.
+    let mut replay = skills::Replay::find(&options.skills, request).filter(|_| task.tainted.is_empty());
+    let mut recorder = skills::Recorder::default();
+    if !task.tainted.is_empty() { recorder.spoil(); }
+    let mut replayed_steps = 0usize;
+    let mut replay_stopped: Option<usize> = None;
     let mut typed = Vec::new();
     let mut history = Vec::<String>::new();
     let mut apps = Vec::new();
@@ -145,6 +152,26 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, optio
         for (i,f) in fact_sets.iter().enumerate() { facts.push(f.planner_line(i+1,request)); }
         let app_names:Vec<_>=apps.iter().map(|a|a.label.as_str()).collect();
         let facts_block=if facts.is_empty() {String::new()} else {format!("Reader facts:\n{}\n",facts.join("\n"))};
+        // A replayed step re-finds its screen and target; otherwise the planner takes over here.
+        let mut replayed: Option<actions::PlannerReply> = None;
+        if let Some(r)=replay.as_mut() {
+            match r.next(&view,&screen) {
+                skills::Next::Act(a) if actions::resolve(&a,&view,&screen,&apps).is_ok() => {
+                    replayed_steps+=1;
+                    replayed=Some(actions::PlannerReply{action:a,why:"skill replay".into()});
+                },
+                skills::Next::Done => {
+                    replay=None;
+                    replayed=Some(actions::PlannerReply{action:Action::Done{evidence:"skill replay finished".into()},why:"skill replay".into()});
+                },
+                _ => {
+                    let n=replayed_steps+1;
+                    replay=None; replay_stopped=Some(n);
+                    history.push(format!("skill replay stopped at step {n}: screen or control differs; planning from here"));
+                    if history.len()>8 {history.remove(0);}
+                },
+            }
+        }
         let request_values=if task.tainted.is_empty() {String::new()} else {
             let named:Vec<String>=task.tainted.iter().map(|v|format!("{:?} (source {})",v.value,reader::source_tag(&v.source))).collect();
             format!("Request values not from the owner: {}\n",named.join(", "))
@@ -152,8 +179,9 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, optio
         let state=format!("Owner request: {request}\n{request_values}Apps: {}\nHistory: {}\n{facts_block}Screen {} / {}:\n{}",json!(app_names),history.join("\n"),screen.package,screen.activity,screen_filter::render(&view));
         let mut messages=vec![message("system",format!("{RULES}\nAction schema: {}",actions::ACTIONS_SCHEMA)),message("user",state)];
         messages[0].content.push_str(&format!("\n{}", capabilities::planner_instructions(screen.capabilities.as_ref())));
-        let mut parsed=None;
+        let mut parsed=replayed;
         for attempt in 0..2 {
+            if parsed.is_some() { break; }
             stop_if_cancelled!(step-1);
             let completion=host.complete(ModelRole::Planner,&messages,800)?;
             match actions::parse_reply(&completion.text).and_then(|r|{
@@ -193,6 +221,8 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, optio
         let reply=parsed.expect("validated reply");
         let action=reply.action;
         if !matches!(&action, Action::Read{..}) { read_queries.clear(); }
+        // A run that used content to choose or type cannot become a skill.
+        if matches!(&action, Action::Read{..}) { recorder.spoil(); }
         let mut outcome="ok".to_string();
         let mut done=false;
         let mut terminal=false;
@@ -423,6 +453,7 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, optio
                             verification=Verification::default();
                             outcome=if matches!(op,HandsOp::OpenApp{..}) {"opened_ui"} else {"host acknowledged input"}.into();
                             if let Action::Type{text,..}=&action {typed.push(text.clone());}
+                            recorder.executed(&action,&op,&view,&screen,taint.is_empty());
                             if confirmation_required {
                                 // An input acknowledgment is not an effect receipt. Read the screen
                                 // back (no dispatch, no content in any prompt), count the input
@@ -483,6 +514,12 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, optio
                 report["owner_facts"]=json!(fact_sets);
             }
             if judge_event==Some("block") { report["blocked_by"]=json!("judge"); }
+            if done {
+                if let Some(skill)=std::mem::take(&mut recorder).finish(request) { report["skill"]=json!(skill); }
+            }
+            if replayed_steps>0 || replay_stopped.is_some() {
+                report["skill_replay"]=json!({"steps":replayed_steps,"stopped_at":replay_stopped});
+            }
             return Ok(report);
         }
     }
