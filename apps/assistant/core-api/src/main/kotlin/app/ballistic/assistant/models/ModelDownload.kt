@@ -45,6 +45,12 @@ enum class ModelFormat(val fileName: String, val label: String) {
     /** The publisher requires a signed-in account that accepted its terms; no in-app download. */
     val gated: Boolean = false,
     val note: String = "",
+    /**
+     * Tokens (prompt plus output) a precompiled bundle holds, fixed when it was compiled; the
+     * Models port advertises it to core's context guard. Null: the runtime takes the owner's
+     * context setting, which is advertised instead.
+     */
+    val contextTokens: Int? = null,
 ) {
     val format: ModelFormat get() = if (runtime == ModelRuntime.LiteRtLm) ModelFormat.LiteRtLm else ModelFormat.Gguf
     val publisherFileName: String get() = fileName.ifEmpty { URI(url).path.substringAfterLast('/') }
@@ -72,6 +78,7 @@ enum class ModelFormat(val fileName: String, val label: String) {
         require(runtime == ModelRuntime.LiteRtLm || accelerator == Accelerator.Cpu)
         require(sourcePage.startsWith("https://huggingface.co/"))
         require(note.length <= 400)
+        require(contextTokens == null || contextTokens in 256..131072)
     }
 
     companion object {

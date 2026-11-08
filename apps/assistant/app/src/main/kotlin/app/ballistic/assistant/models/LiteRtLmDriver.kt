@@ -200,12 +200,13 @@ class LiteRtLmDriver(private val context: Context) : LocalDriver {
             val lastPrefill = info?.lastPrefillTokenCount ?: 0
             val decodeTokens = info?.lastDecodeTokenCount ?: 0
             val decodeRate = info?.lastDecodeTokensPerSecond?.takeIf { it > 0 }
-            // "Last prefill" covers only the final prefill chunk (measured: 2 tokens for a 2,008-token
-            // prompt), so the prompt size is the conversation's KV-cache count minus decoded tokens.
-            // When that is not larger than the last chunk (seen on a short prompt, where the KV
-            // count was below the decode count), the prompt size is reported as not measured (0).
+            // The last prefill when it covers the prompt (NPU), else the KV-cache count minus the
+            // decoded tokens (CPU, chunked prefill); 0 when neither shows it (LiteRtPromptTokens).
+            // This count goes to core as the call's usage.prompt_tokens.
             val cached = runCatching { call.getTokenCount() }.getOrNull()
-            val promptTokens = cached?.let { it - decodeTokens }?.takeIf { it > lastPrefill } ?: 0
+            val promptTokens = LiteRtPromptTokens.count(lastPrefill, cached, decodeTokens)
+            val prefillRate = info?.lastPrefillTokensPerSecond?.takeIf { it > 0 }
+                ?.takeIf { LiteRtPromptTokens.prefillCoversPrompt(lastPrefill, cached, decodeTokens) }
             val wallFirst = firstAt?.let { (it - started) / 1e6 }
             val firstTokenMs = info?.timeToFirstTokenInSecond?.takeIf { it > 0 }?.let { it * 1000 } ?: wallFirst
             val metrics = LocalMetrics(
@@ -217,6 +218,7 @@ class LiteRtLmDriver(private val context: Context) : LocalDriver {
                 firstTokenMs = firstTokenMs,
                 durationMs = (ended - started) / 1e6,
                 capped = decodeTokens >= maxTokens,
+                reportedPromptTokensPerSecond = prefillRate,
                 reportedGenerationTokensPerSecond = decodeRate,
             )
             Log.i(TAG, "LiteRT-LM call backend=$backend prompt_tokens=$promptTokens last_prefill_tokens=$lastPrefill " +

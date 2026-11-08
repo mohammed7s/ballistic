@@ -293,6 +293,13 @@ data class Usage(
 @Serializable
 data class Completion(val text: String, val usage: Usage = Usage())
 
+/**
+ * What the model a role is routed to can hold, prompt plus output (core/src/types.rs
+ * `ModelLimits`, used by core's context guard). Null: not known, so core enforces nothing.
+ */
+@Serializable
+data class ModelLimits(@SerialName("context_tokens") val contextTokens: Int? = null)
+
 /** What the owner is shown before a guarded action. Every value names its source. */
 @Serializable
 data class ConfirmRequest(

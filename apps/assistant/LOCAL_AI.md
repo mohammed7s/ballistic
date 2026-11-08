@@ -53,7 +53,26 @@ Face API's LFS metadata on 8 November 2026. Downloads are verified against both 
 | Gemma 3 1B Tensor G5 (`litert-community/Gemma3-1B-IT`, `…q8_ekv1280_Google_Tensor_G5.litertlm`) | LiteRT-LM | Tensor G5 NPU | 2,018,723,808 | `c418f40c…410a` | Gemma Terms of Use | **yes** |
 | Qwen3 0.6B LiteRT-LM (`litert-community/Qwen3-0.6B`) | LiteRT-LM | CPU (or GPU) | 613,722,264 | `c5f39b41…2f108` | Apache-2.0 | no |
 
-Full digests and revisions are in the JSON file. The two Tensor G5 entries are the bundles that
+Full digests and revisions are in the JSON file. The two Tensor G5 entries also carry
+`contextTokens`, the KV cache they were compiled with: 4,096 (Gemma 4 E2B) and 1,280 (Gemma 3
+1B). Other entries have none; their context is the owner's context setting.
+
+**Context limit for core.** The Models port advertises the loaded model's context to core
+(`Models.limits`, crossing the binding as `model_limits`): a compiled bundle's `contextTokens`,
+otherwise the context the runtime reported it started with (llama.cpp, LiteRT-LM CPU/GPU). The
+same limit applies to every role, since all roles share the one loaded model; a connected HTTP
+model advertises none. Core's context guard (core/README.md §12, "Context guard") measures every
+prompt against it and trims core-written history, old reader facts or chat turns, then lowers the
+output budget, in that order, or refuses the call with "prompt does not fit this model's
+4,096-token context". It never relies on the runtime to cut a prompt. Implemented and covered by
+JVM tests (`ContextLimitTest`, `UniffiCoreEngineTest`) and core's fake-port tests; not yet run
+on a phone. Core estimates prompt size (no Kotlin host supplies an exact tokenizer count): the
+estimate overstated recorded planner prompts by about 1.28x, so on the G5 bundle a planner
+prompt above roughly 2,570 real tokens loses its oldest history lines before the 800-token output
+budget is lowered. The Gemma 3 1B G5 bundle (1,280 tokens) cannot hold the planner's rules, so
+core refuses every agent run on it before asking the model.
+
+The two Tensor G5 entries are the bundles that
 Google's [Tensor SDK page](https://developers.google.com/edge/tensor-sdk/slm-compilation) links
 for Pixel 10. Google also lists a Tensor G5 "Mobile Actions" FunctionGemma bundle; its
 repository is gated and is not in this catalogue.
@@ -321,13 +340,22 @@ tokens; the planning assumption in SPEC.md used ~430 tok/s prefill measured on a
   planner call is about 3 s, on this phone and OS, for three calls.
 - Headroom: the largest prompt used 2,574 of 4,096 KV tokens. The planner may generate up to 800
   tokens, so a prompt above about 3,300 tokens (long history, busy screen, reader facts, chat
-  history) would not fit. A guard that measures the prompt against the bundle's context and
-  trims or refuses explicitly is required before relying on this model; it is not built yet.
+  history) would not fit. Since this measurement core has a context guard that measures every
+  prompt against the advertised 4,096 tokens and trims or refuses explicitly (see "Context limit
+  for core" above); it is implemented and tested with fake ports and JVM tests, not yet on the
+  phone.
 - Not established: planning quality (whether the steps were correct), sustained performance over
   many calls (heat, throttling, battery), peak memory, and the app's own Short and ~2K speed checks.
-- Known reporting gap: the app logged `prompt_tokens=0` for these calls (its KV-count derivation
-  returned nothing on the NPU path); the prompt sizes above are LiteRT-LM's `last_prefill_tokens`,
-  which on the NPU covered the whole prompt. Core therefore received zero prompt-token usage.
+- Reporting gap at the time: the app logged `prompt_tokens=0` for these calls; the prompt sizes
+  above are LiteRT-LM's `last_prefill_tokens`, which on the NPU covered the whole prompt. Cause:
+  the KV-derived size (KV tokens minus decoded tokens, e.g. 2,477 − 36 = 2,441) was accepted only
+  if strictly larger than the last prefill, and on the NPU it was equal. Core therefore received
+  zero prompt-token usage. Fixed since (`LiteRtPromptTokens`): the last prefill is used when it is
+  at least the KV-derived size (whole-prompt prefill, as on the NPU), otherwise the KV-derived size
+  (chunked CPU prefill), and 0 (not measured) only without a usable KV count; the last-prefill
+  rate is then reported as the prompt rate. The count reaches core as `usage.prompt_tokens`, and
+  core's step events now carry `prompt_tokens`/`completion_tokens`. The rule is unit-tested
+  against the numbers above; the rebuilt app has not yet been run on the phone.
 
 | Model | Backend (per runtime log) | Prompt tokens | First token | Prefill | Decode | Load | Peak memory |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |

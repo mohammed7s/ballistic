@@ -89,6 +89,25 @@ fun selectPhoneProfile(profiles: List<PhoneProfile>, manufacturer: String, model
     private fun rate(tokens: Int, ms: Double): Double? = if (tokens > 0 && ms > 0) tokens * 1000.0 / ms else null
 }
 @Serializable data class LocalReply(val text: String, val metrics: LocalMetrics)
+
+/**
+ * Prompt tokens of one LiteRT-LM call, from the counters LiteRT-LM 0.18.1 has: BenchmarkInfo's
+ * `lastPrefillTokenCount` and the conversation's KV-cache count (`getTokenCount`) minus the
+ * decoded tokens. The last prefill covers the whole prompt when it is at least the KV-derived
+ * size (measured on the Tensor G5 NPU: 2,441 = 2,477 KV - 36 decoded); on CPU it was only the
+ * final chunk (2 tokens of a 2,008-token prompt), and then the KV-derived size is the prompt.
+ * Without a usable KV count nothing shows which case applies, so the size is 0 (not measured).
+ */
+object LiteRtPromptTokens {
+    fun count(lastPrefillTokens: Int, kvTokens: Int?, decodeTokens: Int): Int {
+        val fromKv = kvTokens?.let { it - decodeTokens }?.takeIf { it > 0 } ?: return 0
+        return if (lastPrefillTokens >= fromKv) lastPrefillTokens else fromKv
+    }
+
+    /** True when the last prefill was the whole prompt, so its rate is the prompt's rate. */
+    fun prefillCoversPrompt(lastPrefillTokens: Int, kvTokens: Int?, decodeTokens: Int): Boolean =
+        lastPrefillTokens > 0 && count(lastPrefillTokens, kvTokens, decodeTokens) == lastPrefillTokens
+}
 enum class LocalPhase { Unloaded, Loading, Ready, Generating, Error }
 
 /** Which weights to load, on which runtime and backend. Chosen by the owner, never by a failure. */
@@ -97,6 +116,8 @@ data class LoadTarget(
     val modelName: String,
     val runtime: ModelRuntime = ModelRuntime.LlamaCpp,
     val backend: ComputeBackend = ComputeBackend.CPU,
+    /** A precompiled bundle's fixed context ([DownloadableModel.contextTokens]), if any. */
+    val contextTokens: Int? = null,
 )
 data class LoadSpec(val path: String, val context: Int, val threads: Int, val backend: ComputeBackend)
 
@@ -162,7 +183,9 @@ class LocalModels(private val drivers: Map<ModelRuntime, LocalDriver>, private v
             val driver = drivers[target.runtime] ?: throw LocalFailure("${target.runtime.label} is not available in this build")
             prepare(driver, cancelled)
             unloadAll()
-            val metadata = driver.load(LoadSpec(file.absolutePath, selection.contextTokens, selection.threads, target.backend))
+            val loaded = driver.load(LoadSpec(file.absolutePath, selection.contextTokens, selection.threads, target.backend))
+            // A compiled bundle's context is what it holds; otherwise what the runtime was started with.
+            val metadata = target.contextTokens?.let { loaded.copy(context = it) } ?: loaded
             active = driver
             mutable.value = LocalState(LocalPhase.Ready, metadata, (nanoTime() - start) / 1e6, target = target)
         } catch (e: Exception) {
@@ -177,6 +200,10 @@ class LocalModels(private val drivers: Map<ModelRuntime, LocalDriver>, private v
     }
     override fun complete(role: ModelRole, messages: List<ChatMessage>, maxTokens: Int): Completion =
         complete(messages, maxTokens) { false }
+
+    /** The loaded model's context for core's guard: every role shares the one loaded model. */
+    override fun limits(role: ModelRole): ModelLimits = ModelLimits(contextLimit())
+    fun contextLimit(): Int? = state.value.metadata?.context?.takeIf { it > 0 }
 
     fun complete(messages: List<ChatMessage>, maxTokens: Int, cancelled: () -> Boolean): Completion = owned {
         val driver = active
@@ -223,6 +250,10 @@ class RoutedModels(
     }
     @Synchronized override fun endRun() { active = null }
     override fun cancelRun() { stopped = true; local.cancel() }
+    override fun limits(role: ModelRole): ModelLimits = when (active ?: throw PortException.Host("No active model run")) {
+        ModelBackend.Local -> local.limits(role)
+        ModelBackend.Http -> http.limits(role)
+    }
     override fun complete(role: ModelRole, messages: List<ChatMessage>, maxTokens: Int): Completion {
         if (stopped) throw PortException.Host("Model run stopped")
         return when (active ?: throw PortException.Host("No active model run")) {

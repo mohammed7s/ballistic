@@ -78,6 +78,18 @@ class UniffiCoreEngine private constructor(val version: String) : CoreEngine {
             CoreJson.encodeToString(Completion.serializer(), completion)
         }
 
+        override fun modelLimits(role: String): String = port {
+            CoreJson.encodeToString(ModelLimits.serializer(), ports.models.limits(role(role)))
+        }
+
+        override fun countTokens(role: String, messagesJson: String): UInt? = port {
+            val messages = CoreJson.decodeFromString(ListSerializer(ChatMessage.serializer()), messagesJson)
+            ports.models.countTokens(role(role), messages)?.also { require(it >= 0) }?.toUInt()
+        }
+
+        private fun role(name: String): ModelRole = ModelRole.entries.firstOrNull { it.name.equals(name, ignoreCase = true) }
+            ?: throw PortException.Malformed("unknown model role $name")
+
         override fun confirm(requestJson: String): String = port {
             val confirmRequest = CoreJson.decodeFromString(ConfirmRequest.serializer(), requestJson)
             listener.onActivity("awaiting approval")
@@ -95,7 +107,7 @@ class UniffiCoreEngine private constructor(val version: String) : CoreEngine {
 
         override fun isCancelled(): Boolean = cancel.isCancelled
 
-        private inline fun port(call: () -> String): String = try {
+        private inline fun <T> port(call: () -> T): T = try {
             call()
         } catch (e: PortException) {
             throw when (e) {

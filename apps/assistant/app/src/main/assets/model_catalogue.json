@@ -67,6 +67,7 @@
     "accelerator": "tensor_g5_npu",
     "fileName": "gemma-4-E2B-it_Google_Tensor_G5.litertlm",
     "gated": false,
+    "contextTokens": 4096,
     "note": "Precompiled by Google for the Pixel 10 Tensor G5 NPU; runs on the NPU backend only. Compiled context: up to 4,096 tokens (prompt plus output). Measured on a Pixel 10 Pro, 8 Nov 2026: ~3K tokens/s prompt processing, ~0.9 s first token, 21 tokens/s generation."
   },
   {
@@ -81,6 +82,7 @@
     "accelerator": "tensor_g5_npu",
     "fileName": "Gemma3-1B-IT_q8_ekv1280_Google_Tensor_G5.litertlm",
     "gated": true,
+    "contextTokens": 1280,
     "note": "Gated: accept the Gemma terms on Hugging Face, download on a computer, then Import verified file. Compiled with a 1,280-token context, so the ~2K prefill check cannot fit."
   },
   {
