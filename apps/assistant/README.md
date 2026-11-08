@@ -26,6 +26,10 @@ core-api/            pure Kotlin/JVM; builds and tests without an Android SDK
   core/PolicyStore.kt    policy.json load (fail to defaults) / atomic save
   core/ActionLog.kt      append-only JSON-lines log of core's step events
   models/ModelsHttp.kt   Models port over an OpenAI-compatible endpoint, per-role config
+  models/LocalModels.kt  on-device Models port: one loaded model, one engine per runtime, no fallback
+  models/ModelDownload.kt, ManagedModel.kt  pinned catalogue, verified download/import, model library
+  models/SpeedCheck.kt   short and ~2K-token prefill speed checks
+app/.../models/LiteRtLmDriver.kt  LiteRT-LM engine (CPU/GPU/Tensor NPU) behind the same port
   session/PromptSession.kt  prompt-box state machine (gate, run, approval, Stop, log)
   session/Labels.kt      result/evidence/action wording ("acknowledged" is never "sent")
 app/                 the Android application
@@ -85,6 +89,21 @@ and are not committed. An APK built without them still installs and runs the fak
 so. The generated binding `core-api/.../core/ffi/ballistic_core.kt` is committed. Regenerate it
 with the script whenever `core/src/ffi.rs` changes. A binding that does not match the library
 fails at load, and the app falls back to the fake engine.
+
+The embedded llama.cpp build needs NDK `29.0.14206865` and CMake `3.31.6` from the SDK
+(`sdkmanager --install "ndk;29.0.14206865" "cmake;3.31.6"`); both were installed on the
+ThinkPad on 8 Nov 2026 for this purpose. LiteRT-LM (`litertlm-android`) and the Google Tensor NPU
+runtime (`litert-npu-runtime-google-tensor`) are Google Maven dependencies, so the first build
+needs network access. `jniLibs` use legacy (extracted) packaging so LiteRT-LM can load the Tensor
+dispatch library from `nativeLibraryDir`; see [LOCAL_AI.md](LOCAL_AI.md).
+
+**Signing and in-place updates.** A debug APK is signed with the building machine's
+`~/.android/debug.keystore`. Android refuses `adb install -r` over an install signed by another
+key (`INSTALL_FAILED_UPDATE_INCOMPATIBLE`), and uninstalling deletes the app's data (downloaded
+models, settings, the stored API key). The owner's Pixel install is signed by the Latitude's debug
+key (certificate SHA-256 `39de30ed…8236`); the ThinkPad's debug key is `4cc422a4…25a4`. To update
+the Pixel in place, sign the ThinkPad-built APK on the Latitude with `apksigner sign --ks
+~/.android/debug.keystore …` (the key never leaves the Latitude), then install the signed copy.
 
 `:core-api:test` includes `UniffiCoreEngineTest`, which runs the real core on the JVM through the
 binding with scripted ports. It needs the host library at `core/target/release/libballistic_core.so`

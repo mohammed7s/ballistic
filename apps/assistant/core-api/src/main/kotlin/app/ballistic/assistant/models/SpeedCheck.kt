@@ -21,9 +21,10 @@ enum class SpeedCheck(val label: String, val maxTokens: Int) {
     }
 
     companion object {
-        const val LONG_PREFILL_LINES = 90
+        /** 90 lines measured 2,530 Qwen3 prompt tokens with llama.cpp; 72 targets about 2,000. */
+        const val LONG_PREFILL_LINES = 72
 
-        /** Roughly 20-24 tokens per line for common tokenizers; deterministic for comparisons. */
+        /** Roughly 28 tokens per line for the Qwen3 tokenizer; deterministic for comparisons. */
         fun longPrefillBody(): String = buildString {
             append("Screen elements, one per line, in reading order.\n")
             for (i in 1..LONG_PREFILL_LINES) {

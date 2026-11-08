@@ -207,8 +207,8 @@ class ModelCatalogueTest {
         val messages = SpeedCheck.LongPrefill.messages()
         assertEquals("user", messages.last().role)
         val chars = messages.sumOf { it.content.length }
-        // ~4 characters per token for English-like text: comfortably around two thousand tokens.
-        assertTrue(chars in 6_500..11_000, "chars=$chars")
+        // 90 lines measured 2,530 Qwen3 tokens; 72 lines are about 6,000 characters (~2K tokens).
+        assertTrue(chars in 5_000..8_000, "chars=$chars")
         assertEquals(SpeedCheck.LongPrefill.messages(), messages)
         assertEquals("user", SpeedCheck.Short.messages().single().role)
     }

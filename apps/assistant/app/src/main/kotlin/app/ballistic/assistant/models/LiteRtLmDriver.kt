@@ -93,24 +93,48 @@ class LiteRtLmDriver(private val context: Context) : LocalDriver {
             cacheDir = context.cacheDir.resolve("litertlm").apply { mkdirs() }.path,
         )
         ExperimentalFlags.enableBenchmark = true
+        val loadStarted = System.currentTimeMillis() / 1000.0
         val candidate = try { Engine(config) } catch (t: Throwable) { throw startFailure(spec.backend, t) }
         try {
             candidate.initialize()
         } catch (t: Throwable) {
             runCatching { if (candidate.isInitialized()) candidate.close() }
-            throw startFailure(spec.backend, t)
+            val failure = startFailure(spec.backend, t)
+            val npuLog = if (spec.backend == ComputeBackend.NPU) npuRegistryLog(loadStarted) else null
+            throw if (npuLog == null) failure else LocalFailure("${failure.message} $npuLog")
         }
         engine = candidate
         backend = spec.backend
         context0 = maxTokens ?: 0
-        Log.i(TAG, "LiteRT-LM engine initialized backend=${runtimeBackend.name}")
+        val npuLog = if (spec.backend == ComputeBackend.NPU) npuRegistryLog(loadStarted) else null
+        Log.i(TAG, "LiteRT-LM engine initialized backend=${runtimeBackend.name} npu_log=${npuLog ?: "n/a"}")
         return LocalMetadata(
             description = "LiteRT-LM bundle",
             trainingContext = 0,
             context = context0,
-            backendReport = "LiteRT-LM engine started on ${runtimeBackend.name}. It was asked for this backend only and did not report a failure.",
+            backendReport = "LiteRT-LM engine started on ${runtimeBackend.name}. It was asked for this backend only and did not report a failure." +
+                (npuLog?.let { " $it" } ?: ""),
         )
     }
+
+    /**
+     * LiteRT logs whether it registered an NPU accelerator. The app may read its own process log;
+     * only a code-owned summary of the matching lines is returned, never the lines themselves.
+     */
+    private fun npuRegistryLog(sinceEpochSeconds: Double): String? = runCatching {
+        val process = ProcessBuilder("logcat", "-d", "-v", "epoch", "--pid", android.os.Process.myPid().toString(), "-s", "litert:*")
+            .redirectErrorStream(true).start()
+        val lines = process.inputStream.bufferedReader().use { it.readLines() }
+        process.waitFor()
+        val recent = lines.filter { line -> line.trim().substringBefore(' ').toDoubleOrNull()?.let { it >= sinceEpochSeconds - 1 } == true }
+        val failed = recent.any { "npu_registry" in it && "could not be loaded" in it }
+        val registered = recent.any { "RegisterAccelerator" in it && Regex("NPU|Npu|Tensor|Dispatch|GoogleTensor").containsMatchIn(it) }
+        when {
+            registered -> "LiteRT's log for this start shows an NPU accelerator registered."
+            failed -> "LiteRT's log for this start says its NPU accelerator could not be loaded."
+            else -> "LiteRT's log for this start has no NPU registration line."
+        }
+    }.getOrNull()
 
     private fun startFailure(backend: ComputeBackend, t: Throwable): LocalFailure {
         // Class name only: native messages can contain paths. Logcat also has LiteRT's own log.
@@ -177,24 +201,30 @@ class LiteRtLmDriver(private val context: Context) : LocalDriver {
             }
             val ended = System.nanoTime()
             val info = runCatching { call.getBenchmarkInfo() }.getOrNull()
-            val prefillTokens = info?.lastPrefillTokenCount ?: 0
+            val lastPrefill = info?.lastPrefillTokenCount ?: 0
             val decodeTokens = info?.lastDecodeTokenCount ?: 0
-            val prefillRate = info?.lastPrefillTokensPerSecond?.takeIf { it > 0 }
             val decodeRate = info?.lastDecodeTokensPerSecond?.takeIf { it > 0 }
+            // "Last prefill" covers only the final prefill chunk (measured: 2 tokens for a ~2.5K
+            // prompt), so the prompt size is the conversation's KV-cache count minus decoded tokens.
+            val cached = runCatching { call.getTokenCount() }.getOrNull()
+            val promptTokens = cached?.let { (it - decodeTokens).coerceAtLeast(lastPrefill) } ?: lastPrefill
             val wallFirst = firstAt?.let { (it - started) / 1e6 }
+            val firstTokenMs = info?.timeToFirstTokenInSecond?.takeIf { it > 0 }?.let { it * 1000 } ?: wallFirst
             val metrics = LocalMetrics(
-                promptTokens = prefillTokens,
+                promptTokens = promptTokens,
                 generatedTokens = decodeTokens,
-                promptMs = if (prefillRate != null) prefillTokens * 1000.0 / prefillRate else 0.0,
+                // Prompt processing = whole prompt over time to first token (includes framing).
+                promptMs = firstTokenMs ?: 0.0,
                 generationMs = if (decodeRate != null) decodeTokens * 1000.0 / decodeRate else 0.0,
-                firstTokenMs = info?.timeToFirstTokenInSecond?.takeIf { it > 0 }?.let { it * 1000 } ?: wallFirst,
+                firstTokenMs = firstTokenMs,
                 durationMs = (ended - started) / 1e6,
                 capped = decodeTokens >= maxTokens,
-                reportedPromptTokensPerSecond = prefillRate,
                 reportedGenerationTokensPerSecond = decodeRate,
             )
-            Log.i(TAG, "LiteRT-LM call backend=$backend prefill_tokens=$prefillTokens decode_tokens=$decodeTokens " +
-                "ttft_ms=${metrics.firstTokenMs?.toInt()} prefill_tps=${prefillRate?.toInt()} decode_tps=${decodeRate?.toInt()} max_tokens=${info?.maxNumTokens}")
+            Log.i(TAG, "LiteRT-LM call backend=$backend prompt_tokens=$promptTokens last_prefill_tokens=$lastPrefill " +
+                "last_prefill_tps=${info?.lastPrefillTokensPerSecond?.toInt()} decode_tokens=$decodeTokens decode_tps=${decodeRate?.toInt()} " +
+                "ttft_ms=${firstTokenMs?.toInt()} wall_first_ms=${wallFirst?.toInt()} kv_tokens=$cached max_tokens=${info?.maxNumTokens} " +
+                "marks=${info?.markDurationsInSecond?.entries?.joinToString(",") { "${it.key}:${"%.3f".format(it.value)}" }}")
             return LocalReply(text.toString(), metrics)
         } finally {
             conversation = null

@@ -196,11 +196,13 @@ class LocalAiController(
         val entry = library.entry(id)
         val (info, file) = library.resolve(id)
             ?: throw LocalFailure(if (entry?.gated == true) "Import the verified file for this model first" else "Download or import this model first")
+        val target = LoadTarget(id, entry?.name ?: info.name, entry?.runtime ?: ModelRuntime.LlamaCpp, entry.backendFor(selection.value))
+        // Say why an NPU bundle cannot run here before any memory or load attempt.
+        if (target.backend == ComputeBackend.NPU) TensorSupport.unavailableReason(app)?.let { throw LocalFailure(it) }
         val mem = memory()
         // This is a conservative admission check, not an exact peak-RAM estimate.
         if (mem.lowMemory || info.bytes > mem.availMem - 512L*1024*1024) throw LocalFailure("Not enough available system memory; close other apps or choose a smaller model")
         if (cancelled.get()) throw LocalFailure("Loading stopped")
-        val target = LoadTarget(id, entry?.name ?: info.name, entry?.runtime ?: ModelRuntime.LlamaCpp, entry.backendFor(selection.value))
         engine.load(file, selection.value, target, cancelled::get)
     }
     fun unload() = job { engine.unload() }
