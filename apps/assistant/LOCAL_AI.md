@@ -25,17 +25,151 @@ existing core safety limitations still apply. The judge role is not a completed 
 
 ## Using the app
 
-1. Unlock the phone, then open **Local AI**. If you manually locked requests in Ballistic, use
-   **Enable requests** first. There is no second app fingerprint prompt.
-2. In **Models**, open the dropdown. Each entry shows size, runtime, the hardware it was built
-   for, and whether it is downloaded, gated or active.
-3. **Download** shows the file, size, licence and storage needed; confirm **Download & use on
-   device**. No transfer begins just by opening the screen. Ballistic checks the byte count and
-   SHA-256, keeps the file beside the other models, selects on-device inference and loads it.
-4. **Use** switches models: it unloads whatever is loaded, selects that model on device and
-   loads it. **Delete** removes only that managed copy. If loading fails, nothing is loaded and
-   nothing else is tried; the verified file stays for a later attempt.
-5. Run **Short check** and **~2K prefill check**, then return to Ask.
+Local AI was simplified on 9 November 2026 (owner: "too complicated, too much info"). The main
+page shows only four things:
+
+- **Current model:** its name and state (Ready, Not loaded, Loading, Didn't load), "Runs on this
+  phone · Tensor chip" (or CPU, or graphics chip), and a plain speed line such as "About 4 s per
+  step", with **Change model** and **Unload** (or **Load**).
+- **Where AI runs:** On this phone or Connected server. Unchanged, and still on this page.
+- **Speed check:** one **Test** button. It runs the realistic ~2K-token check and shows the last
+  result as "first word 0.9 s · 16 words/s". The last result for each model is kept across
+  restarts.
+- **Advanced ›:** everything else. That is the short and ~2K checks with token numbers, the
+  engine (backend) for the current model, constrained planner output, context, suggested
+  settings, memory, storage and GGUF import, runtime versions, Tensor information, model
+  metadata, the runtime log line, licences and the no-fallback statement.
+
+The speed words are estimates from the last ~2K check, not a measured phone task:
+
+- "Per step" is the first-token time plus 60 output tokens at the measured decode rate. Sixty
+  tokens is about one planner action.
+- "Words/s" is the decode rate in tokens per second × 0.75.
+
+Advanced explains both and shows the raw numbers.
+
+Steps:
+
+1. Unlock the phone and open **Local AI**. If you locked requests in Ballistic, tap **Enable**
+   first. There is no second app fingerprint prompt.
+2. **Change model** opens a short picker:
+   - **Recommended for this phone** lists two models, the best and a small one, each in plain
+     words with its size. On a Tensor G5 phone the best is Gemma 4 E2B · Tensor G5; the small
+     one is the Qwen3 0.6B starter. On other phones the best is Qwen3 1.7B (llama.cpp, CPU).
+   - **More models** holds the rest. Gated entries appear only there.
+   - Bundles built for the Tensor NPU are hidden on phones whose chip doesn't report Google
+     Tensor.
+   - Rules and tests: `core-api` `ModelPicker`, `ModelPickerTest`.
+3. **Download** asks with one line, such as "3.2 GB download, checked after download". Its
+   **Details** shows the file, publisher, licence, storage needed and the provenance below.
+   Nothing transfers until you confirm. Ballistic then checks the byte count and SHA-256, keeps
+   the file beside your other models, selects on-phone AI and loads the model.
+4. **Use** switches models: it unloads whatever is loaded, selects that model and loads it.
+   **Delete** (in a model's Details) removes only that managed copy. If loading fails, nothing
+   is loaded and nothing else is tried; the verified file stays for a later attempt.
+5. The engine (backend) is picked automatically for each model: the first entry in its list
+   (NPU for a Tensor G5 bundle, GPU for the generic LiteRT-LM bundle, CPU for GGUF). To pick
+   another for an entry that offers one, use **Advanced › Engine for this model**. Nothing
+   switches after a failure.
+6. Ask: when the chosen model is installed but not loaded (after every app start), **Send**
+   loads it first and then sends. The line above the composer says so, and says why whenever
+   Send cannot send.
+
+Download, verification, loading and the no-fallback rule are unchanged by the redesign.
+
+**Model provenance.** Each model's **Details** shows:
+
+- the publisher and repository on Hugging Face, the file name and the pinned revision (short);
+- the exact byte count and the expected SHA-256 in full (selectable);
+- after a download or verified import: "Verified on this phone <date>: size and SHA-256 match".
+  Copies verified by an earlier build show no date, because the date was not recorded then;
+- for entries that were also checked on a computer: the date of that check (`hashRechecked` in
+  the catalogue; see below).
+
+## Checking a model yourself
+
+The catalogue (`app/src/main/assets/model_catalogue.json`) pins each file by URL, at a fixed
+Hugging Face commit, with its byte size and SHA-256. Ballistic refuses any file whose size or
+SHA-256 differs. You can check the same thing on a computer:
+
+```bash
+# URL, bytes and sha256 from the entry in model_catalogue.json (or the model's Details)
+curl -L --fail -o model.file "<url>"
+stat -c %s model.file   # must equal "bytes"
+sha256sum model.file    # must equal "sha256"
+```
+
+If both match, the file is the publisher's file at that revision. It is the same file the phone
+accepts. **Import verified file** takes it from a computer download too, for example a gated
+entry downloaded with a signed-in Hugging Face account. On the phone, compare a model's
+Details with the catalogue entry. The SHA-256 shown there is the one the phone checked against.
+
+**Double-checked on 9 November 2026.** Each non-gated entry was downloaded again from its pinned
+URL, without an account, into a temporary directory on a development computer (the Latitude,
+and the ThinkPad for the Qwen3 0.6B GGUF). It was compared with `stat` + `sha256sum`, and the
+file was then deleted. All six matched the catalogue's byte count and SHA-256:
+
+| Entry | Bytes | SHA-256 | Result |
+| --- | ---: | --- | --- |
+| Qwen3 0.6B · Q8 | 639,446,688 | `9465e63a…bb031` | match |
+| Qwen3 1.7B · Q8 | 1,834,426,016 | `061b54da…0cb1a` | match |
+| Gemma 3 1B · Q8 GGUF | 1,069,306,368 | `b205840c…10d5` | match |
+| Gemma 4 E2B · LiteRT-LM | 2,588,147,712 | `18193810…a63c` | match |
+| Gemma 4 E2B · Tensor G5 | 3,206,299,658 | `72d05606…84191` | match |
+| Qwen3 0.6B · LiteRT-LM | 613,722,264 | `c5f39b41…2f108` | match |
+| Gemma 3 1B · Tensor G5 (gated) | 2,018,723,808 | `c418f40c…410a` | **not re-checked** (needs a signed-in account) |
+
+The six entries carry `"hashRechecked": "2026-11-09"` in the catalogue and show it in Details.
+This confirms that the pinned URLs serve the pinned bytes today. It does not review the model
+contents.
+
+## Constrained output (optional)
+
+**llama.cpp: implemented, off by default.** The embedded llama.cpp (80d2c0c2c56e) already links
+`llama-common`, which provides `json_schema_to_grammar`. Its sampler API provides
+`llama_sampler_init_grammar`. Read in the pinned source:
+`common/json-schema-to-grammar.h`, `include/llama.h` and `common/sampling.cpp`.
+
+- **Engine.** `engine.cpp` takes an optional JSON Schema per call and converts it to GBNF,
+  cached, with `force_gbnf`. Decoding stays greedy, using the same rejection scheme as
+  `common_sampler_sample`: the greedy pick is checked against the grammar, and only a rejected
+  pick masks the whole vocabulary. JNI passes the schema as nullable UTF-8 bytes.
+- **Which calls are constrained.** `LocalModels` asks the host for each role's schema. Only a
+  driver with `supportsJsonSchema` (llama.cpp) receives it, and speed checks never do.
+- **Which schema.** The app passes core's own `core/schema/actions.json`, packaged as an asset
+  from that single copy. It goes to the planner only, and only when **Advanced › Planner output
+  › Constrained** is on. Chat, reader and verifier are never constrained, and core still
+  validates every action.
+- **Tested:** JVM tests (`ConstrainedOutputTest`) and a host native smoke on the ThinkPad
+  (`engine_test.cpp`):
+  - `actions.json` converts to a 6,611-byte grammar;
+  - with the SmolLM2-135M fixture, a constrained reply parsed as `{"action":"open_app",…}`.
+- **Not tested:** constrained output on a phone, or its effect on task quality or speed. The
+  default stays off until it is measured.
+
+**LiteRT-LM 0.18.1: exists, not implemented here.** Read in the `google-ai-edge/LiteRT-LM` source at
+tag v0.18.1 and in the pinned AAR. Not run on a phone.
+
+- **API.** The Kotlin API has `ResponseFormat.json(schema)` / `ResponseFormat.regex(..)`, the
+  last parameter of `Conversation.sendMessage`. It needs
+  `ConversationConfig(enableResponseFormat = true)`, otherwise Kotlin throws
+  `IllegalArgumentException`.
+- **Engine and library.** The format is applied by llguidance 1.3.0. The pinned AAR's
+  `liblitertlm_jni.so` contains `llg_constraint_provider` strings.
+- **NPU.** Constraints appear to apply on the NPU:
+  - the NPU executor (`llm_litert_npu_compiled_model_executor.cc`) dequantizes the logits to the
+    CPU, lets the constrained decoder mask them, and then samples greedily;
+  - speculative (MTP) decoding is bypassed while a constraint is active;
+  - no backend-unsupported error exists for constraints.
+- **Caveats in the source.**
+  - With automatic tool calling on, Kotlin drops the `ResponseFormat`.
+  - The conversation's constraint is not reset between turns. `LiteRtLmDriver.generate`
+    creates a fresh conversation for every call, so a constraint could not carry over to
+    another role.
+  - `ExperimentalFlags.enableConversationConstrainedDecoding` is a different feature (Gemma
+    tool-call constraints).
+- **Schema support.** Which JSON-schema features llguidance accepts (`oneOf`, `const`,
+  `pattern`, `["string","null"]`) was not checked.
 
 ## Model catalogue
 

@@ -367,3 +367,30 @@ Tests: `:core-api:test` covers the label mapping (answers, excerpts, nothing-dis
 three-item limit, error lines) and the chat session with a scripted engine (`ChatSessionTest`);
 the scripted engine stands in for core, so these are not chat-model results. Build and phone
 evidence for this release is recorded separately; a successful build is not runtime proof.
+
+## Send fix, simpler Local AI, model provenance, constrained output — 9 November 2026 update
+
+- **Send in Ask.**
+  - **Symptom.** The owner reported that tapping Send on the Pixel did nothing.
+  - **Cause, read from the code.** After every app start, including every update, the chosen
+    on-phone model is installed but not loaded. In that state Send was disabled, and the
+    greyscale disabled style is hard to tell apart from enabled. The only Load control was a
+    row at the top of the thread, which scrolls out of view once a conversation exists.
+  - **Fix.** The composer (field, button, and a status line above them) now comes from one pure
+    function, `core-api` `session/composerView`, tested in `ComposerTest`.
+    - Installed but not loaded: Send runs the same load job as Local AI (`AppGraph.loadThenSend`)
+      and then submits. If the load fails, nothing is sent and the text goes back to the field.
+    - Every disabled state shows its reason, and the keyboard's Send key does the same as the
+      button.
+  - **Phone confirmation:** pending (see the delivery report).
+- **Local AI simplified.** The main page has the current model, where AI runs, one speed Test and
+  Advanced ›. There is a short model picker and an Advanced page; see
+  [LOCAL_AI.md](LOCAL_AI.md#using-the-app). Download, verification, loading and no-fallback
+  behaviour are unchanged.
+- **Provenance.** Each model's Details shows the publisher, file, pinned revision, size and
+  expected SHA-256, and "Verified on this phone <date>". [LOCAL_AI.md](LOCAL_AI.md#checking-a-model-yourself)
+  explains how to check a file on a computer, and lists the six catalogue entries re-checked on
+  9 Nov 2026 (all matched; the gated entry was not re-checked).
+- **Constrained output.** The planner can optionally be held to core's action schema with
+  llama.cpp's grammar sampling (Advanced, off by default). For LiteRT-LM, what exists is
+  recorded only; see [LOCAL_AI.md](LOCAL_AI.md#constrained-output-optional).
