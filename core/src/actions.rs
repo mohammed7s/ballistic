@@ -54,7 +54,14 @@ pub enum ActionError {
     NoSuchContent(u32),
     #[error("{0} must not be empty")]
     Empty(&'static str),
+    #[error("answer value {0:?} is not in the owner's request, a control label or a reader fact; read the content with shape facts first, or answer without that value")]
+    UnsourcedAnswer(String),
+    #[error("answer text must be at most {MAX_ANSWER_CHARS} characters")]
+    LongAnswer,
 }
+
+/// Longest planner answer core accepts.
+pub const MAX_ANSWER_CHARS: usize = 600;
 
 /// A parsed reply: the action and the planner's short reason (logged, not executed).
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -400,6 +407,46 @@ pub fn confirmation_reason(action: &Action, view: &FilteredScreen) -> Option<Str
         }
         _ => None,
     }
+}
+
+/// The taint rule (core/README.md §7 rule 2) for typed text: every number, phone number, amount
+/// or link in it that is not in the owner's request or a control label on this screen, with
+/// its source. `carried` values (in the request, but not the owner's: see `agent::Task`) keep
+/// their tags even though the request contains them; reader `facts` keep theirs unless the
+/// owner or a label also has the value; anything else is the planner's own text
+/// (`model:planner`). Non-empty means a hard confirmation that names each value and source.
+pub fn tainted_values(action: &Action, view: &FilteredScreen, request: &str, carried: &[Tagged], facts: &[Tagged]) -> Vec<Tagged> {
+    let Action::Type { text, .. } = action else { return vec![] };
+    let labels: Vec<&str> = view.elements.iter().filter_map(|e| e.label.as_deref()).collect();
+    let provenance = crate::values::Provenance::new(&[request], &labels, facts);
+    provenance.tag_with(text, carried, &Source::Model("planner".into())).into_iter()
+        .filter(|(_, source)| !source.is_owner())
+        .map(|(found, source)| Tagged { value: found.raw, source })
+        .collect()
+}
+
+/// Answer provenance (core/README.md §7): every number, phone number, amount or link in an
+/// answer must come from the owner's request, a control label on this screen, a value carried
+/// into the request with its source, or a reader fact. Returns every value with its source, or
+/// the first value that has none.
+pub fn answer_values(text: &str, view: &FilteredScreen, request: &str, carried: &[Tagged], facts: &[Tagged]) -> Result<Vec<Tagged>, ActionError> {
+    if text.trim().is_empty() { return Err(ActionError::Empty("text")); }
+    if text.chars().count() > MAX_ANSWER_CHARS { return Err(ActionError::LongAnswer); }
+    let labels: Vec<&str> = view.elements.iter().filter_map(|e| e.label.as_deref()).collect();
+    let provenance = crate::values::Provenance::new(&[request], &labels, facts);
+    let unsourced = Source::Model("planner".into());
+    let tagged = provenance.tag_with(text, carried, &unsourced);
+    if let Some((found, _)) = tagged.iter().find(|(_, s)| *s == unsourced) {
+        return Err(ActionError::UnsourcedAnswer(found.raw.clone()));
+    }
+    Ok(tagged.into_iter().map(|(found, source)| Tagged { value: found.raw, source }).collect())
+}
+
+/// The confirmation wording for [`tainted_values`].
+pub fn taint_reason(values: &[Tagged]) -> String {
+    let named: Vec<String> = values.iter()
+        .map(|v| format!("{:?} from {}", v.value, crate::reader::source_tag(&v.source))).collect();
+    format!("type a value that is not in your request: {}", named.join(", "))
 }
 
 /// Short form for the history and logs: `tap e7`, `type e4 "Nora" submit`.

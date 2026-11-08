@@ -56,6 +56,7 @@ data class ModelsConfig(
 ) {
     fun endpoint(role: ModelRole): Endpoint = when (role) {
         ModelRole.Planner -> planner
+        ModelRole.Chat -> planner
         ModelRole.Reader -> reader ?: planner
         ModelRole.Judge -> judge ?: reader ?: planner
         ModelRole.Verifier -> verifier ?: planner

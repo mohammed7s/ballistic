@@ -61,6 +61,15 @@ data class RunResult(
     val verification: Verification = Verification(),
     @SerialName("failure_category") val failureCategory: String? = null,
     val stopped: Boolean = false,
+    /**
+     * A planner answer for the owner: `{"text","display","values":[Tagged]}`. [reason] already
+     * holds `display` (the text with each value's source). Shown, never fed back to a model.
+     */
+    val answer: JsonElement? = null,
+    /** `"judge"` when core's deny-only safety check stopped the run; [reason] says why. */
+    @SerialName("blocked_by") val blockedBy: String? = null,
+    /** A skill recorded from this verified run; store it and pass it back in [CoreOptions.skills]. */
+    val skill: JsonElement? = null,
 )
 
 /** Set by Stop. Core checks it before every model call and immediately before every dispatch. */
@@ -88,6 +97,20 @@ interface CoreEngine {
      * thread for the whole run; never call on the main thread.
      */
     fun run(request: String, maxSteps: Int, ports: HostPorts, listener: RunListener, cancel: CancelToken): RunResult
+
+    /**
+     * One conversation turn: [history] is what earlier turns returned in [TurnResult.history],
+     * [message] the owner's new words. A task turn runs the loop on [ports] (its steps reach
+     * [listener]); a reply calls only the chat model. Blocks; never call on the main thread.
+     * Engines without a conversation path say so in a fixed turn and call no port.
+     */
+    fun converse(
+        history: List<ChatTurn>, message: String, options: CoreOptions,
+        ports: HostPorts, listener: RunListener, cancel: CancelToken,
+    ): TurnResult = TurnResult(
+        kind = TurnKind.NotUnderstood,
+        text = "I can't hold a conversation with this engine ($description).",
+    )
 }
 
 /**
@@ -113,6 +136,23 @@ class RustCore(
         val handle = currentCoroutineContext()[Job]?.invokeOnCompletion { token.cancel() }
         try {
             return withContext(dispatcher) { engine.run(request, maxSteps, ports, listener, token) }
+        } finally {
+            handle?.dispose()
+            active.compareAndSet(token, null)
+        }
+    }
+
+    /**
+     * One conversation turn (see [CoreEngine.converse]). Shares the one-active-run rule and Stop
+     * with [run]: a task turn is a run.
+     * @throws IllegalStateException if a run is already active.
+     */
+    suspend fun converse(history: List<ChatTurn>, message: String, options: CoreOptions, listener: RunListener): TurnResult {
+        val token = CancelToken()
+        check(active.compareAndSet(null, token)) { "a run is already active" }
+        val handle = currentCoroutineContext()[Job]?.invokeOnCompletion { token.cancel() }
+        try {
+            return withContext(dispatcher) { engine.converse(history, message, options, ports, listener, token) }
         } finally {
             handle?.dispose()
             active.compareAndSet(token, null)

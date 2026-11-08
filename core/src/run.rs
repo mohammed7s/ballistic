@@ -3,12 +3,46 @@
 //! (`agent::run`); the Android and iOS shells reach it through UniFFI (`ffi.rs`). Both get the
 //! same step events and the same report.
 
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::agent;
 use crate::bridge::Bridge;
 use crate::ports::*;
 use crate::types::*;
+
+/// What a host may set per call (core/README.md §12). The app and the harness differ only in
+/// their defaults: the deny-only judge (§8) is on for the app and off for the harness, so
+/// benchmark runs stay comparable with earlier ones. Missing fields take the app defaults.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct Options {
+    /// Step budget of a task, including one started from a conversation turn.
+    pub max_steps: u32,
+    /// One `judge` model call before every state-changing action. It can only block.
+    pub judge: bool,
+    /// Earlier conversation turns kept in the chat prompt (`chat.rs`), at most 50.
+    pub chat_history_turns: u32,
+    /// Skills the host stored from earlier verified runs (`skills.rs`). A run whose request
+    /// matches one exactly replays it; every check still applies.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub skills: Vec<crate::skills::Skill>,
+}
+
+impl Options {
+    pub fn app() -> Self {
+        Options { max_steps: 15, judge: true, chat_history_turns: crate::chat::DEFAULT_HISTORY_TURNS, skills: vec![] }
+    }
+    pub fn harness() -> Self {
+        Options { judge: false, ..Options::app() }
+    }
+}
+
+impl Default for Options {
+    fn default() -> Self {
+        Options::app()
+    }
+}
 
 /// Everything the loop needs from a host: the four ports, somewhere to put step events, and
 /// whether the owner pressed Stop. Core checks [`Host::cancelled`] before every observation,
@@ -84,6 +118,7 @@ impl Host for Ports<'_> {
 
 /// Runs `request` to a terminal report. `log` receives each step event (the object the harness
 /// receives as `{"ask":"log","event":...}`). A stop returns a report with `"stopped": true`.
+/// Harness options: no judge. Hosts that want the app defaults call [`run_with_options`].
 #[allow(clippy::too_many_arguments)]
 pub fn run(
     request: &str,
@@ -97,6 +132,41 @@ pub fn run(
 ) -> PortResult<Value> {
     let mut host = Ports { screen, hands, models, confirm, log, cancelled, tools: None };
     agent::drive(&mut host, request, max_steps)
+}
+
+/// [`run`] with explicit [`Options`]; `options.max_steps` is ignored in favour of `max_steps`.
+#[allow(clippy::too_many_arguments)]
+pub fn run_with_options(
+    request: &str,
+    max_steps: u32,
+    options: &Options,
+    screen: &mut dyn Screen,
+    hands: &mut dyn Hands,
+    models: &mut dyn Models,
+    confirm: &mut dyn Confirm,
+    log: &mut dyn FnMut(&Value),
+    cancelled: &dyn Fn() -> bool,
+) -> PortResult<Value> {
+    let mut host = Ports { screen, hands, models, confirm, log, cancelled, tools: None };
+    agent::drive_task(&mut host, &agent::Task::owner(request), max_steps, options)
+}
+
+/// One conversation turn (`chat.rs`): the history the host keeps, the owner's new message.
+/// A `task` turn runs the agent loop on the same ports; a `reply` never reaches Hands.
+#[allow(clippy::too_many_arguments)]
+pub fn converse(
+    history: &[crate::chat::Turn],
+    message: &str,
+    options: &Options,
+    screen: &mut dyn Screen,
+    hands: &mut dyn Hands,
+    models: &mut dyn Models,
+    confirm: &mut dyn Confirm,
+    log: &mut dyn FnMut(&Value),
+    cancelled: &dyn Fn() -> bool,
+) -> PortResult<crate::chat::TurnResult> {
+    let mut host = Ports { screen, hands, models, confirm, log, cancelled, tools: None };
+    crate::chat::converse(&mut host, history, message, options)
 }
 
 /// The same loop with an optional read-only Tools host port. No request variants are

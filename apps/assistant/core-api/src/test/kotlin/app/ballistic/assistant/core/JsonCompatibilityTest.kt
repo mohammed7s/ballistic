@@ -105,6 +105,26 @@ class JsonCompatibilityTest {
         same(ConfirmResult.serializer(), ConfirmResult.Approved, "\"approved\"")
     }
 
+    /** Literals from core/src/chat.rs and run.rs serde forms (core/tests/chat_turns.rs, 8 Nov 2026). */
+    @Test
+    fun chatTurnsAndOptions() {
+        same(ModelRole.serializer(), ModelRole.Chat, "\"chat\"")
+        same(Tagged.serializer(), Tagged("+1 555 0100", Source.Model("planner")), """{"value":"+1 555 0100","source":{"kind":"model","detail":"planner"}}""")
+        same(ChatTurn.serializer(), ChatTurn(TurnSource.Owner, "hello"), """{"source":"owner","text":"hello"}""")
+        same(
+            ChatTurn.serializer(),
+            ChatTurn(TurnSource.TaskResult, "Task: open Clock → opened, not confirmed", listOf(Tagged("+1 555 0100", Source.App("example.sms")))),
+            """{"source":"task_result","text":"Task: open Clock → opened, not confirmed","values":[{"value":"+1 555 0100","source":{"kind":"app","detail":"example.sms"}}]}""",
+        )
+        same(CoreOptions.serializer(), CoreOptions(), """{"max_steps":15,"judge":true,"chat_history_turns":12}""")
+        val turn = RecordJson.decodeFromString(
+            TurnResult.serializer(),
+            """{"kind":"reply","text":"Hi.","values":[],"request":null,"report":null,"error":null,"history":[{"source":"owner","text":"hello"},{"source":"assistant","text":"Hi."}]}""",
+        )
+        assertEquals(TurnKind.Reply, turn.kind)
+        assertEquals(listOf(ChatTurn(TurnSource.Owner, "hello"), ChatTurn(TurnSource.Assistant, "Hi.")), turn.history)
+    }
+
     @Test
     fun modelsAndCapabilities() {
         same(ModelRole.serializer(), ModelRole.Verifier, "\"verifier\"")

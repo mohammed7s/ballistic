@@ -63,21 +63,68 @@ pub trait HostPorts: Send + Sync {
 /// Runs `request` to the end and returns the final line the harness also receives:
 /// `{"finished":true,"report":{...}}`, or `{"finished":true,"error":"..."}` if a port failed in
 /// a way the loop does not handle itself (the run stopped; effects already reported in step
-/// events stand).
+/// events stand). Uses the app's default [`Options`](crate::run::Options) (judge on).
 #[uniffi::export]
 pub fn run(request: String, max_steps: u32, host: Box<dyn HostPorts>) -> String {
+    run_with_options(request, max_steps, String::new(), host)
+}
+
+/// [`run`] with options as JSON (`{"judge":true,"chat_history_turns":12,"max_steps":15,
+/// "skills":[...]}`, every field optional, missing fields take the app defaults; `max_steps`
+/// here is ignored in favour of the argument; `skills` are the `skill` objects of earlier
+/// verified reports). Unknown fields or a malformed object end with an `error` line and no
+/// port call.
+#[uniffi::export]
+pub fn run_with_options(request: String, max_steps: u32, options_json: String, host: Box<dyn HostPorts>) -> String {
+    let options = match options(&options_json) {
+        Ok(o) => o,
+        Err(e) => return json!({"finished": true, "error": e}).to_string(),
+    };
     let host = host.as_ref();
     let mut log = |event: &Value| host.log(event.to_string());
     let cancelled = || host.is_cancelled();
     // The four ports are one object on the shell side; `run::run` takes them separately, so
     // lend it four views of the same host. Every shell method takes `&self`.
     let (mut screen, mut hands, mut models, mut confirm) = (Json(host), Json(host), Json(host), Json(host));
-    let result = crate::run::run(&request, max_steps, &mut screen, &mut hands, &mut models, &mut confirm, &mut log, &cancelled);
+    let result = crate::run::run_with_options(&request, max_steps, &options, &mut screen, &mut hands, &mut models, &mut confirm, &mut log, &cancelled);
     match result {
         Ok(report) => json!({"finished": true, "report": report}),
         Err(e) => json!({"finished": true, "error": e.to_string()}),
     }
     .to_string()
+}
+
+/// One conversation turn (`chat.rs`). `history_json` is the array of turns the shell keeps
+/// (`[{"source":"owner"|"assistant"|"task_result","text":"...","values":[Tagged]}]`), exactly
+/// as earlier turns returned them; `options_json` as for [`run_with_options`]. Returns
+/// `{"finished":true,"turn":{TurnResult}}` or `{"finished":true,"error":"..."}`. A `task` turn
+/// runs the agent loop on `host` and logs its step events as `run` does.
+#[uniffi::export]
+pub fn converse(history_json: String, message: String, options_json: String, host: Box<dyn HostPorts>) -> String {
+    let options = match options(&options_json) {
+        Ok(o) => o,
+        Err(e) => return json!({"finished": true, "error": e}).to_string(),
+    };
+    let history: Vec<crate::chat::Turn> = match serde_json::from_str(if history_json.trim().is_empty() { "[]" } else { &history_json }) {
+        Ok(h) => h,
+        Err(e) => return json!({"finished": true, "error": format!("history: {e}")}).to_string(),
+    };
+    let host = host.as_ref();
+    let mut log = |event: &Value| host.log(event.to_string());
+    let cancelled = || host.is_cancelled();
+    let (mut screen, mut hands, mut models, mut confirm) = (Json(host), Json(host), Json(host), Json(host));
+    match crate::run::converse(&history, &message, &options, &mut screen, &mut hands, &mut models, &mut confirm, &mut log, &cancelled) {
+        Ok(turn) => json!({"finished": true, "turn": turn}),
+        Err(e) => json!({"finished": true, "error": e.to_string()}),
+    }
+    .to_string()
+}
+
+fn options(text: &str) -> Result<crate::run::Options, String> {
+    if text.trim().is_empty() {
+        return Ok(crate::run::Options::app());
+    }
+    serde_json::from_str(text).map_err(|e| format!("options: {e}"))
 }
 
 /// The crate version, so a shell can show which core it loaded.
@@ -117,6 +164,7 @@ impl Models for Json<'_> {
             ModelRole::Reader => "reader",
             ModelRole::Judge => "judge",
             ModelRole::Verifier => "verifier",
+            ModelRole::Chat => "chat",
         };
         decode(self.0.complete(role.into(), encode(messages)?, max_tokens))
     }
@@ -158,7 +206,11 @@ mod tests {
             let messages: Vec<ChatMessage> = serde_json::from_str(&messages_json).unwrap();
             assert_eq!(messages[0].role, "system");
             self.calls.lock().unwrap().push(format!("complete {role} {max_tokens}"));
-            Ok(r#"{"text":"{\"action\":\"open_app\",\"app\":\"Clock\",\"why\":\"asked\"}","usage":{"prompt_tokens":10,"completion_tokens":5}}"#.into())
+            match role.as_str() {
+                "chat" => Ok(r#"{"text":"{\"kind\":\"task\",\"request\":\"open the Clock app\"}"}"#.into()),
+                "judge" => Ok(r#"{"text":"{\"verdict\":\"allow\"}"}"#.into()),
+                _ => Ok(r#"{"text":"{\"action\":\"open_app\",\"app\":\"Clock\",\"why\":\"asked\"}","usage":{"prompt_tokens":10,"completion_tokens":5}}"#.into()),
+            }
         }
         fn confirm(&self, _: String) -> Result<String, HostError> {
             Ok(r#""denied""#.into())
@@ -199,6 +251,28 @@ mod tests {
             r#"act {"op":"open_app","package":"com.android.deskclock","activity":null}"#.to_string(),
         ]);
         assert_eq!(events.lock().unwrap()[0]["outcome"], "opened_ui");
+    }
+
+    #[test]
+    fn converse_crosses_as_json_and_runs_a_task_turn() {
+        let host = shell("ok");
+        let history = r#"[{"source":"owner","text":"hello"},{"source":"assistant","text":"Hi."}]"#;
+        let out: Value = serde_json::from_str(&converse(history.into(), "open clock".into(), r#"{"max_steps":1,"judge":false}"#.into(), Box::new(host))).unwrap();
+        let turn = &out["turn"];
+        assert_eq!(turn["kind"], "task");
+        assert_eq!(turn["request"], "open the Clock app");
+        assert_eq!(turn["report"]["task_status"], "opened_ui");
+        assert_eq!(turn["history"][1], json!({"source":"task_result","text":"Task: open the Clock app → opened, not confirmed"}));
+    }
+
+    #[test]
+    fn malformed_options_or_history_end_with_an_error() {
+        for (history, options) in [("[]", r#"{"judge":"yes"}"#), ("[]", r#"{"unknown":1}"#), (r#"[{"source":"screen","text":"x"}]"#, "")] {
+            let out: Value = serde_json::from_str(&converse(history.into(), "hi".into(), options.into(), Box::new(shell("ok")))).unwrap();
+            assert!(out["error"].is_string(), "{history} {options}");
+        }
+        let out: Value = serde_json::from_str(&run_with_options("open".into(), 1, "{".into(), Box::new(shell("ok")))).unwrap();
+        assert!(out["error"].as_str().unwrap().starts_with("options:"));
     }
 
     #[test]

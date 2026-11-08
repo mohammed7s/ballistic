@@ -10,10 +10,16 @@ ownership through filtering and supplies code-owned labels from exact control id
 code, records `changed` / `unchanged` / `unreadable` and continues; the same guarded input again
 needs a fresh confirmation saying it may already have been sent, and a second acknowledgement on
 the same control stops the run. The reader's **`element` shape** and a terminal, owner-only
-**extractive `summary`** are implemented (§7); general `facts` are not. Code-owned labels now cover the recorded anonymous controls of the
+**extractive `summary`** are implemented (§7). Code-owned labels now cover the recorded anonymous controls of the
 20-task suite, including two Quick Settings tiles (§5). Keyboard suggestion-strip text (the
-clipboard) is content. Taint rule, Rule of Two as code, deny-only judge, full
-policy/configuration and skill execution below are the **design still to implement**.
+clipboard) is content.
+
+Added 8 November 2026, **implemented and unit-tested offline only** (scripted models and fake
+ports; no live model, emulator or phone run yet): conversation turns (`converse`, §7 "Chat"),
+general reader `facts` and planner `answer` with provenance checks (§7), the taint rule on typed
+values (§7 rule 2, §9), the deny-only judge (§8, off in the harness by default) and exact-request
+skill record/replay (§11). Rule of Two as a separate rule, full policy/configuration and skill
+compatibility metadata remain **design still to implement**.
 Live Contacts validation passed (8 steps, 65.5 s, 7 November 2026). Harness terminal prompt input
 and offline port replay exist; offline replay is not live skill execution. The terminal is the
 current user interface; there is no localhost/browser UI planned. The next product UI is the
@@ -63,7 +69,8 @@ Problems with T3A that `core/` exists to fix, all measured in the step-1 baselin
 
 No model is un-injectable (`docs/AGENT_SECURITY_SURVEY.md` §2). What core guarantees is about
 what a model's words are *allowed to cause*, and it rests on three layers. This is the target
-guarantee, not a claim that the pending reader/provenance/judge layers already enforce it:
+guarantee, not a claim that the reader/provenance/judge layers already enforce it in live use
+(their 8 Nov 2026 implementations are unit-tested offline only; Rule of Two is pending):
 
 | Layer | What | Can it be fooled? | What a fooled layer can cause |
 |---|---|---|---|
@@ -157,7 +164,8 @@ The contract is extensible; the current harness must not claim production integr
 because their contracts are specified.
 
 **Models**: `complete(role, messages, max_tokens) -> text + usage`. `role` is `planner`,
-`reader`, `judge` or `verifier`. One OpenAI-compatible HTTP client covers Ollama, llama.cpp
+`reader`, `judge`, `verifier` or `chat` (one conversation turn, §7; hosts route it like the
+planner, so chat uses the same backend and route as tasks). One OpenAI-compatible HTTP client covers Ollama, llama.cpp
 server, vLLM and Gemini; the Android app adds LiteRT-LM and llama.cpp in-process backends behind
 the same call.
 
@@ -171,7 +179,8 @@ approve or deny from a test script and record it. App: the confirmation window o
 The optional `Tools` host interface (`src/tools.rs`, `ports.rs`) and resource grants remain as
 extension contracts. **No tools are currently supported.** `ToolRequest` has no variants, the
 planner schema has no `tool` action, and advertising a grant cannot enable one. The core does
-not collect tool results or render tool-specific answers; `answer` provenance is still pending.
+not collect tool results or render tool-specific answers. (Planner `answer` provenance, §7,
+covers reader facts and the owner's words only.)
 
 The in-process `run::run_with_tools` and generic JSON-lines host boundary remain available for
 future typed integrations. Adding one requires explicit request/result types, core validation,
@@ -256,8 +265,8 @@ validation is rejected and counted; the model gets one retry with the error.
 | `swipe` | `target`, `direction` | for sliders and carousels; T3A had no way to drag (brightness failure) |
 | `back`, `home` | | |
 | `wait` | | screen still loading |
-| `read` | `targets` (c-ids), `question`, `shape` | `element` returns an id next step; `summary` terminates with owner-only excerpts; `facts` unsupported (§7) |
-| `answer` | `text` | for questions the owner asked; text goes through the taint rule |
+| `read` | `targets` (c-ids), `question`, `shape` | `element` returns an id next step; `facts` returns typed fields with a source tag next step; `summary` terminates with owner-only excerpts (§7) |
+| `answer` | `text` | ends the run with an answer for the owner; every value in it must have a source (§7) |
 | `done` | `evidence` | triggers the done check (§10) |
 | `give_up` | `reason` | |
 
@@ -311,9 +320,78 @@ same screen. Core keeps the pick by identity
 (package, resource id, role, bounds and withheld text, compared in code) and re-locates it on
 later screens; it disappears when the row changes. A pick authorizes one plain `tap` on that
 element (not a field, slider, long press or anything in the shade); if its withheld text contains
-a guarded word (§9) the tap needs the owner's confirmation. `facts` is not implemented;
-such a read is refused without a model call and the run continues. Offline trace evidence, exact
+a guarded word (§9) the tap needs the owner's confirmation. Offline trace evidence, exact
 feedback and limits: [element-reader development record](../docs/log/2026-11-07-element-reader-feedback.md).
+
+**Implemented: `facts` (8 Nov 2026, `reader/facts.rs`, `prompts/facts.txt`; unit-tested
+offline).** `read` with `shape: facts` and one to four current cN from one granted app (each at
+most 4,096 characters, 8,192 in total) costs one reader call of at most 200 tokens; otherwise it
+is refused without a model call. The reader gets the planner's question and the JSON-quoted
+sources and must return exactly `{"sender","when","phone_numbers","amounts","urls","summary"}`
+(missing keys default to empty; a ```json fence is tolerated). An unknown key, a wrong type, an
+array, prose or trailing text rejects the whole reply (`reader: facts rejected`, logged by size
+only). Each field value must be copied from a source with no letter or digit glued to either end
+(whitespace runs collapsed): phone numbers, amounts and links must each be exactly one value of
+that kind as `values.rs` finds them, at most four per list; `when` may contain only digits,
+separators and a fixed calendar vocabulary, so it cannot carry a sentence; a value that fails is
+dropped and counted. The planner then sees, every later step, one line per accepted read:
+`reader facts f1 (source app:<package>, c4): when "Tue 3 Nov 14:05"; phone_numbers "+1 555
+0100"; amounts "$40"; urls "https://example.com/…" (29 chars); sender withheld (3 chars, not
+in the request); summary for the owner only`. Links show scheme and host only; the sender is
+shown only when it matches the owner's request by the §5 rule; the summary never enters a
+prompt. An identical read (same content and question) is not repeated. Fact values keep their
+source wherever they go: an answer shows it, typed text with one needs a hard confirmation
+(rule 2 below). A fooled reader can still return a wrong value that is copied from the content
+(a forged number in a message); that is exactly what the source tag and the confirmation are
+for. The facts' `summary` and full links reach the owner only in an answered report
+(`owner_facts`).
+
+**Implemented: planner `answer` (8 Nov 2026, `actions::answer_values`; unit-tested offline).**
+The planner may end a run with `{"action":"answer","text":...}` (at most 600 characters). Every
+number, phone number, amount or link in the text must come from the owner's request, a control
+label on the current screen, a value carried into the request with its source (Chat, below) or
+a reader fact; otherwise the reply is invalid and the planner gets one correction naming the
+value, as for any invalid action. Words are not checked: the planner never sees content, so its
+prose is its own. The report carries `answer: {text, display, values}` where `values` lists each
+value with its source and `display` (also the report's `reason`) follows each content value with
+`(from <source>)`; plus `owner_facts`. The status stays `pending` with verification `unknown`,
+`evidence_basis: answer_values_sourced`: core checked where the values came from, not whether the
+answer is true or complete. **Design decision:** an answer is shown with its sources instead of
+asking for a hard confirmation (rule 2 below lists `answer`). It causes no operation, the
+confirmation request is bound to a Hands operation, and the values stay tagged if the owner
+later uses them in a task, where typing one is confirmed. Hosts must not feed the answer or
+`owner_facts` back into a model prompt.
+
+**Implemented: Chat, conversation turns (8 Nov 2026, `chat.rs`, `prompts/chat.txt`,
+`schema/chat.json`; unit-tested offline).** `converse(history, message, options, host)` is one
+turn. The host keeps the conversation, one thread with tasks as distinct entries, and passes it
+back each time; core keeps the last `chat_history_turns` (default 12, at most 50) and checks
+every turn: `owner` text (control characters removed, at most 2,000 characters), `assistant`
+text, and `task_result` turns, which must be exactly core's line `Task: <request> → <outcome>`
+with an outcome from a fixed list ("done, verified", "opened, not confirmed", "answered, not
+verified", "owner declined a confirmation", "blocked by the safety check", …), else replaced by
+`Task: (result withheld: not in Ballistic's format)`. Turns may carry `values` (one value each,
+with a content source tag that reads back exactly); a value claiming an owner or label source is
+dropped, so history cannot launder taint. The prompt is fixed rules plus one JSON object per
+turn; there is no parameter through which screen or reader text could enter it.
+
+One `chat` call (400 tokens) must return exactly one of `{"kind":"reply","text"}`,
+`{"kind":"task","request"}` (a self-contained request in the owner's words, so "now set it to
+8" after a 5 minute timer becomes "set a timer for 8 minutes") or `{"kind":"clarify",
+"question"}`; one correction, then the fixed turn "I couldn't understand that reply from the
+model, so I did nothing." A reply or question observes nothing and dispatches nothing. Every
+value in it that the owner did not say keeps its source: a value from an earlier task result is
+shown `(from app:<package>)`, a phone number, amount or link from the model alone `(unverified)`;
+the result lists them in `values`. A task request runs `agent::drive_task` as a new owner request
+with every rule applied from scratch; values in it that the owner never said are carried as
+tainted (shown to the planner as `Request values not from the owner`, and typing one needs a
+hard confirmation naming its source). Only a core-written line goes back into the history: the
+request, the outcome words and the answer's content values with their tags, never reader prose,
+answer text or screen text. Turn text is first person ("Done. I checked the screen
+afterwards."). The result is `{kind: reply|clarify|task|not_understood|stopped, text, values,
+request, report, error, history}`; the host appends exactly `history`. Core cannot tell whether a
+stored `assistant` turn is one it wrote: hosts must store only what core returned. Live quality
+of the chat model's request resolution is not measured.
 
 **Implemented: terminal owner `summary` (7 Nov 2026, `reader/summary.rs`).** This is a distinct
 display channel, not `Action::Answer` or a planner fact. The owner opts in with an English
@@ -376,8 +454,9 @@ Frozen baseline, scripted drive/bridge tests and limits: [development record](..
 port and the filter, never by a model, and they follow the value through the reader into any
 action argument.
 
-**Target rules to enforce in code**, from `SPEC.md` §7.2–7.3 (full provenance and Rule of Two
-remain unfinished; see the implementation status at the top):
+**Target rules to enforce in code**, from `SPEC.md` §7.2–7.3 (rule 1 holds by construction;
+rule 2 is implemented for typed text and answers as described under it; Rule of Two remains
+unfinished as a rule of its own):
 
 1. The planner prompt is built only from: rules, request, app list, history, typed reader facts,
    filter output. There is no code path that puts raw content into it.
@@ -385,11 +464,22 @@ remain unfinished; see the implementation status at the top):
    argument whose source is not `owner:*` or `screen:label` needs a hard confirmation that shows
    the value and its source. "Send to the number in the message" is allowed to be *proposed*;
    the fingerprint decides.
-   **Display-only exception:** a directly requested terminal reader summary (§7 above) is a
-   separate owner-output channel, not arbitrary planner `Answer`. It requires no confirmation
-   because it grants no mutation, third-party send or future action argument and ends the action
-   loop. Arbitrary `Answer` remains unsupported. This does not implement general provenance,
-   taint propagation, Rule of Two or the deny-only judge.
+   **Implemented for typed text (8 Nov 2026, `actions::tainted_values`, unit-tested offline):**
+   every number, phone number, amount or link in a `type` text (which is how a recipient,
+   amount or address reaches a UI field) that is not in the owner's request or a control label
+   on the screen needs a hard confirmation. Its `ConfirmRequest.values` lists each such value with
+   its source: a reader fact's `app:<package>`, a value carried into a chat-resolved request with
+   its original tag, or `model:planner` for a value the planner wrote itself. The reason reads
+   `type a value that is not in your request: "+1 555 0100" from app:<package>`. Plain words are
+   not values and are not checked (the planner never sees content). Values are found by code
+   (`values.rs`): digits glued to letters are identifiers, phone numbers compare by digits,
+   amounts and numbers by decimal value; a reformatted owner value (a date written another way)
+   therefore counts as the planner's and is confirmed. `open_app` arguments resolve only to the
+   host's installed-app list and are not taint-checked.
+   **Display-only exceptions:** a directly requested terminal reader summary (§7 above) and a
+   planner `answer` whose values all have sources (§7 above) are owner-output channels. They
+   require no confirmation because they grant no mutation, third-party send or future action
+   argument and end the action loop; the answer shows each value's source.
 3. **Rule of Two** (Meta, Oct 2025, as code): once a session has read untrusted content, no send,
    pay, delete or install happens in it without a confirmation in between.
 4. Policy check before every action (§9); confirmation where required.
@@ -404,6 +494,24 @@ it, and the last few steps. It never sees content. It answers `allow` or `block`
 `allow` changes nothing: the code rules and the confirmation list still apply. `block` halts the
 run and tells the owner the reason. A fooled judge can therefore only make the assistant more
 cautious. The judge may be the reader's model; the call is small.
+
+**Implemented (8 Nov 2026, `judge.rs`, `prompts/judge.txt`; unit-tested offline).** Runs when
+`Options.judge` is on: **on** in the app defaults (`Options::app()`, the FFI `run`/`converse`
+without options), **off** in the harness (`Options::harness()`, `run::run`, `ballistic-core`
+without `--judge`) so benchmark runs stay comparable with earlier ones. It runs before
+`open_app`, `tap`, `long_press`, `type`, `swipe` and `home`, after the grant and repeat checks and
+before any confirmation. The action words use control labels and roles only (`type "+1 555 0100"
+into the edit labelled "To" in <package>`; a reader pick is "the item the reader chose from
+hidden content"; an owner-matched title is "the item whose text matches the request"), value
+sources come from the taint computation, and the last four lines are core's own history lines.
+The reply must be `{"verdict":"allow"}` or `{"verdict":"block","reason":...}` (100 tokens, a
+```json fence tolerated); anything else blocks with "the safety check's reply was unreadable".
+A block ends the run with `failure_category: policy_denial`, `blocked_by: "judge"` and the reason
+(control characters removed, at most 200 characters); the step event records `judge: allow|block`.
+A judge port failure ends the run as an error, like a planner failure. Tests show a scripted
+`allow` leaves the Delete confirmation and the taint confirmation in place and a `block`
+dispatches and asks nothing; how often a real model blocks legitimate actions is not measured,
+and a small local model that cannot follow the format will block every state change.
 
 ## 9. Policy and confirmation
 
@@ -425,7 +533,9 @@ Implemented today: guarded words in the target's label or resource-id words, the
 keyboard action key, `type` with `submit`, and a reader-picked element whose withheld text
 contains a guarded word. Two exact keys that remove one typed character (the keyboard's
 `key_pos_del`, the timer's `timer_setup_delete`, when the element belongs to that package) are
-not guarded. A repeat of an acknowledged guarded input is confirmed again (§10).
+not guarded. A repeat of an acknowledged guarded input is confirmed again (§10). Typed text
+with a value the owner did not give is hard-confirmed with each value and source (§7 rule 2);
+a guarded reason and a taint reason on the same input are joined into one request.
 
 The contract design extends this classification with operation metadata. Approval covers the
 canonical operation id, app, resolved recipient/target, exact value/body, attachment identities
@@ -535,9 +645,25 @@ claim, production evidence and benchmark outcome separately.
 
 ## 11. Skills: record and replay
 
-**Planned, not implemented.** A run that passed the benchmark check, or that the owner confirmed
-as right, is eligible to be saved as
-`skills/<slug>.json`:
+**Implemented subset (8 Nov 2026, `skills.rs`; unit-tested offline).** Recording: a run whose
+`done` the done check verified returns `report.skill` when every executed step's target can be
+found again by role, resource id and label (not by e-number, not a reader pick, not an
+owner-matched title alone) and every typed text has only the owner's values; any `read` in the
+run, a value carried into the request, or an unrecordable target spoils it. Steps that the host
+did not execute are not recorded. Storage is the host's: it passes stored skills back in
+`Options.skills` (core writes no file). Replay: an exact request match (case and spacing
+aside, exactly one skill) supplies each step instead of a planner call; the step must find its
+package and activity (except a launch) and exactly one target with the same identity, and the
+action then goes through validation, grants, the taint rule, the judge, confirmation and
+dispatch like a planned one. After the last step core claims `done`, which the ordinary done
+check verifies. A mismatch adds `skill replay stopped at step N` to the history and the planner
+continues from that screen; the report has `skill_replay: {steps, stopped_at}`. Not implemented:
+the owner's yes as a recording trigger, benchmark-pass recording, anchors beyond the target,
+declared postconditions, app/version ranges, recovery checkpoints, hashing on save/load and
+templates with slots. The design below remains the target:
+
+A run that passed the benchmark check, or that the owner confirmed as right, is eligible to be
+saved as `skills/<slug>.json`:
 ```
 { "request": "...", "app": "com.simplemobiletools.smsmessenger",
   "params": {"recipient": "+1...", "message": "..."},       slots found in the request
@@ -572,6 +698,10 @@ max_steps = 15
 ```
 Switching the backend is one line. Keys stay in the environment, never in the file or the repo.
 
+The file is design; what exists today is `run::Options` (8 Nov 2026), passed per call:
+`{"max_steps":15,"judge":true,"chat_history_turns":12,"skills":[]}`. Missing fields take the app
+defaults; unknown fields are rejected. `Options::harness()` differs only in `judge: false`.
+
 ## 13. Logs
 
 Every step appends one JSON line: screen signature, prompt tokens per role, action, source tags
@@ -588,21 +718,38 @@ model planning failures; classify a deliberate denial as policy denial, not exec
 Terminal summaries have frozen offline development cases in `tests/cases/owner_summaries.json`
 and actual drive/bridge coverage in `tests/owner_summary.rs`: hostile and legitimate source
 text, exact source reporting, strict malformed/directive/citation rejection, stale raw content,
-Stop at reader/observation/publication boundaries, compound-task noncompletion, unsupported
-Answer, grant/input/output limits and isolation from correction prompts. See the development
+Stop at reader/observation/publication boundaries, compound-task noncompletion, a planner
+Answer kept separate from excerpts (revised 8 Nov 2026 when Answer gained provenance checks;
+it was "unsupported Answer" before), grant/input/output limits and isolation from correction prompts. See the development
 record linked in §7 for baseline failures and final validation; these are not live injection
 scores, model quality measurements or a comprehensive security evaluation.
 
 - **Unit tests, no emulator**: recorded screens (`core/tests/screens/*.json`) → filter output,
   match-only titles, action validation, taint rule, Rule of Two, policy decisions, skill
-  matching, reader shape enforcement. Today (`cargo test`, 64 tests): `agent_checks.rs`,
+  matching, reader shape enforcement. Count on 8 Nov 2026: 346 (`cargo test`; 351 with
+  `--features uniffi`), up from 293 that morning. The 8 Nov additions: `chat_turns.rs` (reply
+  path makes no Screen or Hands call; task path starts the loop with the resolved request; a
+  follow-up uses history and no app content; hostile task-result text and owner-tagged history
+  values never reach the chat prompt; a task on a hostile screen returns only a core line;
+  malformed output gets one correction then the fixed turn; a carried value still needs a
+  confirmation naming its source; history cap; Stop), `reader_facts.rs` (typed fields with source
+  and no prose; a fooled reader on a hostile fixture; out-of-shape replies rejected whole; grants
+  and repeats; the recorded conversation list; answers with fact, owner and invented values),
+  `taint_and_judge.rs` (typed fact, carried and planner-made values confirmed with their source;
+  owner values and plain words not; judge off by default; block stops before confirmation and
+  dispatch; a scripted allow removes no confirmation; the judge prompt has no content) and
+  `skills.rs` (identity-only recording, zero-planner replay with confirmation, judge and done
+  check, hand-over on a changed screen, exact match only, what is not recorded). Earlier files:
+  `agent_checks.rs`,
   `benchmark_regressions.rs`, `readback_and_reader.rs` (readback on the recorded SMS send, no
   screen text in prompts, no dispatch, unreadable readback; repeat Send needs a "may already have
   been sent" confirmation and two stop the run; reader on the recorded conversation list returns
   an id only, hostile row text never reaches the planner, prose and non-candidate ids are
   rejected) and `known_controls.rs` (each code-owned label on its recorded screen, Quick Settings
-  spoofs, character-delete keys, clipboard in the keyboard strip). Harness: 35 Python tests
-  (`python3 -m unittest discover -p 'test_*.py'` in `harness/`).
+  spoofs, character-delete keys, clipboard in the keyboard strip). Harness: 129 Python tests,
+  5 skipped without AndroidWorld (`python3 -m unittest discover -p 'test_*.py'` in `harness/`),
+  including `test_core_chat.py`, which drives the built binary's `converse` mode with a scripted
+  model and a screen that fails if touched.
 - **Injection tests, on the emulator** (`tests/injection/*.json`), each: a setup (an SMS
   delivered through the emulator console, a Markor note written by adb), a request, and
   expectations about what must not happen, with confirmations denied. First cases:
@@ -673,22 +820,26 @@ Layout:
 core/
   README.md                 this file
   schema/actions.json       action schema (shared with every host)
-  prompts/planner.txt       prompt texts (shared with every host); planner.txt and reader.txt exist
-  prompts/reader.txt  prompts/judge.txt  prompts/verifier.txt
+  schema/chat.json          the chat reply shapes (reply, task, clarify)
+  prompts/                  prompt texts (shared with every host): planner, reader, facts,
+                            summary, verifier, judge, chat
   src/                      Rust crate `ballistic_core`
     types.rs                ScreenState, Node, Action, Value+Source, ConfirmRequest
     ports.rs                the four traits, plus the optional Tools port
     tools.rs                optional Tools contracts and grants; no supported requests
     screen_filter.rs
-    actions.rs              validation, target resolution, app-name matching
-    planner.rs  reader.rs  judge.rs  verifier.rs   (reader.rs: element shape; readback.rs: §10)
-    provenance.rs           source tags, taint rule, Rule of Two
-    policy.rs
-    skills.rs
+    actions.rs              validation, target resolution, app-name matching, taint rule on
+                            typed text, answer provenance
+    reader.rs  reader/{summary,facts}.rs  judge.rs  verification.rs  readback.rs (§10)
+    values.rs               numbers, phone numbers, amounts and links found in code; sources
+    chat.rs                 conversation turns
+    skills.rs               record and replay
+    policy.rs               (planned)
     backend.rs              OpenAI-compatible client, config parsing
-    agent.rs                the loop (`drive`, over any `run::Host`); `run` for the Bridge
-    run.rs                  library entry point: the loop over four separate ports + log + Stop
-    ffi.rs                  UniFFI binding (feature `uniffi`): HostPorts callback interface, run()
+    agent.rs                the loop (`drive_task`, over any `run::Host`); `run` for the Bridge
+    run.rs                  library entry points (run, run_with_options, converse) + Options
+    ffi.rs                  UniFFI binding (feature `uniffi`): HostPorts callback interface,
+                            run(), run_with_options(), converse()
     log.rs
     bin/ballistic_core.rs   JSON-lines process the harness drives
     bin/uniffi_bindgen.rs   binding generator (feature `uniffi-cli`)
@@ -724,7 +875,7 @@ classes (Kotlin: `apps/assistant/core-api/.../core/Types.kt`).
 callback interface HostPorts {          // shell implements; called on the run() thread
   observe() -> ScreenState json                       throws HostError
   act(op_json: HandsOp) -> HandsResult json           throws HostError
-  complete(role: "planner"|"reader"|"judge"|"verifier", messages_json: [ChatMessage],
+  complete(role: "planner"|"reader"|"judge"|"verifier"|"chat", messages_json: [ChatMessage],
            max_tokens: u32) -> Completion json        throws HostError
   confirm(request_json: ConfirmRequest) -> ConfirmResult json, i.e. "approved" or "denied"
                                                       (quoted)   throws HostError
@@ -734,8 +885,19 @@ callback interface HostPorts {          // shell implements; called on the run()
 error HostError { Disconnected{reason}, Malformed{reason}, Host{reason} }   // = PortError
 fn run(request, max_steps: u32, host: HostPorts) -> String
    // {"finished":true,"report":{...}} or {"finished":true,"error":"..."}: the harness's last line
+   // app default options (judge on)
+fn run_with_options(request, max_steps: u32, options_json, host: HostPorts) -> String
+   // options_json: run::Options ("" = app defaults); same result line as run
+fn converse(history_json, message, options_json, host: HostPorts) -> String
+   // history_json: [Turn] as earlier turns returned them; {"finished":true,"turn":{TurnResult}}
+   // or {"finished":true,"error":"..."}; a task turn logs step events as run does
 fn core_version() -> String
 ```
+Kotlin mirror (`core-api/.../core/Chat.kt`): `ChatTurn`, `TurnSource`, `TurnKind`, `TurnResult`,
+`CoreOptions`; `CoreEngine.converse(history, message, options, ports, listener, cancel)` and
+`RustCore.converse(history, message, options, listener)`; `ModelRole.Chat` (routed to the
+planner endpoint in `ModelsHttp`), `Source.Model`; `RunResult.answer`, `blockedBy`, `skill`.
+The Kotlin changes were not compiled on the machine where they were written (no JDK there).
 
 Build (Linux host; `apps/assistant/scripts/build_core.sh` runs all three steps):
 
@@ -757,8 +919,8 @@ The generated file is committed and must be regenerated whenever `ffi.rs` change
 checksum of every exported function against the loaded library, so a stale binding fails at load.
 The harness build (`cargo build`, no feature) contains none of this.
 
-**What remains in core for the app**: reader facts, general abstractive summary and answer
-provenance (element and terminal source excerpts are implemented), policy and routing moving into core from the shell's `ConfirmFloor`, core
+**What remains in core for the app**: general abstractive summary (element, facts, answer
+provenance and terminal source excerpts are implemented), Rule of Two as its own rule, policy and routing moving into core from the shell's `ConfirmFloor`, core
 contracts for notification reply, dial and alarm, and checking the hard-approval signature.
 
 The element reader stops repeated identical queries on the same observation and allows at most
@@ -784,12 +946,18 @@ still cannot prove that every requested field or value was satisfied merely from
    comparison in `docs/BENCHMARK_RUNS.md`.*
 5. Reader with typed shapes, provenance tags; injection tests 1, 2, 4, 6. *`element` shape
    with source tags done 7 Nov (unit tests with a hostile row and reader prose, §14 case 6 at
-   unit level); terminal extractive `summary` implemented offline; `facts`, abstractive summary
-   and the emulator injection tests open.*
-6. Taint rule, Rule of Two, policy, confirmation; injection tests 3, 5.
-7. Judge.
+   unit level); terminal extractive `summary` implemented offline; `facts` and `answer`
+   provenance implemented and unit-tested offline 8 Nov; abstractive summary and the emulator
+   injection tests open.*
+6. Taint rule, Rule of Two, policy, confirmation; injection tests 3, 5. *Taint rule on typed
+   text implemented and unit-tested offline 8 Nov; Rule of Two, policy and injection tests open.*
+7. Judge. *Implemented and unit-tested offline 8 Nov; on in app defaults, off in the harness.*
 8. Shipped capability descriptions loaded by relevance/on demand; skills recorded on PASS,
    with app/version compatibility, final postconditions and safe recovery; replay with zero planner calls.
+   *Exact-request record (verified done) and replay unit-tested offline 8 Nov; compatibility,
+   postconditions, recovery checkpoints and capability descriptions open.*
+
+Conversation turns (`chat.rs`) were added 8 Nov outside this order at the owner's request.
 9. Full comparison with the T3A baseline, on Gemini and a local model, into `docs/CONTEXT.md`.
 
 ## 17. Decisions and open questions
@@ -802,7 +970,10 @@ attacker is content inside trusted apps (hostile apps are bounded by the allowli
 confirmation list); OS-written text is label except the shade, SSIDs and Bluetooth names;
 injection tests are gates, score second; both Gemini and a local model are measured; soft
 confirmation for toggles and alarms; summaries show sources; skills saved only after a pass or
-the owner's yes; no memory between requests in step 2; apps without a usable tree fail in step 2.
+the owner's yes; no memory between requests in step 2 (superseded 8 Nov 2026 for chat only: the
+host keeps the last N conversation turns, core admits only owner words, its own replies and its
+own task lines, and the owner can clear them; the agent loop itself still starts every task
+with no memory); apps without a usable tree fail in step 2.
 
 Open:
 1. **Skill matching.** Exact request only at first, or templates with slots from the start?

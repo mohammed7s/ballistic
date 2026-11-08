@@ -14,7 +14,12 @@ mod typed_value;
 pub mod agent;
 pub mod run;
 pub mod reader;
+pub mod judge;
+pub mod skills;
 pub mod readback;
+
+pub mod values;
+pub mod chat;
 
 pub mod capabilities;
 pub mod tools;

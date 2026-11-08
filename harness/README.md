@@ -48,6 +48,7 @@ set -a; source ~/.ballistic_env; set +a
 # ~/.ballistic_env itself, extra flags pass through to chat.py)
 bash harness/chat.sh                  # T3A
 bash harness/chat.sh --agent core     # Ballistic's agent
+bash harness/chat.sh --agent core --chat   # a conversation: replies, questions and tasks
 
 # the 20-task suite, pass table in ~/ballistic_runs/suite_<agent>_<time>.tsv
 bash harness/run_suite.sh                         # T3A, Gemini flash-lite
@@ -104,6 +105,14 @@ core's log events, then core's finished report. Every run is written to
 `~/ballistic_runs/<time>_Chat.json` (core runs: the same fields as `run_task.py --agent core`,
 `lines` included).
 
+With `--agent core --chat` each line is one conversation turn instead:
+`ballistic-core converse --message <line> --history <JSON> --max-steps <budget>`. The chat
+model (role `chat`, routed to `--model` like the planner) answers, asks a question, or turns the
+line into a self-contained task that runs the agent loop on the same pipe. The harness keeps the
+last `--chat_history_turns` turns (default 12) exactly as core returned them and passes them back;
+`/clear` forgets them (`core/README.md` §7, Chat). `--core_judge` turns on core's deny-only judge
+for these turns (off by default, as for benchmark runs). Offline coverage: `test_core_chat.py`.
+
 | At the prompt | |
 |---|---|
 | any text | instruction |
@@ -111,6 +120,7 @@ core's log events, then core's finished report. Every run is written to
 | `/steps N` | step budget per instruction (default `--max_steps`, 15) |
 | `/confirm approve\|deny` | core's confirmation policy from the next instruction on |
 | `/agent core\|t3a\|m3a` | switch agents live |
+| `/clear` | forget the conversation (`--chat`) |
 | `/quit`, Ctrl+D | leave |
 | Ctrl+C while a run is going | stop it (core: the process is killed), back to the prompt |
 

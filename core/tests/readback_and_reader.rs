@@ -269,16 +269,8 @@ fn a_pick_authorizes_a_tap_only() {
     assert_eq!(pick.relocate(&filtered(&changed, REPLY_REQUEST)), None);
 }
 
-#[test]
-fn general_reader_facts_are_refused_without_a_model_call() {
-    let s = fixture("conversations");
-    let view = filtered(&s, REPLY_REQUEST);
-    let c = rows(&view)[0].1;
-    let (_, calls) = run(vec![json!(s), completion(json!({"action":"read","targets":[format!("c{c}")],"question":"what does it say?","shape":"facts"})),
-        give_up()], REPLY_REQUEST);
-    assert!(!calls.iter().any(|c| c["role"] == "reader"));
-    assert!(planner_calls(&calls)[1]["messages"].to_string().contains("reader facts are not implemented"));
-}
+// General reader facts were refused here until 8 Nov 2026; they are implemented now and tested
+// in tests/reader_facts.rs, including on this recorded conversation list.
 
 
 #[test]
