@@ -6,7 +6,7 @@
 //             Ballistic is in the background, so Ok is an acknowledgement, never proof the app
 //             is in front; core observes before it believes anything.
 //   wait      sleep, at most 10 s.
-// Not possible without Computer Control (PLAN step 5): tap, long_press, type, scroll, swipe,
+// Not possible without Computer Control (docs/PLATFORM.md): tap, long_press, type, scroll, swipe,
 // back, home. These return NotExecuted ("Host guarantees no input was dispatched", Types.kt),
 // which is the truth here; Error would tell core the effect is unknown and stop the run as if a
 // duplicate effect were possible.

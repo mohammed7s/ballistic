@@ -113,7 +113,7 @@ generation parameters remain unchanged. There is no automatic probe, fallback or
 Only opt in for an endpoint accepting this request shape. Acceptance and ability to prevent
 the observed Gemini tool-call response have not been measured. In particular, the reviewed
 Gemini `v1beta/openai` docs do not establish `none` without `tools`. See
-[the transport report](../../docs/MODEL_TEXT_TRANSPORT_20261107.md) for primary sources and tests.
+[the transport report](../../docs/log/2026-11-07-model-text-transport.md) for primary sources and tests.
 
 ### Setting up an emulator for a real run (debug build)
 
@@ -254,7 +254,7 @@ observation, model call, confirmation and dispatch, and is exported through UniF
    exact-operation approval) rather than only shell code.
 5. **Run lifecycle.** A foreground service while a run is active, and an "interrupted" record
    after process death (never resume mutation).
-6. **Computer Control adapters once the gate lands (PLAN step 5).** These are
+6. **Computer Control adapters when platform access is validated (app PLAN §4; OS roadmap).** These are
    `ComputerControlScreen` (accessibility proxy tree) and `ComputerControlHands` (taps, swipes,
    `commitText`, back/home). The app then builds as a priv-app with the assistant role.
 7. **Voice and overlay.** Wake word, push-to-talk, STT/TTS (SPEC §5.3), then in-process models

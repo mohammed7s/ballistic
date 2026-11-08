@@ -1,4 +1,4 @@
-//! Frozen development cases, not held-out evaluation. See docs/SETTINGS_OBSERVATION_20261107.md.
+//! Frozen development cases, not held-out evaluation. See docs/log/2026-11-07-settings-observation.md.
 use ballistic_core::{actions, screen_filter::{self, Element, FilterContext, FilteredScreen}, types::*, verification};
 use serde_json::{json, Value};
 

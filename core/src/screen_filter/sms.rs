@@ -1,5 +1,5 @@
 //! Simple SMS Messenger 5.19.3 recipient confirmation, before pruning/folding.
-//! Source and observed host-tree envelope: docs/SMS_CONTROL_20261107.md.
+//! Source and observed host-tree envelope: docs/log/2026-11-07-sms-control.md.
 //! Package/resource matching is compatibility recognition, not origin/version attestation.
 use std::collections::HashSet;
 

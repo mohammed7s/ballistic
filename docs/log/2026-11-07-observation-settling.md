@@ -1,7 +1,7 @@
 # Observation settling tolerance — 7 November 2026
 
 Base: `05145ed6d685aca047d432ba1236e9f0cb7af11f`. Offline implementation of the
-generic tightening proposed in [the diagnosis](OBSERVATION_READINESS_DIAGNOSIS_20261107.md).
+generic tightening proposed in [the diagnosis](2026-11-07-observation-readiness-diagnosis.md).
 The old literal contract permits sparse control changes; this changes that contract.
 Camera A's missing Shutter remains unexplained, and no task-score improvement is claimed.
 

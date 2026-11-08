@@ -1,0 +1,9 @@
+# 2026-11-07 — Independent history review requires revision, not rollout
+
+Integrated review documentation `d0b3b06` (`docs/log/2026-11-07-grounded-history-review.md`), not candidate code. Review of isolated `5bb0b9f` found two blockers: private-key construction clones/escapes repeated ancestry before its size check, and blanket history replacement loses already-present typed-value/app-name/read-question distinctions even when identity is unsupported. Reviewer local release stress measurement:87,038,489 bytes peak additional requested heap and515.932 ms CPU on capped512-node/16,384-raw-byte input; this is constructed x86 evidence, not phone timing, typical usage or a global maximum. Parent verified six review artifact hashes and reran the scripted information-loss probes: alpha/beta type, read-question and app-selection histories become identical in the candidate but remain distinct in baseline.
+
+No new action/reader-pick/citation/confirmation/completion bypass was found. Smaller findings are handle renewal churn at eight-record expiry and ambiguous anonymous sibling ancestry not matching the broad documentation claim. Candidate remains unmerged and untested with a live model. A new isolated Astra revision is assigned to bound construction before allocation, preserve existing argument context, and resolve/document smaller findings without loosening identity or policy. A separate offline agent is preparing a finite predeclared recorded-state decision comparison (at most24 logical calls, only after parent review), with no generated action execution. Neither agent may access the model, emulator, credentials or remote host during preparation. Last benchmark scores remain unchanged.
+
+
+
+Historical handoff entry. Later entries may supersede its status; see [current context](../CONTEXT.md).

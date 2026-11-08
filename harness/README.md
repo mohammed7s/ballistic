@@ -203,7 +203,7 @@ deadline bound the wait (blocking transport calls still depend on their own time
 Formerly tolerated control animations may now require extra samples or time out. This cannot
 identify repeated stale/incomplete trees or establish that changing noninteractive text is harmless.
 Offline checks, baseline-specific reproduction commands and limits are in
-[the settling report](../docs/OBSERVATION_SETTLING_20261107.md); live impact is unknown.
+[the settling report](../docs/log/2026-11-07-observation-settling.md); live impact is unknown.
 
 ### Text-only model transport
 
@@ -223,4 +223,4 @@ Models, temperature, thinking and token/step/attempt budgets are unchanged.
 Endpoint compatibility and effectiveness are unmeasured. Google documents tool control, but
 the reviewed Gemini `v1beta/openai` material does not establish acceptance of `none` without
 `tools`; a rejection such as HTTP 400 stays terminal. See the primary-source assessment and
-offline test evidence in [the transport report](../docs/MODEL_TEXT_TRANSPORT_20261107.md).
+offline test evidence in [the transport report](../docs/log/2026-11-07-model-text-transport.md).

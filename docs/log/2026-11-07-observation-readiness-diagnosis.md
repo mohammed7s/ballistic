@@ -16,7 +16,7 @@ last complete suite is 8/20 combined, 11/20 state.
 
 ## Recorded facts and where the absence occurs
 
-The [frozen extracts](reproductions/observation_readiness_20261107.json) retain every
+The [frozen extracts](../reproductions/observation_readiness_20261107.json) retain every
 field of both first Camera node lists, observation headers, subsequent planner screen
 and relevant lifecycle/warning lines. These are **normalized replies**, not original
 accessibility protobufs. Both replies are `lines[8]`, id 4, followed by the planner
@@ -39,14 +39,14 @@ Paths are relative to the parent's local
   Every other node field matches A after renumbering IDs and parents. B's filtered
   screen exposes Shutter as e2. A has neither this resource nor an anonymous extra
   image where its caption might have been hidden. A gives up immediately.
-- [`forest_to_nodes` / `_windows_to_nodes`](../harness/core_bridge.py#L65) traverse
+- [`forest_to_nodes` / `_windows_to_nodes`](../../harness/core_bridge.py#L65) traverse
   the supplied forest and preserve enabled/visible flags; they do not discard
-  disabled/invisible nodes. [`_foreground_nodes`](../harness/core_bridge.py#L143)
+  disabled/invisible nodes. [`_foreground_nodes`](../../harness/core_bridge.py#L143)
   selects active/focused application/system windows and package nodes **for readiness
-  and comparison only**. Once accepted, [`observe`](../harness/core_bridge.py#L277)
+  and comparison only**. Once accepted, [`observe`](../../harness/core_bridge.py#L277)
   returns normalization of the entire forest. Window selection therefore does not
   directly remove nodes from the returned screen.
-- Rust's [visibility/container pruning](../core/src/screen_filter.rs#L427) occurs
+- Rust's [visibility/container pruning](../../core/src/screen_filter.rs#L427) occurs
   after that reply. It cannot explain a Shutter absent before filtering. A malformed
   producer graph could also affect traversal; the original graph is unavailable,
   so neither producer omission nor graph loss is proven.
@@ -69,18 +69,18 @@ for the installed version.
 
 ## What readiness proves, and the generic counterexample
 
-[`foreground_tree_ready`](../harness/core_bridge.py#L130) requires **any** visible,
+[`foreground_tree_ready`](../../harness/core_bridge.py#L130) requires **any** visible,
 positive-area foreground node with label/text/click/edit affordance. Both recorded
 Camera trees satisfy it. This is a useful-content gate, not an app-completeness
 contract. It cannot know that a task-relevant control is missing.
 
-[`observe`](../harness/core_bridge.py#L217) brackets each raw acquisition with activity
+[`observe`](../../harness/core_bridge.py#L217) brackets each raw acquisition with activity
 reads; rejects unready or contradictory activity/tree associations; then accepts
 two same-component, same-size trees that match or pass
-[`slightly_different`](../harness/core_bridge.py#L179). It returns the later sample.
+[`slightly_different`](../../harness/core_bridge.py#L179). It returns the later sample.
 Host sequence counts successful calls, not producer capture generations.
 
-The [standard-library reproduction](reproductions/observation_readiness_20261107.py)
+The [standard-library reproduction](../reproductions/observation_readiness_20261107.py)
 calls the real normalizer and `CoreHost.observe` using the existing scripted `FakeEnv`:
 
 - Reconstructed A,A,B returns A after two samples without seeing B. A,B,B waits
@@ -104,7 +104,7 @@ value tolerance**, not a failure to implement the literal current rule: its docs
 explicitly permits changes to text, labels, bounds **and flags** on ≤10% of nodes.
 `--strict-contract` intentionally fails the proposed invariant that actionable-control
 changes must reset settling. It does not pretend that invariant is already enforced.
-Existing [settling tests](../harness/test_core_bridge_robustness.py#L225) cover ticking
+Existing [settling tests](../../harness/test_core_bridge_robustness.py#L225) cover ticking
 text, broad changes, count and movement, but not this sparse material-change case.
 The eight-/nine-node Camera replies permit **zero** changed nodes under the tolerance;
 this counterexample cannot account for their difference.
@@ -123,7 +123,7 @@ deadline exhaustion. Do not increase budgets or weaken freshness to recover fail
 
 ## Setup comparison and missing diagnostic evidence
 
-The frozen `pair_task.py` matches [`run_task._main`](../harness/run_task.py#L142) for
+The frozen `pair_task.py` matches [`run_task._main`](../../harness/run_task.py#L142) for
 seed initialization, environment construction, `reset(go_home=True)`, task parameter
 generation/initialization and the ten-step `_run_core` call. There is no additional
 pre-agent Camera launch or warm-up. It **does** add `task.tear_down(env)` in `finally`
@@ -144,7 +144,7 @@ It is an environment-setup warning, not evidence of a failed Camera observation.
 Both runs subsequently produce successful host replies. Calling that warning the
 cause of Shutter omission would be unfounded.
 
-[`serve` / `_answer`](../harness/core_bridge.py#L370) log port requests and final
+[`serve` / `_answer`](../../harness/core_bridge.py#L370) log port requests and final
 replies. `observe` does not log individual acquisitions, before/after components,
 window selection, rejected candidates, exact-versus-slight acceptance, or per-sample
 timings. Consequently the actual number and differences of accepted Camera samples

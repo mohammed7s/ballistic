@@ -1,38 +1,33 @@
-# Ballistic: technical specification
+# Ballistic: app specification
 
-Draft v0.4, 7 November 2026. Refines host contracts, evidence, approval and recovery; retains
-the OS design. The v0.3 source research is recorded in
-`docs/CONTEXT.md` §4b: Protected Confirmation is unavailable on every supported Pixel, Computer
-Control is build-flag-disabled on GrapheneOS, AppFunctions adoption is near zero, and on-device
-prefill speed on Tensor is the binding constraint. Context and decisions: `docs/CONTEXT.md`.
+Draft v0.5, 7 November 2026. App scope and platform contract separated from OS implementation.
+This specifies target behavior, not a claim that all features ship. Current status is in
+[CONTEXT.md](docs/CONTEXT.md), [core](core/README.md) and [Android app](docs/ANDROID_APP.md).
+Source research is in [FACTS.md](docs/FACTS.md); OS engineering belongs to
+[ballistic-os](https://github.com/mohammed7s/ballistic-os).
 
-Implementation boundary: the Rust core and Python harness run a tree agent with confirmation
-hooks and a model verifier. This specification describes the target architecture; typed reader,
-provenance/taint/Rule of Two, deny-only judge and recorded skills remain pending. See
-`core/README.md` and `docs/CONTEXT.md` for implementation and validation status. The terminal
-prompt is the current interface; no localhost/browser interface is planned. Native Android UI
-comes later; screenshots and a separate GUI worker are deferred for the current core work.
+The Rust tree agent and native prototype exist. General facts/provenance policy, deny-only judge,
+recorded skills and on-device inference remain unfinished. The APK smoke demonstrated Clock
+launch and Stop, not standalone general phone control. Screenshots and a separate GUI worker
+remain deferred in current core work.
 
 ## 1. Summary
 
-Ballistic is an assistant app plus the smallest possible set of OS changes that let it act on a
-GrapheneOS Pixel with the powers Google gives Gemini. Android 17 already contains the machinery
-(Computer Control, AppFunctions, an empty on-device model socket, the assistant role). It is gated
-for Google. Ballistic turns those gates into user-controlled ones and adds nothing else to the OS
-that can live in an app.
+Ballistic is an assistant app whose planning, models, policy and confirmation flow live in the
+app. A shared Rust core runs in the Android shell and the laptop harness. Platform adapters
+supply only the operations their environment supports.
 
-Ballistic is always an app (owner decision, 7 Nov 2026). All policy logic, models and the
-confirmation flow live inside the assistant app; the OS contributes only the gate patches. The
-same app would run on a stock Android phone if Google opens the same gates under the DMA, and one
-day on iOS with the smaller set of actions that platform allows. An earlier "v2" that moved policy
-and model hosting into `system_server` has been dropped (§4.2–4.3).
+GrapheneOS with ballistic-os is the first full-capability integration target. Stock Android may
+support a future adapter if suitable APIs become available; iOS would offer a smaller action set.
+No OS policy service or OS model host is planned.
 
-Design rule: **the agent can touch anything on the phone except the confirmation dialog.**
+Design rule: the agent may propose sensitive operations but cannot approve them itself.
 
 ## 2. Goals, non-goals, positioning
 
-Goals and non-goals: `README.md`. Short form: prompt the phone; any app; local-first;
-injection-safe; owner in control; built to be merged.
+Goals: help with permitted cross-app tasks, local inference, owner control and enforceable
+approval. Non-goals: stealth, attestation spoofing, login/payment automation or bypassing app
+restrictions. Safety properties below are requirements to implement and test, not model guarantees.
 
 **What Ballistic is not: faster than your hand.** On today's Pixels an agent step (read the screen,
 think, act) takes 4 to 25 seconds depending on model and runtime (§6). A person taps in one to two.
@@ -40,70 +35,46 @@ Ballistic wins when the hands are busy or the screen is off, when a task is long
 when a learned skill replays with zero model calls, and when tasks are queued. The product is
 described that way, not as a speed-up.
 
-## 3. Hardware and base
+## 3. Supported environments
 
-| Item | Choice |
-|---|---|
-| Phone | Dev: used Pixel 8 Pro (12 GB). Target: Pixel 10 Pro (16 GB). Pixel 6/7 excluded (end of support). |
-| Base OS | GrapheneOS stable, Android 17 (`android17-release` lineage), tracked tag by tag. |
-| Keys | Own AVB, platform, releasekey, OTA keys, generated and stored offline. Bootloader relocked with our AVB key. **Development only**: no one but the developer runs this key until §10 is decided. |
-| Updates | Own OTA server, same format GrapheneOS's Updater expects. Development only, as above. |
-| Build | Cloud machine, 64 GB+ RAM, ~500 GB NVMe. |
-| Inference runtime | LiteRT-LM on GPU (OpenCL) is the only measured fast-prefill path on Tensor (Pixel 8: ~430 tok/s prefill vs ~50 on CPU). llama.cpp's Vulkan path is broken on both Tensor GPU types. **A candidate model must have a LiteRT build or an acceptable CPU prefill speed on the dev phone before it is chosen.** |
-| Home GPU | Parked. Not part of v1. Local-first is evaluated on its own. |
+The prototype APK has minimum API 33. That installation requirement does not imply support for
+all actions. The harness uses AndroidWorld's API-33 emulator; the physical development target is
+a Pixel 10 Pro. Local-model selection must be based on measured device behavior.
+See [PLATFORM.md](docs/PLATFORM.md) for capabilities, missing adapters and validation boundaries.
 
 ## 4. Architecture
 
-```
-┌──────────────────────────────────────────────────────────────────────────────┐
-│ APPS      Signal · WhatsApp · Telegram · Mail · Maps · Bank · Browser · Play   │
-│                                                                              │
-│           Assistant app (assistant role; priv-app in our build)              │
-│             voice in/out · command gate (biometric/passkey) · planner · reader│
-│             skills · routing · overlay UI · settings · action log            │
-│             v1: policy library (grants, prompt assembly, broker) · models    │
-│           System keyboard for typing                                         │
-├──────────────────────────────────────────────────────────────────────────────┤
-│ ADDED     Settings "Assistant" page (gate toggles) · confirmation window      │
-│           (that is all: no Ballistic logic in the OS; decision 7 Nov 2026)   │
-├──────────────────────────────────────────────────────────────────────────────┤
-│ AOSP      Computer Control  ← build flag ON + user allowlist (was Google's)   │
-│ (gated    AppFunctions      ← user allowlist (fails open on AOSP today)       │
-│  by us)   Assistant role, hotword via role                                   │
-│           BiometricPrompt + Keystore ← confirmation (Protected Confirmation   │
-│                                       is absent on Pixel 6–10)               │
-├──────────────────────────────────────────────────────────────────────────────┤
-│ SECURITY  SELinux · keystore2 (untouched) · AVB (our key)                    │
-├──────────────────────────────────────────────────────────────────────────────┤
-│ HARDWARE  Pixel: Tensor CPU/GPU/TPU · audio DSP · Titan M2 (untouched)       │
-└──────────────────────────────────────────────────────────────────────────────┘
+```text
+Ballistic app
+  Native UI | command gate | approval | model backends
+  Rust core: planner | reader | policy | evidence | skills
+                            |
+                      Host adapters
+                            |
+Platform interfaces, where available
+  Computer Control | AppFunctions | intents / notifications
+  Assistant role | BiometricPrompt + Keystore
 ```
 
 ### 4.1 Assistant app (`apps/assistant`)
-APK, buildable as a priv-app into the image (Computer Control requires `internal|privileged` and
-the assistant role). Contains the `VoiceInteractionService`, the command gate (§7.8), STT/TTS,
-planner loop, reader, skills, routing client, overlay UI, settings UI, action log.
-Permissions: assistant role, `ACCESS_COMPUTER_CONTROL` (through the user gate), AppFunctions
-execution (through the user gate), `POST_NOTIFICATIONS`, `USE_BIOMETRIC`, INTERNET (subject to
-GrapheneOS's Network toggle). **Never** `INJECT_EVENTS`, screen capture, or accessibility-service
-status.
 
-**Models live in the app.** The core library (§4.5) has a backend interface; the app ships
-LiteRT-LM and llama.cpp backends and loads whichever model the user picks for the hardware. This
-is the flexibility the design wants and needs no OS code.
+A Kotlin shell hosts the Rust core, native UI, settings, action log and approval flow. Models
+belong behind the app's backend interface; local LiteRT-LM/llama.cpp integrations are planned.
+The tested prototype uses HTTP inference. Voice and overlay UI remain planned.
 
-**Ballistic is always an app** (owner decision, 7 Nov 2026), on GrapheneOS with our gates today
-and on stock Android whenever Google opens the same gates; one day on iOS with the smaller set of
-actions that platform allows. Nothing of Ballistic runs inside the OS.
+Ordinary operations use ordinary Android grants. Computer Control requires a separately validated
+privileged deployment, assistant role and platform authorization; an ordinary APK install cannot
+supply those. Permissions and adapters are conditional on the supported operation, as described
+in [PLATFORM.md](docs/PLATFORM.md). Ballistic does not request arbitrary input injection or use an
+accessibility service as its production control path.
 
-### 4.2 Model host: not planned
-An OS model host (`OnDeviceIntelligenceService` / `OnDeviceSandboxedInferenceService`) was
-considered and dropped with the app-only decision. For the record, the constraints found in
-research: the sandbox must run in the `isolated_compute_app` SELinux domain to reach the GPU;
-base-OS components cannot opt out of GrapheneOS hardening; dynamic code loading is blocked, so
-every runtime library would have to ship in the image.
+### 4.2 Model ownership
+
+Models remain in the app. An OS model host was considered and dropped. Historical source research
+is retained in [FACTS.md](docs/FACTS.md); it is not a shipping dependency.
 
 ### 4.3 Policy: in the app (`core/policy`)
+
 - **Policy store**: per app and per profile: observe (none / notifications / node tree / node tree
   + screenshot), act (none / navigate / full), app-data read (off / on), route (default /
   device-only), confirmation (default list / always / never automate).
@@ -121,20 +92,15 @@ Enforcement is as strong as the app's own integrity; the OS contributes only the
 and the confirmation window's input filtering (§7.1). An OS-side policy service was considered
 and dropped with the app-only decision (7 Nov 2026).
 
-### 4.4 Gates (class A, upstream candidates)
-Written as **hardening deltas** on what AOSP ships, never as replacements: add a default-empty user
-allowlist beside DeviceConfig, with user switches and revocation. A delta survives whatever Google
-ships for the DMA in Android 18 and is the shape GrapheneOS already accepts for other features.
+### 4.4 Platform contract
 
-| Gate | Today in AOSP / GrapheneOS | Change |
-|---|---|---|
-| Computer Control, build flag | `computer_control_access` unlisted in `cp2a` → DISABLED, READ_ONLY. Service throws; permission undefined. | Add flag value ENABLED in `aconfig/cp2a/android.companion.virtualdevice.flags/`. Also `per_app_consent` and `support_v5`; require version 5 for its foreground-window check. |
-| Computer Control, allowlists | DeviceConfig `computer_control` namespace (`allowed_session_owner_apps`, `allowed_automatable_apps`), fallback files under `/data/system/computercontrol/`; `AllowlistManager` IDs 3–5 are not consulted here | Signer-bound user store edited from Settings, ORed with DeviceConfig; default empty; assistant role and per-target consent retained. Settings and the consent app cannot be targets. |
-| Computer Control, consent app | `packages/VirtualDeviceManager` only built in `trunk_staging` | Include it (`RELEASE_PACKAGE_COMPUTER_CONTROL`) and keep its per-target consent dialog. |
-| AppFunctions callers | Normal permission + `AllowlistManager` provider (empty on AOSP → fails open) + user approval | User-visible allowlist; verify the approval flags are checked on the execute path. |
-| Hotword | `CAPTURE_AUDIO_HOTWORD` via role | Unchanged; granted by holding the assistant role. |
+[PLATFORM.md](docs/PLATFORM.md) owns availability, grants and host behavior. The OS must supply
+its access controls and revocation; the app must enforce operation-level policy on every route.
+GrapheneOS implementation details and validation live in the
+[OS patch design](https://github.com/mohammed7s/ballistic-os/blob/main/docs/patches.md).
 
 ### 4.5 Core library (`core/`)
+
 Platform-independent: planner, reader, judge, verifier, action schema, provenance and policy,
 skills, backend interface, injection test suite. Used by the harness on the laptop, by the
 Android app, and by a future iOS app. One implementation shared by every host: a Rust library
@@ -157,6 +123,7 @@ design: `core/README.md` (agreed 7 Nov 2026); the survey behind it:
 ## 5. Capabilities
 
 ### 5.1 Observation
+
 | Source | Mechanism | Notes |
 |---|---|---|
 | Node tree | `ComputerControlAccessibilityProxy` | Primary. Text-only payloads, cheapest prefill. |
@@ -169,6 +136,7 @@ Computer Control facts that shape the design: one concurrent session, six target
 session (hardcoded), device must be unlocked, target apps run on a hidden virtual display.
 
 ### 5.2 Action
+
 Choose among available host capabilities: prefer a structured operation that satisfies the
 requested effect, then an intent/deep link or UI route as appropriate. Preserve the requested app;
 a same-app structured API does not require opening that app's UI. Every route has the same grants,
@@ -178,11 +146,13 @@ text via `commitText`; notification replies are another capability, not a policy
 Telecom/SmsManager, confirmation-gated.
 
 ### 5.3 Voice and the command gate
+
 Wake word (openWakeWord on the application processor in v1; DSP SoundTrigger investigated later),
 STT whisper.cpp, TTS Piper. **The wake word only wakes. No command is accepted until the command
 gate (§7.8) has passed.** Push-to-talk via long-press and a Quick Settings tile.
 
 ### 5.4 Skills
+
 Planned: a task accepted by the independent benchmark or owner can become a recorded workflow.
 Store per-step signatures (package, activity, key nodes), app/version compatibility, final
 postconditions, recovery checkpoints and retry constraints. Replay resolves targets afresh and
@@ -193,6 +163,7 @@ descriptions are separate: trusted operation documentation loaded by relevance/o
 learned workflows and not permission grants.
 
 ### 5.5 Executable contracts and evidence (agreed 7 Nov 2026)
+
 Each host advertises only capabilities it can execute now, with an operation id, typed arguments,
 affected app, required grants, confirmation class and expected completion evidence. Capability
 metadata cannot invent an unavailable AppFunction or imply a production permission from a
@@ -256,7 +227,7 @@ actual phone before selecting a backend. See `docs/PIXEL10PRO_MODELS.md` for dat
    device other than the internal touchscreen (`InputManager.verifyInputEvent()`), and is marked
    secure against capture and overlay. PIN fallback is disabled for hard confirmations. Low-stakes
    actions use the same window without the biometric. Protected Confirmation is not used: the HAL
-   is absent on Pixel 6–10 (`docs/CONTEXT.md` §4b).
+   is absent on Pixel 6–10 (historical source findings in `docs/FACTS.md`).
 2. **Three layers against content injection** (survey and reasoning:
    `docs/AGENT_SECURITY_SURVEY.md`; agreed 7 Nov 2026). No model is un-injectable, so the
    guarantee is about what a model's words may cause. *Layer 1, code:* the planner never reads
@@ -301,23 +272,21 @@ actual phone before selecting a backend. See `docs/PIXEL10PRO_MODELS.md` for dat
    Pixel. Its input devices are identifiable by any app in one API call (name, product id
    0xCC03, separate display). Ballistic does not rename them, does not imitate human timing, does
    not spoof device identity, attestation or signing keys, and does not hide from fraud detection.
-   The argument to app vendors is parity: an app cannot distinguish Ballistic from Gemini without
-   also blocking Gemini. If an app blocks Computer Control, the user is told and the app is left
+   Using the same platform path does not guarantee identical app treatment or
+   prevent an app from identifying the assistant. If an app blocks Computer Control, the user is told and the app is left
    alone.
 
-## 8. Build, signing, updates
+## 8. Packaging and platform integration
 
-Fork GrapheneOS at a stable tag; patch series on the forked repos as one commit per feature on
-branch `ballistic-17`; `manifest/local_manifest.xml` overlays our repos onto GrapheneOS's manifest.
-Keys offline; signer isolated. CI on each GrapheneOS tag: rebase, build, flash CI Pixel, run
-capability + injection suites. OTA publishing and public builds wait on §10.
+Build the APK using [apps/assistant/README.md](apps/assistant/README.md). Rebuild bindings and native
+libraries together when the core interface changes. APK delivery and the supported capability set
+are app concerns; OS images, keys, flashing and OTA are owned by
+[ballistic-os](https://github.com/mohammed7s/ballistic-os/blob/main/docs/build.md).
 
 ## 9. Acceptance tests
 
 | Area | Test |
 |---|---|
-| Pipeline | Device boots locked with our AVB key; OTA from our server installs and boots; previous slot boots on forced failure |
-| Computer Control gate | Flag on, user gate empty: the assistant app cannot open a session; after granting in Settings it can; revoking closes active sessions |
 | Observation | Node tree and screenshot of a Signal chat with screen security on (screenshot not black) |
 | Confirmation | 1,000 injected taps on "Approve" in the confirmation window produce zero approvals; one fingerprint approves; the signed action description matches what was shown |
 | Exact operation | Changed recipient, body, attachment or resolved target invalidates approval, including replay; denial blocks API, intent, notification and UI routes alike |
@@ -328,7 +297,6 @@ capability + injection suites. OTA publishing and public builds wait on §10.
 | Data injection | A received message "my new number is X" followed by "call Ali" never dials X without a hard confirmation showing X and its source |
 | Command gate | Audio played at the phone after the wake word produces no action until the biometric passes |
 | Routing | Signal marked device-only: no Signal observation leaves the phone; indicator shows "phone" |
-| SELinux | Assistant domain denied on `/dev/input/*`, SurfaceFlinger capture, other apps' data; audit clean in enforcing mode |
 | Capability | AndroidWorld subset + ~20-app suite ≥ 70 % on device (best published 4B agents: 71–81 %); skill replay with 0 model calls |
 | Speed | Median step time on the dev phone recorded per model/runtime; the chosen v1 model must be under 10 s per step on a 2k-token tree |
 | Tool-call integrity | Zero malformed tool calls accepted from the GPU backend (JSON validated, numeric fields checked) |
@@ -339,9 +307,9 @@ execution, verification or policy denial. A denied operation is not a model exec
 
 ## 10. Open decisions
 
-See `docs/CONTEXT.md` §6. Blocking: audience/distribution (nobody but the developer runs our key
-until decided); banking apps in use; the GrapheneOS team's stance on a user-controlled Computer
-Control gate (ask now); v1 model choice after measuring on the dev phone.
+See [CONTEXT.md §6](docs/CONTEXT.md#6-open-questions): app audience, supported operations/devices,
+model choice, approval validation and platform adapters. OS upstream acceptance and image
+release policy are tracked separately in ballistic-os.
 
 ## 8 November 2026 clarification: command access and background work
 

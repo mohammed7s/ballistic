@@ -150,7 +150,7 @@ modes. `ContactsAddContact/08.json` now withholds two contact identity/display s
 its collection; the existing tests still pass. All **12 Settings profile fixtures**, Calendar
 and Markor known-control fixtures are byte-identical. The added Expense fixture changes as
 expected. Full details contain only filenames, source locations and counts in
-[`collection_comparison.json`](../core/tests/cases/collection_comparison.json).
+[`collection_comparison.json`](../../core/tests/cases/collection_comparison.json).
 
 Reproduce using separately built baseline/candidate binaries:
 

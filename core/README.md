@@ -49,7 +49,7 @@ and none is proposed: the loop is small, it must run inside a phone app, and the
 (§7–§9) have to sit in our own code where they can be tested.
 
 Problems with T3A that `core/` exists to fix, all measured in the step-1 baseline
-(`docs/CONTEXT.md` §4, 6 Nov 2026):
+([historical baseline](../docs/FACTS.md), 6 Nov 2026):
 
 - Prompts of 10.7k tokens on average and up to 43k per call: the whole UI tree, unfiltered.
 - Two model calls per step (action, then a summary of what happened).
@@ -219,7 +219,7 @@ app data, separate from labels, matched titles and typed history; raw strings re
 reader. Missing years remain unknown, interval endpoints do not imply a date or duration, and
 numbers alone cannot identify a target or establish completion. Unknown grammar/envelopes stay
 content. Exact calendar title/description resources also stay content through button-row folding.
-Source grammar, frozen cases, offline comparison and limits: [`TYPED_VALUES_20261107.md`](../docs/TYPED_VALUES_20261107.md).
+Source grammar, frozen cases, offline comparison and limits: [`2026-11-07-typed-values.md`](../docs/log/2026-11-07-typed-values.md).
 
 Everything else the planner needs from content (the newest thread, the message from the dentist)
 it gets through `read` (§6) as a typed answer.
@@ -235,7 +235,7 @@ malformed ancestry receive no new inference, not a certificate that their string
 Raw Settings-home labels, Clock city-list values and Expense's nested MORE button consequently
 become opaque where no code-owned identity exists. Existing Settings profiles remain intact.
 Frozen tests, scripted prompt evidence, compatibility counts and limits:
-[`COLLECTION_CONTENT_20261107.md`](../docs/COLLECTION_CONTENT_20261107.md).
+[`2026-11-07-collection-content.md`](../docs/log/2026-11-07-collection-content.md).
 
 Measurement plan: record the raw screens of one task (ContactsAddContact, the baseline's
 reference task), then count prompt tokens for T3A's format and for ours on the same screens.
@@ -313,7 +313,7 @@ later screens; it disappears when the row changes. A pick authorizes one plain `
 element (not a field, slider, long press or anything in the shade); if its withheld text contains
 a guarded word (§9) the tap needs the owner's confirmation. `facts` is not implemented;
 such a read is refused without a model call and the run continues. Offline trace evidence, exact
-feedback and limits: [element-reader development record](../docs/ELEMENT_READER_FEEDBACK_20261107.md).
+feedback and limits: [element-reader development record](../docs/log/2026-11-07-element-reader-feedback.md).
 
 **Implemented: terminal owner `summary` (7 Nov 2026, `reader/summary.rs`).** This is a distinct
 display channel, not `Action::Answer` or a planner fact. The owner opts in with an English
@@ -369,7 +369,7 @@ distinguishes available display content from failed/unsupported summaries withou
 independent verification or completion of any request, including unrelated action requirements.
 Citation checks establish source membership only: even exact quotations can be selected out of
 context, omit negation, repeat false claims, or be irrelevant. No live quality uplift is claimed.
-Frozen baseline, scripted drive/bridge tests and limits: [development record](../docs/OWNER_SUMMARY_20261107.md).
+Frozen baseline, scripted drive/bridge tests and limits: [development record](../docs/log/2026-11-07-owner-summary.md).
 
 **Provenance.** Every value core handles carries a source tag: `owner:request`, `owner:contacts`,
 `screen:label`, `sms:<sender>`, `note:<file>`, `web:<host>`, `app:<package>`. Tags are set by the
@@ -768,7 +768,7 @@ at most two planner attempts per step: if correction is already spent or repeats
 read, core stops before another reader call. This may use a previously unused planner call;
 actual model-call cost and live uplift are unknown. The private normalized query equality,
 reader picks, normal action checks and terminal summary boundary are unchanged. See the
-[bounded correction development record](../docs/READER_CORRECTION_20261107.md).
+[bounded correction development record](../docs/log/2026-11-07-reader-correction.md).
 These bounds limit stalled reader calls; they do not establish completion.
 The verifier rejects anonymous switch/checkable evidence, but
 still cannot prove that every requested field or value was satisfied merely from cited node IDs.

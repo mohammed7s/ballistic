@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   Ballistic as an ordinary, unprivileged app (PLAN step 3). No privileged permission is declared;
-  Computer Control, the assistant role and priv-app status come with the gates (PLAN step 5).
+  Computer Control, the assistant role and priv-app status come with the gates (docs/PLATFORM.md).
   Every permission below is install-time "normal" or runtime-granted by the owner:
     INTERNET              model endpoints (subject to GrapheneOS's Network toggle)
     POST_NOTIFICATIONS    the "approval needed" notification when the window cannot be raised

@@ -357,7 +357,7 @@ const MARKOR_ROW: &str = "net.gsantner.markor:id/opoc_filesystem_item__root";
 
 /// Markor v2.10.9 (versionCode 146), GsFileBrowserListAdapter.onBindViewHolder:
 /// localized kind + " " + full displayed title + " " + optional description. See
-/// docs/OBSERVATION_CAPTIONS_20261107.md for pinned source and compatibility limits.
+/// docs/log/2026-11-07-observation-captions.md for pinned source and compatibility limits.
 /// Only recognize the English, unselected file-browser row envelope. The ENTIRE remainder
 /// is untrusted: never split at a space/newline/extension to discard a possible suffix.
 /// A description ending in a space is indistinguishable from part of the title; keeping it

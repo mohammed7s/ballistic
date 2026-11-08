@@ -12,7 +12,7 @@ in sibling `/home/wakeel/.t3/worktrees/ballistic/t3-670518a3`. Review worktree s
 **`6e33deb93820262eaea9be51bdfa4cc0113e248d`**, which does not contain the candidate.
 Its difference from aaf0e6c is documentation only. Source line references below refer to
 the candidate, not the review branch. Read the commit/diff, candidate design/evidence document,
-`PLANNING_CONTEXT_AUDIT_20261107.md`, and the relevant action/filter/reader/readback/agent code.
+`2026-11-07-planning-context-audit.md`, and the relevant action/filter/reader/readback/agent code.
 
 ## Original brief and review boundary
 

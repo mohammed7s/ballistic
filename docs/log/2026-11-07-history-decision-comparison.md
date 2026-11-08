@@ -56,7 +56,7 @@ tokens, small sample, shared trajectories and lack of action execution limit int
 
 A useful result can justify a later closed-loop test; it cannot establish a full-suite gain,
 phone performance, exact photo count, saved event, delivery, safety pass or >=13/20 result.
-See `GROUNDED_HISTORY_REVIEW_20261107.md` for the unresolved prototype findings.
+See `2026-11-07-grounded-history-review.md` for the unresolved prototype findings.
 
 ## Transport clarification before any model outputs
 

@@ -2,7 +2,7 @@
 
 **Offline implementation revision, ready for parent review; no model uplift or deployment claim.**
 This responds to both blockers and the two smaller findings in
-[GROUNDED_HISTORY_REVIEW_20261107.md](GROUNDED_HISTORY_REVIEW_20261107.md).
+[GROUNDED_HISTORY_REVIEW_20261107.md](2026-11-07-grounded-history-review.md).
 The original candidate report remains historical evidence, superseded here for implementation,
 bounds and validation. These are development cases informed by the review, **not held-out tests**.
 

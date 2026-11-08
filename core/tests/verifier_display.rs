@@ -1,5 +1,5 @@
 //! Scripted protocol/visibility checks, not evidence of model reasoning quality.
-//! Frozen boundaries and trace diagnosis: docs/VERIFIER_DISPLAY_20261107.md.
+//! Frozen boundaries and trace diagnosis: docs/log/2026-11-07-verifier-display.md.
 use ballistic_core::{agent, bridge::Bridge, screen_filter::{self, FilterContext}, types::*};
 use serde_json::{json, Value};
 use std::io::Cursor;

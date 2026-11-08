@@ -7,7 +7,7 @@
 //! exactly the observed three opaque injected rows. Unrecognized rows/widgets/descendants,
 //! missing anchors or ownership, and other layouts invalidate the whole signature.
 //! Row order, node numbers, summaries and checked values do
-//! not select an identity. See docs/SETTINGS_OBSERVATION_20261107.md for pinned source/proof
+//! not select an identity. See docs/log/2026-11-07-settings-observation.md for pinned source/proof
 //! including the captured Display, Internet and Bluetooth switch variants.
 use std::collections::{HashMap, HashSet};
 

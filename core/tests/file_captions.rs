@@ -1,4 +1,4 @@
-//! Development regressions frozen in docs/OBSERVATION_CAPTIONS_20261107.md before the fix.
+//! Development regressions frozen in docs/log/2026-11-07-observation-captions.md before the fix.
 use ballistic_core::{actions, reader, screen_filter::{self, FilterContext, FilteredScreen}, types::*, verification};
 use serde_json::{json, Value};
 

@@ -1,4 +1,4 @@
-// The confirmation window's input filter (SPEC.md §7.1; docs/CONTEXT.md §4b, open question 7).
+// The confirmation window's input filter (SPEC.md §7.1; docs/FACTS.md; docs/CONTEXT.md §6).
 // Every touch reaching the window passes through check(); a rejected event never reaches the
 // Approve button. Denying needs no filter (a forged Deny only makes the assistant stop), so the
 // filter protects the approve path only.
@@ -13,7 +13,7 @@
 //     synthetic events that have no real device.
 //  3. The device behind the id: must exist, be non-virtual, internal (not USB/Bluetooth), a
 //     touchscreen, and not one of Computer Control's virtual input devices (vendor 0x0000,
-//     product 0xCC01/0xCC03; verified in AOSP android17-release, docs/CONTEXT.md §4b). The
+//     product 0xCC01/0xCC03; verified in AOSP android17-release, docs/FACTS.md). The
 //     event must be on the display the window is on (Computer Control uses its own display).
 //  4. MotionEvent flag FLAG_IS_ACCESSIBILITY_EVENT (0x800, set by InputDispatcher for
 //     accessibility-injected input; verified in AOSP), and the obscured / partially obscured
@@ -89,7 +89,7 @@ class InjectedInputFilter(context: Context) {
         /** MotionEvent.FLAG_IS_ACCESSIBILITY_EVENT; the constant is hidden from the SDK. */
         const val FLAG_IS_ACCESSIBILITY_EVENT = 0x800
 
-        /** Computer Control's virtual touchscreen and dpad (docs/CONTEXT.md §4b). */
+        /** Computer Control's virtual touchscreen and dpad (docs/FACTS.md). */
         val COMPUTER_CONTROL_PRODUCT_IDS = setOf(0xCC01, 0xCC03)
     }
 }

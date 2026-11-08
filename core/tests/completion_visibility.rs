@@ -1,4 +1,4 @@
-//! Frozen completion cases in docs/RELIABILITY_20261107.md. Scripted ports only.
+//! Frozen completion cases in docs/log/2026-11-07-reliability.md. Scripted ports only.
 use ballistic_core::{agent, bridge::Bridge, screen_filter::{self, FilterContext}, types::*, verification};
 use serde_json::{json, Value};
 use std::io::Cursor;

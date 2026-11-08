@@ -1,6 +1,6 @@
 //! Bounded observations from dedicated value slots, never labels or action authority.
 //! Grammar/envelopes: Simple Calendar 6.22.2 source + recorded host trees; see
-//! docs/TYPED_VALUES_20261107.md. No owner request, clock, model or benchmark input.
+//! docs/log/2026-11-07-typed-values.md. No owner request, clock, model or benchmark input.
 use crate::types::{Node, NodeId, Role, ScreenState, Source};
 
 const PACKAGE: &str = "com.simplemobiletools.calendar.pro";

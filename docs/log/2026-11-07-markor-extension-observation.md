@@ -35,7 +35,7 @@ filename or the cause of the independent checker failure.
 
 Markor v2.10.9, versionCode 146, commit
 `ab2175460680eb4a914b6006b9c962756b2067d2`, is the configured-source mapping already
-documented in `OBSERVATION_CAPTIONS_20261107.md` and `RELIABILITY_20261107.md`.
+documented in `2026-11-07-observation-captions.md` and `2026-11-07-reliability.md`.
 **Installed APK version and hash remain unverified.**
 
 - [new_file_dialog.xml](https://github.com/gsantner/markor/blob/ab2175460680eb4a914b6006b9c962756b2067d2/app/src/main/res/layout/new_file_dialog.xml#L56)

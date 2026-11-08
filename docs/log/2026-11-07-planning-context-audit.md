@@ -81,22 +81,22 @@ nor seven photos is established. Thumbnail appearance is useful UI evidence, not
 
 **Interface deficits are concrete but not independently causal.**
 
-The existing [planner prompt](../core/prompts/planner.txt) already says to check keypad values
+The existing [planner prompt](../../core/prompts/planner.txt) already says to check keypad values
 and units, preserve all constraints, respect counts, and not repeat acknowledged creation merely
 because results are invisible. Repeating these instructions is not the proposed improvement.
 
-- [`agent.rs`](../core/src/agent.rs), `drive`: each call starts anew with request, apps, eight
+- [`agent.rs`](../../core/src/agent.rs), `drive`: each call starts anew with request, apps, eight
   history lines, reader picks and current screen. `why` is log-only. Eviction can lose older
   context, but cannot explain the first Timer error or Calendar's retained wrong values.
-- [`actions.rs`](../core/src/actions.rs), `describe`: history is a short action description
-  (e.g. `tap e12`), not a grounded record of that target. [`screen_filter.rs`](../core/src/screen_filter.rs)
+- [`actions.rs`](../../core/src/actions.rs), `describe`: history is a short action description
+  (e.g. `tap e12`), not a grounded record of that target. [`screen_filter.rs`](../../core/src/screen_filter.rs)
   renumbers each view. Camera's historic e2 means mode list, then shutter, then thumbnail;
   calendar e8 means different controls across form/hour/minute screens. Current-ID resolution
   works as designed; historical ambiguity is separate from a stale-ID execution bug.
-- [`readback.rs`](../core/src/readback.rs), `compare`: reports fixed structural signals, not
+- [`readback.rs`](../../core/src/readback.rs), `compare`: reports fixed structural signals, not
   which meaningful control/value changed. It keeps no temporal field binding or effect count.
   It deliberately cannot turn `unchanged` into failed execution or `changed` into success.
-- [`actions.json`](../core/schema/actions.json) expresses one immediate action, no numeric
+- [`actions.json`](../../core/schema/actions.json) expresses one immediate action, no numeric
   relation, pending field or plan cursor. All 54 selected Core6 actions are accepted, so JSON
   syntax/schema complexity is not the proximate failure here. All three finish on step budget.
 - `confirmation_reason`/`GuardKey` track guarded inputs only; Shutter is outside that list.
@@ -175,7 +175,7 @@ history comparison, then test the combination only if individual results justify
 
 ## What prompts or memory cannot recover
 
-The host's [`core_bridge.py`](../harness/core_bridge.py), `act`, returns `ok` after input transport;
+The host's [`core_bridge.py`](../../harness/core_bridge.py), `act`, returns `ok` after input transport;
 it supplies no completed-capture receipt. Exact photo count/persistence requires a genuinely
 permitted operation-bound receipt or structured readback, with source, freshness, app/operation
 identity and accepted-versus-completed semantics. No such capability is advertised here. Do not
@@ -184,7 +184,7 @@ evidence can guide inspection, but a snapshot of a thumbnail cannot prove an exa
 
 Similarly, calendar's omitted year stays unknown; entering values is not proof of a saved event.
 The normalizer merges hint/description/tooltip into `label` and Node lacks showing-hint state:
-the [Markor investigation](MARKOR_EXTENSION_OBSERVATION_20261107.md) explains why `.md` cannot be
+the [Markor investigation](2026-11-07-markor-extension-observation.md) explains why `.md` cannot be
 certified as a current value. Node also lacks a numeric range-value contract. Neither a better
 prompt nor a scratchpad can reconstruct these absent distinctions. Host changes would be a
 separate capability/observation project, not inferred permissions or part of this documentation task.

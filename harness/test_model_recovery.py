@@ -1,4 +1,4 @@
-"""Frozen protocol cases in docs/RELIABILITY_20261107.md; no network or device."""
+"""Frozen protocol cases in docs/log/2026-11-07-reliability.md; no network or device."""
 import json
 import os
 import subprocess
