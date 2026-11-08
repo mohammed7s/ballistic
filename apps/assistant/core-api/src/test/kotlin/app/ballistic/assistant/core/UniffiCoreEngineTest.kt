@@ -40,8 +40,11 @@ class UniffiCoreEngineTest {
         hands = { op -> acted += op; HandsResult.Ok },
         models = { role, messages, _ ->
             check(messages.first().role == "system")
-            roles += role
-            Completion(replies.getOrElse(roles.size - 1) { """{"action":"give_up","reason":"end of script"}""" }, Usage(10, 5))
+            // The app default runs core's deny-only judge before each state change; it allows.
+            if (role == ModelRole.Judge) Completion("""{"verdict":"allow"}""", Usage(10, 5)) else {
+                roles += role
+                Completion(replies.getOrElse(roles.size - 1) { """{"action":"give_up","reason":"end of script"}""" }, Usage(10, 5))
+            }
         },
         confirm = { ConfirmResult.Denied },
     )
@@ -193,6 +196,33 @@ class UniffiCoreEngineTest {
                     app.ballistic.assistant.session.resultLabel(result))
             }
         }
+    }
+
+    @Test
+    fun advertisedContextLimitCrossesTheBindingAndGuardsTheCall() {
+        val core = nativeEngine()
+        val roles = mutableListOf<ModelRole>()
+        val asked = mutableListOf<ModelRole>()
+        fun limited(tokens: Int) = object : Models {
+            override fun complete(role: ModelRole, messages: List<ChatMessage>, maxTokens: Int): Completion {
+                roles += role
+                return Completion("""{"action":"give_up","reason":"end of script"}""", Usage(2441, 36))
+            }
+            override fun limits(role: ModelRole): ModelLimits { asked += role; return ModelLimits(tokens) }
+        }
+        val base = ports(mutableListOf(), mutableListOf(), emptyList())
+        // A 1,280-token bundle cannot hold the planner's rules: refused, no model call.
+        val refused = core.run("open the Clock app", 1, base.copy(models = limited(1280)), Recorder(), CancelToken())
+        assertEquals("model_context", refused.failureCategory)
+        assertTrue(refused.reason.startsWith("prompt does not fit this model's 1,280-token context"), refused.reason)
+        assertEquals(emptyList(), roles)
+        assertEquals(listOf(ModelRole.Planner), asked)
+        // 4,096 fits this small screen; the step event carries the host's reported usage.
+        val recorder = Recorder()
+        core.run("open the Clock app", 1, base.copy(models = limited(4096)), recorder, CancelToken())
+        assertEquals(listOf(ModelRole.Planner), roles)
+        assertEquals(2441, recorder.steps.single().promptTokens)
+        assertEquals(36, recorder.steps.single().completionTokens)
     }
 
     @Test

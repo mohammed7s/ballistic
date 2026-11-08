@@ -50,7 +50,7 @@ data class ProgressLine(val elapsedMs: Long, val text: String)
  * soon as core observes, plans or reports a step (a task turn runs the loop), so the card
  * appears while it runs.
  */
-enum class ExchangeKind { Pending, Reply, Clarify, Task, NotUnderstood, Stopped, Error }
+enum class ExchangeKind { Pending, Reply, Clarify, Task, NotUnderstood, Stopped, DoesNotFit, Error }
 
 /** One owner message and what happened to it. */
 data class RunView(
@@ -281,6 +281,7 @@ internal fun exchangeKind(turn: TurnResult): ExchangeKind = when (turn.kind) {
     TurnKind.Task -> ExchangeKind.Task
     TurnKind.NotUnderstood -> ExchangeKind.NotUnderstood
     TurnKind.Stopped -> ExchangeKind.Stopped
+    TurnKind.DoesNotFit -> ExchangeKind.DoesNotFit
 }
 
 /**

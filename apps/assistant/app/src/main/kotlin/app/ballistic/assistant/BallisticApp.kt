@@ -20,6 +20,7 @@ import app.ballistic.assistant.core.ChatMessage
 import app.ballistic.assistant.core.Completion
 import app.ballistic.assistant.core.EngineChoice
 import app.ballistic.assistant.core.FakeCoreEngine
+import app.ballistic.assistant.core.ModelLimits
 import app.ballistic.assistant.core.ModelRole
 import app.ballistic.assistant.core.Models
 import app.ballistic.assistant.core.PortException
@@ -215,6 +216,10 @@ class CountedModels(private val inner: Models) : Models, ModelRunLifecycle {
     override fun endRun() { (inner as? ModelRunLifecycle)?.endRun() }
     override fun cancelRun() { (inner as? ModelRunLifecycle)?.cancelRun() }
     private val calls = AtomicInteger(0)
+
+    // Forwarded so core's context guard sees the routed model's limit (the defaults advertise none).
+    override fun limits(role: ModelRole): ModelLimits = inner.limits(role)
+    override fun countTokens(role: ModelRole, messages: List<ChatMessage>): Int? = inner.countTokens(role, messages)
 
     override fun complete(role: ModelRole, messages: List<ChatMessage>, maxTokens: Int): Completion {
         val n = calls.incrementAndGet()

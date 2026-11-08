@@ -12,6 +12,7 @@ pub mod actions;
 pub mod screen_filter;
 mod typed_value;
 pub mod agent;
+pub mod context;
 pub mod run;
 pub mod reader;
 pub mod judge;

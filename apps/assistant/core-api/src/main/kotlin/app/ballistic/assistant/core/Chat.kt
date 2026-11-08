@@ -41,6 +41,11 @@ enum class TurnKind {
     @SerialName("not_understood") NotUnderstood,
     /** Stop arrived before the model was asked. */
     @SerialName("stopped") Stopped,
+    /**
+     * The prompt does not fit the loaded model's context even after core's bounded reductions;
+     * the model was not asked and nothing is appended to the conversation.
+     */
+    @SerialName("does_not_fit") DoesNotFit,
 }
 
 /**

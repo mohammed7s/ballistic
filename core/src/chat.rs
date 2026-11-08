@@ -18,6 +18,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
 use crate::agent::{self, Task};
+use crate::context::{self, Room, Sent, Trim};
 use crate::ports::*;
 use crate::reader::{parse_source_tag, source_tag};
 use crate::run::{Host, Options};
@@ -77,6 +78,9 @@ pub enum TurnKind {
     NotUnderstood,
     /// The owner pressed Stop before the model was asked.
     Stopped,
+    /// The prompt does not fit the loaded model's advertised context even after the context
+    /// guard's bounded reductions (`context.rs`); the model was not asked, nothing happened.
+    DoesNotFit,
 }
 
 /// What one turn produced. `text` is what the thread shows, in the first person; `values` are
@@ -94,6 +98,10 @@ pub struct TurnResult {
     /// A port failure that ended the task early (task turns). Earlier effects stand.
     pub error: Option<String>,
     pub history: Vec<Turn>,
+    /// The context guard's checks of this turn's chat calls; present only when the host
+    /// advertised a context limit. Numbers only.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub context_guard: Vec<context::Check>,
 }
 
 /// Owner and assistant text as it may enter the prompt: no control characters except line
@@ -278,40 +286,64 @@ pub fn converse<H: Host>(host: &mut H, history: &[Turn], message: &str, options:
     }
     let history = admit(history, options.chat_history_turns);
     let owner_turn = Turn::new(TurnSource::Owner, message.clone(), vec![]);
-    let result = |kind, text: String, values: Vec<Tagged>, history: Vec<Turn>| TurnResult {
-        kind, text, values, request: None, report: None, error: None, history,
+    let mut checks = Vec::new();
+    let result = |kind, text: String, values: Vec<Tagged>, history: Vec<Turn>, checks: &mut Vec<context::Check>| TurnResult {
+        kind, text, values, request: None, report: None, error: None, history, context_guard: std::mem::take(checks),
     };
-    let mut messages = prompt(&history, &message);
+    // Corrections are never reduced; the context guard may drop the oldest admitted turns.
+    let mut corrections: Vec<ChatMessage> = Vec::new();
+    let room = Room { chat_turns: history.len().saturating_sub(context::CHAT_HISTORY_FLOOR), ..Room::default() };
     let mut parsed = None;
     for attempt in 0..2 {
         if host.cancelled() {
-            return Ok(result(TurnKind::Stopped, "Stopped.".into(), vec![], vec![]));
+            return Ok(result(TurnKind::Stopped, "Stopped.".into(), vec![], vec![], &mut checks));
         }
-        let completion = host.complete(ModelRole::Chat, &messages, CHAT_TOKENS)?;
+        let (sent, check) = context::complete(host, ModelRole::Chat, CHAT_TOKENS, room, |t: &Trim| {
+            let mut m = prompt(&history[t.chat_turns.min(history.len())..], &message);
+            m.extend(corrections.iter().cloned());
+            m
+        })?;
+        let refused = check.as_ref().filter(|c| !c.fits).map(context::Check::refusal);
+        checks.extend(check);
+        let completion = match sent {
+            Sent::Completion(c) => c,
+            // Nothing appended: the owner's message was not answered and may be sent again.
+            Sent::Refused => return Ok(result(TurnKind::DoesNotFit, does_not_fit_text(refused.as_deref()), vec![], vec![], &mut checks)),
+        };
         match parse_reply(&completion.text) {
             Ok(reply) => { parsed = Some(reply); break; }
             Err(e) if attempt == 0 => {
-                messages.push(ChatMessage { role: "assistant".into(), content: completion.text });
-                messages.push(ChatMessage { role: "user".into(), content: format!("Invalid reply: {e}. Return exactly one JSON object matching the reply schema.") });
+                corrections.push(ChatMessage { role: "assistant".into(), content: completion.text });
+                corrections.push(ChatMessage { role: "user".into(), content: format!("Invalid reply: {e}. Return exactly one JSON object matching the reply schema.") });
             }
             Err(_) => {}
         }
     }
     let Some(reply) = parsed else {
         let answer = Turn::new(TurnSource::Assistant, NOT_UNDERSTOOD, vec![]);
-        return Ok(result(TurnKind::NotUnderstood, NOT_UNDERSTOOD.into(), vec![], vec![owner_turn, answer]));
+        return Ok(result(TurnKind::NotUnderstood, NOT_UNDERSTOOD.into(), vec![], vec![owner_turn, answer], &mut checks));
     };
     let (kind, text) = match reply {
         ChatReply::Reply(text) => (TurnKind::Reply, text),
         ChatReply::Clarify(question) => (TurnKind::Clarify, question),
-        ChatReply::Task(request) => return Ok(task_turn(host, &history, owner_turn, request, options)),
+        ChatReply::Task(request) => {
+            let mut turn = task_turn(host, &history, owner_turn, request, options);
+            turn.context_guard = checks;
+            return Ok(turn);
+        }
     };
     // Reply or question: nothing is observed or dispatched. Values keep their sources.
     let tagged = provenance(&history, &message, &text);
     let shown = annotate(&text, &tagged);
     let kept: Vec<Tagged> = tagged.iter().filter_map(admit_value).collect();
     let answer = Turn::new(TurnSource::Assistant, clean(&shown, MAX_TURN_CHARS), kept);
-    Ok(result(kind, shown, tagged, vec![owner_turn, answer]))
+    Ok(result(kind, shown, tagged, vec![owner_turn, answer], &mut checks))
+}
+
+/// The thread line for a refused chat call, in the first person.
+fn does_not_fit_text(reason: Option<&str>) -> String {
+    let reason = reason.unwrap_or("prompt does not fit this model's context");
+    format!("I did not ask the model: the {reason}. Start a new conversation, shorten the message or choose a model with a larger context.")
 }
 
 /// A task turn: the request runs through the agent loop as a new owner request. Values in it
@@ -330,7 +362,7 @@ fn task_turn<H: Host>(host: &mut H, history: &[Turn], owner_turn: Turn, request:
     let values = report.as_ref().and_then(|r| r["answer"]["values"].as_array()).into_iter().flatten()
         .filter_map(|v| serde_json::from_value::<Tagged>(v.clone()).ok())
         .filter(|v| !v.source.is_owner()).collect();
-    TurnResult { kind: TurnKind::Task, text, values, request: Some(request), report, error, history: vec![owner_turn, line] }
+    TurnResult { kind: TurnKind::Task, text, values, request: Some(request), report, error, history: vec![owner_turn, line], context_guard: vec![] }
 }
 
 #[cfg(test)]

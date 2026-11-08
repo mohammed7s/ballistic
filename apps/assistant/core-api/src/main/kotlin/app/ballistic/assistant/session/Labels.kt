@@ -23,6 +23,9 @@ const val ASK_RECENT_LIMIT = 3
 /** Ask's items: the most recent [limit], oldest first. The active item is always the last. */
 fun <T> recentForAsk(items: List<T>, limit: Int = ASK_RECENT_LIMIT): List<T> = items.takeLast(limit)
 
+/** Core's context guard refused the prompt (TurnKind.DoesNotFit, failure_category model_context). */
+const val TOO_LONG_LINE = "That request is too long for this model's context"
+
 /** Outlined = ordinary state; Inverted = needs the owner or may need checking. */
 enum class LabelStyle { Outlined, Inverted }
 
@@ -56,6 +59,8 @@ fun outcome(result: RunResult): Outcome {
             if (nothingDone) "Stopped; nothing was done" else "Stopped; earlier steps may have taken effect")
         result.executionStatus == ExecutionStatus.Unknown -> Outcome("UNRESOLVED", LabelStyle.Inverted,
             "May or may not have happened. Check before trying again.")
+        result.failureCategory == "model_context" -> Outcome("TOO LONG", LabelStyle.Outlined,
+            if (nothingDone) TOO_LONG_LINE else "$TOO_LONG_LINE; earlier steps may have taken effect")
         result.blockedBy == "judge" -> Outcome("BLOCKED", LabelStyle.Outlined,
             "I stopped: the safety check blocked a step")
         result.taskStatus == TaskStatus.Completed && result.done -> Outcome("DONE", LabelStyle.Outlined,

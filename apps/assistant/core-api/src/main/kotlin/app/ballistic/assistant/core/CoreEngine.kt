@@ -28,7 +28,9 @@ enum class TaskStatus {
 /**
  * One step as core logs it (core/src/agent.rs `host.log(...)`; core/README.md §13). [action] is
  * core's log form (`"target":"e7"`), kept as JSON because it is shown, never executed.
- * Token counts are planned for the log (§13) and absent from core's current lines.
+ * [promptTokens]/[completionTokens] are the usage the host reported for the step's model calls
+ * (absent when none reported any). Core adds a `context_guard` list when the host advertised a
+ * context limit (core/src/context.rs): [contextGuard], numbers only, kept as JSON for the log.
  */
 @Serializable
 data class StepEvent(
@@ -45,6 +47,7 @@ data class StepEvent(
     val seconds: Double = 0.0,
     @SerialName("prompt_tokens") val promptTokens: Int? = null,
     @SerialName("completion_tokens") val completionTokens: Int? = null,
+    @SerialName("context_guard") val contextGuard: JsonElement? = null,
 )
 
 /**

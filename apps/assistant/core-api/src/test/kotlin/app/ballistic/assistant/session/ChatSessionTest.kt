@@ -194,6 +194,21 @@ class ChatSessionTest {
     }
 
     @Test
+    fun aTurnThatDoesNotFitSaysSoAndStoresNothing() = runTest {
+        val store = store()
+        val s = session(ScriptedChat { _, _, _ -> TurnResult(TurnKind.DoesNotFit, "The prompt does not fit.") }, store)
+        s.submit("a very long message")
+        testScheduler.advanceUntilIdle()
+        val run = s.state.value.runs.single()
+        assertEquals(ExchangeKind.DoesNotFit, run.kind)
+        assertFalse(run.isTask)
+        assertTrue(store.load().isEmpty())
+        val tooLong = RunResult(false, "prompt exceeds context", 1, TaskStatus.Failed, ExecutionStatus.NotExecuted, failureCategory = "model_context")
+        assertEquals(TOO_LONG_LINE, outcome(tooLong).line)
+        assertEquals("TOO LONG", outcome(tooLong).label)
+    }
+
+    @Test
     fun theStoreReadsACorruptFileAsEmpty() {
         val file = File.createTempFile("conversation", ".json").apply { deleteOnExit(); writeText("{not json") }
         assertTrue(ConversationStore(file).load().isEmpty())

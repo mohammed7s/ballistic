@@ -165,7 +165,9 @@ because their contracts are specified.
 
 **Models**: `complete(role, messages, max_tokens) -> text + usage`. `role` is `planner`,
 `reader`, `judge`, `verifier` or `chat` (one conversation turn, §7; hosts route it like the
-planner, so chat uses the same backend and route as tasks). One OpenAI-compatible HTTP client covers Ollama, llama.cpp
+planner, so chat uses the same backend and route as tasks). Two optional calls feed the context
+guard (§12): `limits(role) -> {context_tokens}` (default: no limit) and
+`count_tokens(role, messages)` (default: none, core estimates). One OpenAI-compatible HTTP client covers Ollama, llama.cpp
 server, vLLM and Gemini; the Android app adds LiteRT-LM and llama.cpp in-process backends behind
 the same call.
 
@@ -702,7 +704,63 @@ The file is design; what exists today is `run::Options` (8 Nov 2026), passed per
 `{"max_steps":15,"judge":true,"chat_history_turns":12,"skills":[]}`. Missing fields take the app
 defaults; unknown fields are rejected. `Options::harness()` differs only in `judge: false`.
 
+### Context guard (`src/context.rs`, 8 Nov 2026)
+
+A compiled on-device bundle has a fixed KV cache (Gemma 4 E2B for Tensor G5: 4,096 tokens,
+prompt plus output); a prompt that does not fit must not be left to the runtime to cut. The host
+advertises the routed model's limit through `Models::limits(role)`; HTTP models and the harness
+Bridge advertise none. Before **every** model call (planner, reader element/facts/summary, judge,
+verifier, chat) core measures the prompt against that limit with the call's own `max_tokens`
+(planner 800, verifier 400, chat 400, reader facts 200, judge 100, reader 64). If prompt plus
+`max_tokens` exceeds it, core applies these reductions in this order, re-measuring after each, and
+stops at the first that fits:
+
+1. **history**: drop the planner's oldest history lines, one at a time, keeping the newest two;
+2. **old_reader_facts**: drop reader fact sets recorded before the previous step (the set just
+   read, and reader element picks, stay);
+3. **chat_history**: drop the oldest admitted conversation turns, one at a time, keeping two;
+4. **max_tokens**: lower the output budget to what fits, not below the role minimum (planner
+   256, chat 200, verifier 200, judge 64; reader calls are never shortened);
+5. otherwise **refuse**: no model call. A run ends with `failure_category: "model_context"`,
+   `task_status: "failed"` and the reason "prompt does not fit this model's 4,096-token context
+   (… prompt about N tokens plus at least M output tokens after the bounded reductions); the
+   model was not asked"; a chat turn returns kind `does_not_fit` and appends nothing. A refused
+   judge call therefore stops before any confirmation or dispatch.
+
+Reductions only remove lines core itself wrote; nothing is added, and the rules, schema, owner's
+request, screen and the step's correction messages are never touched. The order is fixed: with
+the conservative estimator below, history lines go before the output budget shrinks, even though
+measured planner replies were 36–49 tokens.
+
+**Measuring.** The host's exact count when `count_tokens` returns one (no host does yet), else
+`context::estimate`: every ASCII digit one token, every other UTF-8 byte a third of a token
+(rounded up per message), plus 8 tokens per message and 8 for the reply. Checked offline against
+951 recorded harness calls with `gemini-flash-lite-latest` usage (a tokenizer related to, not the
+same as, Gemma 4's): it never fell below the reported count, and planner prompts were
+overestimated by 1.13–1.32x (about 1.28x for the current prompts). Not checked against the Gemma 4
+or Qwen tokenizers. At 1.28x, the measured NPU planner prompts (2,441–2,525 tokens) estimate at
+about 3,100–3,250, which fits 4,096 with 800 output tokens; a planner prompt above roughly 2,570
+real tokens starts losing history lines.
+
+**Logged.** When a limit is advertised each step event gets `context_guard`: one entry per model
+call with `role`, `context_tokens`, `prompt_estimate` (as sent), `full_prompt_estimate` (before
+reductions), `counted_by` (`estimate`|`host`), `requested_max_tokens`, `max_tokens`,
+`reductions` (in order), `history_lines_dropped`/`chat_turns_dropped` when non-zero, `fits`, and
+the host-reported `prompt_tokens`/`completion_tokens` when non-zero. A refusal's report carries
+the same list; a chat turn's `TurnResult.context_guard` holds its chat calls. Numbers only, never
+prompt text. With no limit advertised nothing is measured, changed or logged, so harness prompts
+are byte-for-byte what they were.
+
+Tested (`tests/context_guard.rs`, fake ports): no limit, fits with no change, each reduction on
+its own, history at its floor then `max_tokens`, refusal before any model or Hands call, a 1,280
+limit, a host count replacing the estimate, a refused judge before confirmation and dispatch,
+chat trimming, chat refusal. Not tested: any real model or tokenizer, or an on-device run.
+
 ## 13. Logs
+
+Implemented today: each step event carries `prompt_tokens` and `completion_tokens`, the sums of
+what the host reported for the step's model calls (absent when every call reported zero, which
+means unknown), and `context_guard` when a context limit was advertised (§12). The rest is design:
 
 Every step appends one JSON line: screen signature, prompt tokens per role, action, source tags
 of its values, judge verdict, policy decision, confirmation result, outcome, time. The harness
@@ -726,8 +784,9 @@ scores, model quality measurements or a comprehensive security evaluation.
 
 - **Unit tests, no emulator**: recorded screens (`core/tests/screens/*.json`) → filter output,
   match-only titles, action validation, taint rule, Rule of Two, policy decisions, skill
-  matching, reader shape enforcement. Count on 8 Nov 2026: 346 (`cargo test`; 351 with
-  `--features uniffi`), up from 293 that morning. The 8 Nov additions: `chat_turns.rs` (reply
+  matching, reader shape enforcement. Count on 8 Nov 2026: 362 (`cargo test`; 368 with
+  `--features uniffi`), up from 293 that morning (346/351 before the context guard, whose 14
+  cases are in `context_guard.rs`, §12). The 8 Nov additions: `chat_turns.rs` (reply
   path makes no Screen or Hands call; task path starts the loop with the resolved request; a
   follow-up uses history and no app content; hostile task-result text and owner-tagged history
   values never reach the chat prompt; a task on a hostile screen returns only a core line;
@@ -877,6 +936,10 @@ callback interface HostPorts {          // shell implements; called on the run()
   act(op_json: HandsOp) -> HandsResult json           throws HostError
   complete(role: "planner"|"reader"|"judge"|"verifier"|"chat", messages_json: [ChatMessage],
            max_tokens: u32) -> Completion json        throws HostError
+  model_limits(role) -> ModelLimits json, {"context_tokens":4096} or {"context_tokens":null}
+                                                      throws HostError   (8 Nov 2026)
+  count_tokens(role, messages_json) -> u32?           exact prompt size, or null to let core
+                                                      estimate          throws HostError
   confirm(request_json: ConfirmRequest) -> ConfirmResult json, i.e. "approved" or "denied"
                                                       (quoted)   throws HostError
   log(event_json)                                     the step event

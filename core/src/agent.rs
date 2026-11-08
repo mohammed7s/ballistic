@@ -4,7 +4,7 @@
 use std::io::{BufRead, Write};
 use std::time::Instant;
 use serde_json::{json, Value};
-use crate::{capabilities, verification, launch_completion, actions, bridge::Bridge, ports::*, run::{Host, Options},
+use crate::{capabilities, context::{self, Room, Sent, Trim}, verification, launch_completion, actions, bridge::Bridge, ports::*, run::{Host, Options},
     readback::{self, Readback}, reader::{self, summary, ElementAnswer, ReaderPick}, judge::{self, Verdict}, values, skills,
     screen_filter::{self, FilterContext, FilteredScreen}, types::*};
 
@@ -97,6 +97,8 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, optio
     // Typed reader-fact values seen in this run, each with its source (reader facts, §7).
     let mut facts_values: Vec<Tagged> = Vec::new();
     let mut fact_sets: Vec<reader::facts::Facts> = Vec::new();
+    // The step each fact set was recorded in, for the context guard's reduction (b).
+    let mut fact_steps: Vec<u32> = Vec::new();
     // A facts read repeats only when its content or question changed.
     let mut facts_queries = Vec::<String>::new();
     // Skills (§11): replay an exact-request skill instead of planning; record a verified run.
@@ -129,6 +131,29 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, optio
     let mut next_screen: Option<ScreenState> = None;
     let mut pending_line: Option<(String, ScreenState, Option<NodeId>)> = None;
     let mut foreground_high_water = 0;
+    // Per step: what the context guard checked and the usage the host reported for every call.
+    let mut guard_log: Vec<context::Check> = Vec::new();
+    let mut step_usage = Usage::default();
+
+    // Every model call goes through the context guard (context.rs). With no limit advertised
+    // it is the plain call. A refusal ends the run: nothing was sent, the report says why.
+    macro_rules! guarded { ($step:expr, $role:expr, $max:expr, $room:expr, $build:expr) => {
+        match context::complete(host, $role, $max, $room, $build) {
+            Ok((Sent::Completion(c), check)) => {
+                step_usage.prompt_tokens = step_usage.prompt_tokens.saturating_add(c.usage.prompt_tokens);
+                step_usage.completion_tokens = step_usage.completion_tokens.saturating_add(c.usage.completion_tokens);
+                guard_log.extend(check);
+                Ok(c)
+            },
+            Ok((Sent::Refused, check)) => {
+                let check = check.expect("a refusal carries its check");
+                let reason = format!("{}; the model was not asked", check.refusal());
+                guard_log.push(check);
+                return Ok(json!({"done":false,"reason":reason,"steps":$step,"task_status":"failed","execution_status":execution_status,"verification":verification,"failure_category":"model_context","context_guard":guard_log}));
+            },
+            Err(e) => Err(e),
+        }
+    } }
 
     for step in 1..=max_steps {
         stop_if_cancelled!(step-1);
@@ -142,16 +167,17 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, optio
         }
         if !screen.installed_apps.is_empty() { apps=screen.installed_apps.clone(); }
         let mut view=screen_filter::filter(&screen,&FilterContext{request,typed:&typed});
-        let mut facts=Vec::new();
+        let mut pick_lines=Vec::new();
         for p in &picks {
             if let Some(id)=p.relocate(&view) {
                 view.reader_picks.push(id);
-                facts.push(format!("reader: element e{id} (source {})",reader::source_tag(&p.source)));
+                pick_lines.push(format!("reader: element e{id} (source {})",reader::source_tag(&p.source)));
             }
         }
-        for (i,f) in fact_sets.iter().enumerate() { facts.push(f.planner_line(i+1,request)); }
+        // Each fact line, and whether it was recorded before the previous step (reduction (b)).
+        let fact_lines:Vec<(bool,String)>=fact_sets.iter().enumerate()
+            .map(|(i,f)|(fact_steps[i]+1<step,f.planner_line(i+1,request))).collect();
         let app_names:Vec<_>=apps.iter().map(|a|a.label.as_str()).collect();
-        let facts_block=if facts.is_empty() {String::new()} else {format!("Reader facts:\n{}\n",facts.join("\n"))};
         // A replayed step re-finds its screen and target; otherwise the planner takes over here.
         let mut replayed: Option<actions::PlannerReply> = None;
         if let Some(r)=replay.as_mut() {
@@ -176,14 +202,25 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, optio
             let named:Vec<String>=task.tainted.iter().map(|v|format!("{:?} (source {})",v.value,reader::source_tag(&v.source))).collect();
             format!("Request values not from the owner: {}\n",named.join(", "))
         };
-        let state=format!("Owner request: {request}\n{request_values}Apps: {}\nHistory: {}\n{facts_block}Screen {} / {}:\n{}",json!(app_names),history.join("\n"),screen.package,screen.activity,screen_filter::render(&view));
-        let mut messages=vec![message("system",format!("{RULES}\nAction schema: {}",actions::ACTIONS_SCHEMA)),message("user",state)];
-        messages[0].content.push_str(&format!("\n{}", capabilities::planner_instructions(screen.capabilities.as_ref())));
+        let system=format!("{RULES}\nAction schema: {}\n{}",actions::ACTIONS_SCHEMA,capabilities::planner_instructions(screen.capabilities.as_ref()));
+        let (apps_line,rendered)=(json!(app_names).to_string(),screen_filter::render(&view));
+        // The planner prompt for a context-guard trim: only history lines and old fact sets can
+        // be left out; rules, schema, request, screen and this step's corrections never are.
+        let planner_prompt=|t:&Trim| {
+            let facts:Vec<&str>=pick_lines.iter().map(String::as_str)
+                .chain(fact_lines.iter().filter(|(old,_)|!(t.old_facts && *old)).map(|(_,l)|l.as_str())).collect();
+            let facts_block=if facts.is_empty() {String::new()} else {format!("Reader facts:\n{}\n",facts.join("\n"))};
+            let kept=&history[t.history_lines.min(history.len())..];
+            let state=format!("Owner request: {request}\n{request_values}Apps: {apps_line}\nHistory: {}\n{facts_block}Screen {} / {}:\n{rendered}",kept.join("\n"),screen.package,screen.activity);
+            vec![message("system",system.clone()),message("user",state)]
+        };
+        let planner_room=Room{history_lines:history.len().saturating_sub(context::HISTORY_FLOOR),old_facts:fact_lines.iter().any(|(old,_)|*old),chat_turns:0};
+        let mut corrections:Vec<ChatMessage>=Vec::new();
         let mut parsed=replayed;
         for attempt in 0..2 {
             if parsed.is_some() { break; }
             stop_if_cancelled!(step-1);
-            let completion=host.complete(ModelRole::Planner,&messages,800)?;
+            let completion=guarded!(step,ModelRole::Planner,800,planner_room,|t:&Trim|{ let mut m=planner_prompt(t); m.extend(corrections.iter().cloned()); m })?;
             match actions::parse_reply(&completion.text).and_then(|r|{
                 actions::resolve(&r.action,&view,&screen,&apps)?;
                 if let Action::Answer{text}=&r.action { actions::answer_values(text,&view,request,task.tainted,&facts_values)?; }
@@ -197,8 +234,8 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, optio
                                 // Consume only this step's existing correction slot. If it was
                                 // already used, or correction repeats the read, the hard guard
                                 // below still stops before any reader call or state mutation.
-                                messages.push(message("assistant",completion.text));
-                                messages.push(message("user",READ_NO_PROGRESS.into()));
+                                corrections.push(message("assistant",completion.text));
+                                corrections.push(message("user",READ_NO_PROGRESS.into()));
                                 continue;
                             }
                         }
@@ -213,8 +250,8 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, optio
                         };
                         return Ok(json!({"done":false,"reason":format!("invalid action: {e}"),"steps":step,"execution_status":execution_status,"task_status":"failed","verification":verification,"failure_category":category}));
                     }
-                    messages.push(message("assistant",completion.text));
-                    messages.push(message("user",format!("Invalid action: {e}. Return a corrected JSON action.")));
+                    corrections.push(message("assistant",completion.text));
+                    corrections.push(message("user",format!("Invalid action: {e}. Return a corrected JSON action.")));
                 }
             }
         }
@@ -247,9 +284,10 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, optio
                 } else {
                     let filtered=screen_filter::filter(&fresh,&FilterContext{request,typed:&typed});
                     stop_if_cancelled!(step-1);
-                    let check=host.complete(ModelRole::Verifier,&[
+                    let rendered=screen_filter::render(&filtered);
+                    let check=guarded!(step,ModelRole::Verifier,400,Room::default(),|_:&Trim| vec![
                         message("system",include_str!("../prompts/verifier.txt").into()),
-                        message("user",format!("Request: {request}\nScreen {}:\n{}",fresh.package,screen_filter::render(&filtered)))],400)?;
+                        message("user",format!("Request: {request}\nScreen {}:\n{rendered}",fresh.package))])?;
                     stop_if_cancelled!(step-1);
                     verification::assess_with_feedback(&check.text,&filtered)
                 };
@@ -283,7 +321,7 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, optio
                 } else {
                 read_queries.push(query);
                 stop_if_cancelled!(step-1);
-                let answer=host.complete(ModelRole::Reader,&reader_messages,64)?;
+                let answer=guarded!(step,ModelRole::Reader,64,Room::default(),|_:&Trim| reader_messages.clone())?;
                 stop_if_cancelled!(step-1);
                 picks.clear();
                 outcome=match reader::parse_element(&answer.text,&allowed) {
@@ -311,7 +349,7 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, optio
                     // 64-token reader port call; no core retry/correction or planner continuation.
                     // The host retains its existing bounded transport retry policy.
                     stop_if_cancelled!(step-1);
-                    let answer=host.complete(ModelRole::Reader,&input.messages(request),64);
+                    let answer=guarded!(step,ModelRole::Reader,64,Room::default(),|_:&Trim| input.messages(request));
                     stop_if_cancelled!(step-1);
                     match answer {
                         Err(_)=>summary::Output::unavailable(summary::Status::Failed),
@@ -356,12 +394,12 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, optio
                         } else {
                             facts_queries.push(query);
                             stop_if_cancelled!(step-1);
-                            let answer=host.complete(ModelRole::Reader,&reader_messages,reader::facts::FACTS_TOKENS)?;
+                            let answer=guarded!(step,ModelRole::Reader,reader::facts::FACTS_TOKENS,Room::default(),|_:&Trim| reader_messages.clone())?;
                             stop_if_cancelled!(step-1);
                             outcome=match input.parse(&answer.text) {
                                 Some(f)=> {
                                     let line=format!("reader facts f{} recorded (source {})",fact_sets.len()+1,reader::source_tag(&f.source));
-                                    facts_values.extend(f.values()); fact_sets.push(f); line
+                                    facts_values.extend(f.values()); fact_sets.push(f); fact_steps.push(step); line
                                 },
                                 None=> {
                                     reader_event=Some(json!({"rejected":true,"reply_chars":answer.text.chars().count()}));
@@ -420,7 +458,7 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, optio
                     };
                     let words=judge::plain_words(&action,&view,&apps,&screen.package);
                     stop_if_cancelled!(step-1);
-                    let reply=host.complete(ModelRole::Judge,&judge::messages(request,&words,&sourced,&history),judge::JUDGE_TOKENS)?;
+                    let reply=guarded!(step,ModelRole::Judge,judge::JUDGE_TOKENS,Room::default(),|_:&Trim| judge::messages(request,&words,&sourced,&history))?;
                     stop_if_cancelled!(step-1);
                     judge_event=Some("allow");
                     if let Verdict::Block(why)=judge::parse(&reply.text) {
@@ -490,7 +528,13 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, optio
             }
         }
         stop_if_cancelled!(step-1);
-        host.log(&json!({"step":step,"action":actions::to_json(&action),"why":reply.why,"outcome":outcome,"task_status":task_status,"execution_status":execution_status,"verification":verification,"failure_category":failure_category,"step_execution_status":step_execution_status,"readback":readback_event,"reader":reader_event,"judge":judge_event,"capability_mode":if screen.capabilities.is_some(){"advertised"}else{"missing_denied"},"seconds":start.elapsed().as_secs_f64()}))?;
+        let mut event=json!({"step":step,"action":actions::to_json(&action),"why":reply.why,"outcome":outcome,"task_status":task_status,"execution_status":execution_status,"verification":verification,"failure_category":failure_category,"step_execution_status":step_execution_status,"readback":readback_event,"reader":reader_event,"judge":judge_event,"capability_mode":if screen.capabilities.is_some(){"advertised"}else{"missing_denied"},"seconds":start.elapsed().as_secs_f64()});
+        // Usage the host reported for this step's model calls (zero means not reported).
+        let (usage,checks)=(std::mem::take(&mut step_usage),std::mem::take(&mut guard_log));
+        if usage.prompt_tokens>0 { event["prompt_tokens"]=json!(usage.prompt_tokens); }
+        if usage.completion_tokens>0 { event["completion_tokens"]=json!(usage.completion_tokens); }
+        if !checks.is_empty() { event["context_guard"]=json!(checks); }
+        host.log(&event)?;
         if let Some(output)=owner_output {
             let reason=if output.is_available() {output.display()} else {outcome};
             let report=json!({"done":false,"reason":reason,"steps":step,"task_status":task_status,"execution_status":execution_status,"verification":verification,"failure_category":failure_category,"owner_output":output});

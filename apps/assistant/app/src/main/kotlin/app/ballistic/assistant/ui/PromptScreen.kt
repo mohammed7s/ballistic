@@ -64,6 +64,7 @@ import app.ballistic.assistant.session.PromptSession
 import app.ballistic.assistant.session.RunView
 import app.ballistic.assistant.session.actionLabel
 import app.ballistic.assistant.session.errorLine
+import app.ballistic.assistant.session.TOO_LONG_LINE
 import app.ballistic.assistant.session.evidenceLabel
 import app.ballistic.assistant.session.recentForAsk
 import app.ballistic.assistant.session.runOutcome
@@ -242,9 +243,12 @@ private fun ReplyLines(run: RunView) {
     Column(Modifier.padding(start = Space.s3), verticalArrangement = Arrangement.spacedBy(2.dp)) {
         val text = when (run.kind) {
             ExchangeKind.Error -> errorLine(run.error.orEmpty())
+            ExchangeKind.DoesNotFit -> "$TOO_LONG_LINE."
             else -> run.reply ?: "No reply"
         }
         Text(text, style = MaterialTheme.typography.bodyLarge)
+        if (run.kind == ExchangeKind.DoesNotFit) Text("Nothing was sent to the model. Try a shorter message, or clear the conversation from the menu.",
+            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         val meta = listOfNotNull(run.route, if (run.kind == ExchangeKind.Clarify) "question for you" else null, "no phone actions")
         Text(meta.joinToString(" · "), style = LocalBallisticExtras.current.monoSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
