@@ -1436,3 +1436,16 @@ access. Only granted launchable apps are advertised; dispatch independently chec
 every-action approval, cancellation and revocation. These restrictions cover the current Android
 adapter, not unimplemented routes or an OS policy service. See the
 [access-control record](log/2026-11-08-app-access.md).
+
+## Model versus harness diagnosis — 8 November 2026
+
+The owner reopened bounded diagnostic evaluation: frontier-model controls first, then possible
+small-model specialization. The 13/20 baseline was Gemini Flash-Lite/T3A, not phone-local Qwen3
+0.6B. A frontier swap cannot supply the APK's missing screen/input adapters. Ask also lacks a
+normal conversational path; the current core rejects ordinary answer actions as unsupported.
+CPU-only inference, per-call prompt processing and non-streamed output are established; the
+short speed check does not measure agent-length prefill. A controlled pilot and latency protocol
+are recorded in [model/harness diagnosis](log/2026-11-08-model-harness-diagnosis.md).
+The owner selected the existing Gemini API with a Pro model. No new generation or task runs
+were started: two ThinkPad SSH attempts timed out, so exact model access and quota remain
+unverified. No fine-tuning or distillation has occurred.
