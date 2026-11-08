@@ -199,7 +199,7 @@ class LiteRtLmDriver(private val context: Context) : LocalDriver {
             if (cancelled) throw LocalFailure("Local inference stopped")
             failure?.let {
                 Log.w(TAG, "LiteRT-LM generation failed error=${it.javaClass.simpleName}")
-                throw LocalFailure("LiteRT-LM generation failed (the prompt may exceed the bundle's context)")
+                throw LocalFailure("LiteRT-LM generation failed on $backend. The prompt may exceed the bundle's context, or this backend lacks a library it needs on this phone. Nothing else was tried.")
             }
             val ended = System.nanoTime()
             val info = runCatching { call.getBenchmarkInfo() }.getOrNull()
