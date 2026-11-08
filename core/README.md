@@ -271,6 +271,14 @@ Also report it live per step in the run JSON, as today.
 One JSON object per step, validated against `core/schema/actions.json`. Anything that fails
 validation is rejected and counted; the model gets one retry with the error.
 
+**Overlong replies (9 Nov 2026).** A planner reply whose text is longer than the planner's 800-token
+cap (counted with the context guard's conservative estimate, §12) is invalid output even if it
+contains an action; so is a chat reply beyond its 400. In Haiku 2 four planner replies carried
+2,360–2,623 visible tokens of repeated tags. The correction echoes at most 400 characters of the
+rejected reply and, for output-shape errors (no JSON, too long, unknown action, bad arguments), asks
+for "exactly one corrected JSON object and nothing else: no prose, tags or code fences"; the planner
+rules open with the same demand. Tests: `tests/planner_output.rs`.
+
 | action | arguments | notes |
 |---|---|---|
 | `open_app` | `app` | matched against `installed_apps` labels (exact, then case-insensitive, then closest); the planner sees the list |

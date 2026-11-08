@@ -50,12 +50,17 @@ pub fn min_output(role: ModelRole, requested: u32) -> u32 {
 
 /// Conservative prompt size in tokens; see the module comment for the rule and its evidence.
 pub fn estimate(messages: &[ChatMessage]) -> u32 {
-    let tokens: u64 = messages.iter().map(|m| {
-        let digits = m.content.bytes().filter(u8::is_ascii_digit).count() as u64;
-        let other = m.content.len() as u64 - digits;
-        digits + other.div_ceil(3) + MESSAGE_FRAMING_TOKENS as u64
-    }).sum::<u64>() + REPLY_FRAMING_TOKENS as u64;
+    let tokens: u64 = messages.iter().map(|m| text_tokens(&m.content) as u64 + MESSAGE_FRAMING_TOKENS as u64)
+        .sum::<u64>() + REPLY_FRAMING_TOKENS as u64;
     tokens.min(u32::MAX as u64) as u32
+}
+
+/// The same conservative count for one text with no framing: every ASCII digit one token,
+/// every other byte a third of one. Used to recognize a reply longer than its role's cap.
+pub fn text_tokens(text: &str) -> u32 {
+    let digits = text.bytes().filter(u8::is_ascii_digit).count() as u64;
+    let other = text.len() as u64 - digits;
+    (digits + other.div_ceil(3)).min(u32::MAX as u64) as u32
 }
 
 /// Which lines the caller may drop: how many of the oldest history lines and chat turns lie

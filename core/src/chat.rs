@@ -310,10 +310,12 @@ pub fn converse<H: Host>(host: &mut H, history: &[Turn], message: &str, options:
             // Nothing appended: the owner's message was not answered and may be sent again.
             Sent::Refused => return Ok(result(TurnKind::DoesNotFit, does_not_fit_text(refused.as_deref()), vec![], vec![], &mut checks)),
         };
-        match parse_reply(&completion.text) {
+        // Text beyond the chat cap is invalid output, whatever it contains.
+        let length = crate::actions::check_length(&completion.text, CHAT_TOKENS).map_err(|e| e.to_string());
+        match length.and_then(|_| parse_reply(&completion.text)) {
             Ok(reply) => { parsed = Some(reply); break; }
             Err(e) if attempt == 0 => {
-                corrections.push(ChatMessage { role: "assistant".into(), content: completion.text });
+                corrections.push(ChatMessage { role: "assistant".into(), content: crate::actions::echo_rejected(&completion.text) });
                 corrections.push(ChatMessage { role: "user".into(), content: format!("Invalid reply: {e}. Return exactly one JSON object matching the reply schema.") });
             }
             Err(_) => {}

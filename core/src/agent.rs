@@ -283,8 +283,8 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, optio
         for attempt in 0..2 {
             if parsed.is_some() { break; }
             stop_if_cancelled!(step-1);
-            let completion=guarded!(step,ModelRole::Planner,800,planner_room,|t:&Trim|{ let mut m=planner_prompt(t); m.extend(corrections.iter().cloned()); m })?;
-            match actions::parse_reply(&completion.text).and_then(|r|{
+            let completion=guarded!(step,ModelRole::Planner,actions::PLANNER_TOKENS,planner_room,|t:&Trim|{ let mut m=planner_prompt(t); m.extend(corrections.iter().cloned()); m })?;
+            match actions::check_length(&completion.text,actions::PLANNER_TOKENS).and_then(|_|actions::parse_reply(&completion.text)).and_then(|r|{
                 actions::resolve(&r.action,&view,&screen,&apps)?;
                 if let Action::Answer{text}=&r.action { actions::answer_values(text,&view,request,task.tainted,&facts_values)?; }
                 Ok(r)
@@ -313,8 +313,8 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, optio
                         };
                         return Ok(json!({"done":false,"reason":format!("invalid action: {e}"),"steps":step,"execution_status":execution_status,"task_status":"failed","verification":verification,"failure_category":category}));
                     }
-                    corrections.push(message("assistant",completion.text));
-                    corrections.push(message("user",format!("Invalid action: {e}. Return a corrected JSON action.")));
+                    corrections.push(message("assistant",actions::echo_rejected(&completion.text)));
+                    corrections.push(message("user",actions::correction(&e,&completion.text)));
                 }
             }
         }

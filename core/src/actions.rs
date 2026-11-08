@@ -65,6 +65,37 @@ pub enum ActionError {
     UnsourcedAnswer(String),
     #[error("answer text must be at most {MAX_ANSWER_CHARS} characters")]
     LongAnswer,
+    #[error("the reply is about {tokens} tokens, over the {cap}-token limit for one action; nothing in it was used")]
+    Overlong { tokens: u32, cap: u32 },
+}
+
+/// The planner's output budget (`max_tokens`). A reply whose text is longer than this is
+/// invalid output, whatever it contains (Haiku 2 produced 2,360–2,623 text tokens of repetition).
+pub const PLANNER_TOKENS: u32 = 800;
+
+/// Check the reply's length before parsing it: text beyond the role cap is invalid output.
+pub fn check_length(text: &str, cap: u32) -> Result<(), ActionError> {
+    let tokens = crate::context::text_tokens(text);
+    if tokens > cap { Err(ActionError::Overlong { tokens, cap }) } else { Ok(()) }
+}
+
+/// The correction message for a rejected reply. Output-shape errors (no JSON, too long, unknown
+/// action, bad arguments) remind the model to return exactly one JSON object; target and value
+/// errors keep their fixed wording.
+pub fn correction(error: &ActionError, _reply: &str) -> String {
+    match error {
+        ActionError::NoJson | ActionError::NoAction | ActionError::UnknownAction(_) | ActionError::BadArguments { .. }
+        | ActionError::Overlong { .. } =>
+            format!("Invalid action: {error}. Return exactly one corrected JSON object and nothing else: no prose, tags or code fences."),
+        _ => format!("Invalid action: {error}. Return a corrected JSON action."),
+    }
+}
+
+/// The planner's rejected reply as the correction echoes it: at most 400 characters, so a runaway
+/// reply is not sent back whole.
+pub fn echo_rejected(text: &str) -> String {
+    const MAX: usize = 400;
+    if text.chars().count() <= MAX { text.to_string() } else { format!("{}…", text.chars().take(MAX).collect::<String>()) }
 }
 
 /// Longest planner answer core accepts.
