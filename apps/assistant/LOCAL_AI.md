@@ -141,7 +141,10 @@ move LiteRT-LM to 0.19.x until a released dispatch library exports `LiteRtDispat
 
 **Context.** For llama.cpp and generic LiteRT-LM bundles the Context setting (2K/4K/8K) is passed
 to the engine. A compiled NPU bundle fixes its context; Ballistic does not pass a size. The Gemma 3
-1B G5 bundle's name records a 1,280-token KV cache, so the ~2K prefill check cannot fit there.
+1B G5 bundle's name records a 1,280-token KV cache, so the ~2K prefill check cannot fit there and
+it cannot serve as the planner. The Gemma 4 E2B G5 bundle's largest compiled KV cache is 4,096
+tokens (read from its signatures on the phone, 8 Nov 2026), enough for a ~2.5K planner prompt with
+limited headroom (see the measurement below).
 
 **Storage.** Each catalogue file lives under `no_backup/local-model/catalogue/<id>/`. The
 original slot `no_backup/local-model/model.gguf` keeps your own imported GGUF. A starter downloaded
@@ -276,18 +279,62 @@ NPU load or speed check could be run on it. **No NPU, GPU or phone LiteRT-LM res
 never reached the vendor stack. That build is what changed to the 0.18.1 + 2.3.2 pair and the
 failure classifier above.
 
-**The 0.18.1 + 2.3.2 build has not been built, installed or measured.** The rebuild started on the
-ThinkPad lost its SSH session; the ThinkPad then dropped off the tailnet and stayed unreachable,
-and the Pixel had already disconnected from its USB. The core-api unit tests for the classifier
-(`TensorDiagnosisTest`) have not been run either. Every row of the comparison below is therefore
-not measured:
+**First NPU measurement, Pixel 10 Pro, 8 November 2026, 21:10–21:14 (phone time).** Build
+`1d49dc4` (LiteRT-LM 0.18.1 + Google Tensor dispatch 2.3.2, Rust core rebuilt from current master),
+built on the ThinkPad, re-signed with the Latitude debug key and installed in place (APK SHA-256
+`374a1559a5a0574a4c56348f1ed52d879be357fb8eda2e60ea0f6780cab92aca`). Same build fingerprint as
+above. The 3,206,299,658-byte Gemma 4 E2B · Tensor G5 bundle was already downloaded and verified.
+
+*Did it run on the NPU?* Yes, per the runtime's own log (saved on the ThinkPad as
+`~/ballistic_runs/npu_20261108/logcat_full.txt`):
+- every main model subgraph (`prefill_128_cache_*`, `decode_cache_*`, `verify_cache_*`) logged
+  "Replacing 1 out of 1 node(s) with delegate (DispatchDelegate)", i.e. it went whole to the
+  Google Tensor dispatch runtime;
+- the vendor TPU driver logged activity on `/dev/edgetpu` (`Darwinn … Firmware Build Label:
+  lga_tpu_20260603.0.0`) at each call;
+- only small helper graphs (embedder, masks, rope; 2–14 nodes each) ran on CPU via XNNPack;
+- one warning, "NPU accelerator could not be loaded and registered: kLiteRtStatusErrorNotFound",
+  refers to LiteRT's generic NPU accelerator plugin; the dispatch path above ran regardless;
+- the app's status card read "Running on: LiteRT-LM · NPU". AICore is not installed; it was not
+  needed.
+
+*Compiled context.* The bundle's signatures are `prefill_128_cache_{640,1024,1536,4096}`,
+`decode_cache_{640,1024,1536,4096}` and `verify_cache_*`: the largest KV cache is **4,096 tokens**
+(prompt plus generated output). Ballistic does not choose it; the engine picks the cache variant.
+
+*Real planner calls.* The owner submitted requests from Ask while the model was loaded; the core
+made three planner calls, each a full agent prompt (rules, schema, request, history, filtered
+screen):
+
+| Call | Prompt tokens (prefill) | KV tokens after | Prefill | First token | Decode | Output tokens | Whole call |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 1 | 2,441 | 2,477 | 2,970 tok/s | 0.87 s | 21 tok/s | 36 | 2.5 s |
+| 2 | 2,449 | 2,495 | 3,181 tok/s | 0.82 s | 21 tok/s | 46 | 2.9 s |
+| 3 | 2,525 | 2,574 | 2,890 tok/s | 0.92 s | 21 tok/s | 49 | 3.2 s |
+
+Engine initialisation (model load) took 3.0 s. For comparison, the only earlier agent-length
+numbers were emulator CPU: 202.6 s (llama.cpp) and 88.9 s (LiteRT-LM) to first token for ~2,000
+tokens; the planning assumption in SPEC.md used ~430 tok/s prefill measured on a Pixel 8 GPU.
+
+*What this does and does not establish.*
+- Established: agent-length prefill on the Tensor G5 NPU is about 2.9–3.2K tokens/s, and a full
+  planner call is about 3 s, on this phone and OS, for three calls.
+- Headroom: the largest prompt used 2,574 of 4,096 KV tokens. The planner may generate up to 800
+  tokens, so a prompt above about 3,300 tokens (long history, busy screen, reader facts, chat
+  history) would not fit. A guard that measures the prompt against the bundle's context and
+  trims or refuses explicitly is required before relying on this model; it is not built yet.
+- Not established: planning quality (whether the steps were correct), sustained performance over
+  many calls (heat, throttling, battery), peak memory, and the app's own Short and ~2K speed checks.
+- Known reporting gap: the app logged `prompt_tokens=0` for these calls (its KV-count derivation
+  returned nothing on the NPU path); the prompt sizes above are LiteRT-LM's `last_prefill_tokens`,
+  which on the NPU covered the whole prompt. Core therefore received zero prompt-token usage.
 
 | Model | Backend (per runtime log) | Prompt tokens | First token | Prefill | Decode | Load | Peak memory |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Gemma 4 E2B · Tensor G5 | NPU: not measured | not measured | not measured | not measured | not measured | not measured | not measured |
+| Gemma 4 E2B · Tensor G5 | NPU (DispatchDelegate) | 2,441–2,525 | 0.82–0.92 s | 2,890–3,181 tok/s | 21 tok/s | 3.0 s | not measured |
 | Gemma 4 E2B · LiteRT-LM | GPU: not measured | not measured | not measured | not measured | not measured | not measured | not measured |
 | Gemma 4 E2B · LiteRT-LM | CPU: not measured | not measured | not measured | not measured | not measured | not measured | not measured |
-| Qwen3 0.6B Q8 · llama.cpp | CPU: not measured | not measured | not measured | not measured | not measured | not measured | not measured |
+| Qwen3 0.6B Q8 · llama.cpp | CPU: short check only (25 tokens, 0.4 s first token, 21.8 tok/s decode, 7 Nov) | | | | | | |
 
 ## Current capability boundary
 

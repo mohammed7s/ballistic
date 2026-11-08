@@ -228,3 +228,17 @@ observation/read routing restrictions, deterministic filtering, planner/reader c
 authorization and completion verification. These describe current root source; pending app
 branches and installed native-library provenance are separate. The core loop is tree-only;
 the current phone adapter supplies permitted notifications, not general screen vision or UI access.
+
+## Tensor G5 NPU measured — 8 November 2026
+
+The Gemma 4 E2B · Tensor G5 bundle runs on the Pixel 10 Pro's NPU under GrapheneOS through
+LiteRT-LM 0.18.1 with Google Tensor dispatch 2.3.2 (0.19.x needs a dispatch symbol no released
+library exports yet). AICore is not required. Three real planner calls from Ask (2,441–2,525
+prompt tokens) measured 2,890–3,181 tokens/s prefill, 0.82–0.92 s to first token, 21 tokens/s
+decode and 2.5–3.2 s per call; model load 3.0 s. The runtime log shows each main subgraph wholly
+on the Tensor dispatch delegate. The bundle's largest compiled KV cache is 4,096 tokens: the
+current ~2.5K prompt fits, but a prompt above about 3,300 tokens plus the 800-token output cap
+would not, so a context guard is required before relying on it. Prefill speed is no longer the
+deciding constraint for on-phone planning; planning quality, sustained thermal/memory behaviour
+and the app's own speed checks remain unmeasured. Details: [Local AI](../apps/assistant/LOCAL_AI.md).
+
