@@ -133,6 +133,24 @@ class AppGraph(val app: Application) {
         return HostCapabilities(operations = IntentHands.OPERATIONS, appGrants = granted)
     }
 
+    /**
+     * First run is shown once. An install that already has a model, a connected server, app
+     * rules or a conversation counts as set up, so an update never puts an owner through it.
+     */
+    fun firstRunDone(): Boolean {
+        val prefs = app.getSharedPreferences("first_run", 0)
+        if (prefs.getBoolean("done", false)) return true
+        val existing = localAi.installed.value.isNotEmpty() || modelsConfig.load() != null ||
+            policyStore.load().apps.isNotEmpty() || app.filesDir.resolve("conversation.json").exists() ||
+            app.filesDir.resolve("logs/actions.jsonl").exists()
+        if (existing) markFirstRunDone()
+        return existing
+    }
+
+    fun markFirstRunDone() {
+        app.getSharedPreferences("first_run", 0).edit().putBoolean("done", true).apply()
+    }
+
     /** Ask's conversation: the turns core returned, last 12, app-private (excluded from backup). */
     val conversation = ConversationStore(app.filesDir.resolve("conversation.json"))
 
