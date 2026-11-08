@@ -32,8 +32,11 @@ extern "C" {
 JNIEXPORT jbyteArray JNICALL Java_app_ballistic_assistant_models_LlamaNative_load(JNIEnv * e, jobject, jbyteArray path, jint context, jint threads) {
     return invoke(e,[&]{ return engine().load(bytes(e,path),context,threads); });
 }
-JNIEXPORT jbyteArray JNICALL Java_app_ballistic_assistant_models_LlamaNative_generate(JNIEnv * e, jobject, jbyteArray messages, jint cap) {
-    return invoke(e,[&]{ return engine().generate(nlohmann::json::parse(bytes(e,messages)),cap); });
+// schema: UTF-8 JSON Schema text constraining the output, or null for unconstrained greedy.
+JNIEXPORT jbyteArray JNICALL Java_app_ballistic_assistant_models_LlamaNative_generate(JNIEnv * e, jobject, jbyteArray messages, jint cap, jbyteArray schema) {
+    return invoke(e,[&]{
+        return engine().generate(nlohmann::json::parse(bytes(e,messages)),cap, schema ? bytes(e,schema) : std::string());
+    });
 }
 JNIEXPORT void JNICALL Java_app_ballistic_assistant_models_LlamaNative_unload(JNIEnv *, jobject) {
     std::lock_guard<std::mutex> lock(engine().ownership); engine().unload();

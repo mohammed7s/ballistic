@@ -1,10 +1,21 @@
 #include "engine.h"
 #include "log.h"
+#include "json-schema-to-grammar.h"
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <limits>
+#include <vector>
 
 namespace ballistic {
+std::string schema_to_grammar(const std::string & json_schema) {
+    try {
+        // force_gbnf: this build has no llguidance; always produce a GBNF grammar.
+        return json_schema_to_grammar(common_json::parse(json_schema), true);
+    } catch (...) {
+        throw Failure("Output schema is not supported by llama.cpp's grammar converter");
+    }
+}
 using Clock = std::chrono::steady_clock;
 static double ms(Clock::time_point a, Clock::time_point b) {
     return std::chrono::duration<double, std::milli>(b-a).count();
@@ -68,10 +79,15 @@ nlohmann::json Engine::load(const std::string & path, int context_size, int thre
     } catch (...) { unload(); throw; }
 }
 
-nlohmann::json Engine::generate(const nlohmann::json & messages, int cap) {
+nlohmann::json Engine::generate(const nlohmann::json & messages, int cap, const std::string & json_schema) {
     if (!model || !context || !templates) throw Failure("Local model is not loaded");
     if (cap <= 0 || cap > 1024 || !messages.is_array() || messages.empty() || messages.size() > 128) throw Failure("Invalid local completion request");
+    if (json_schema.size() > 64*1024) throw Failure("Output schema too large");
     check_cancel();
+    if (!json_schema.empty() && json_schema != schema_source) {
+        schema_grammar = schema_to_grammar(json_schema);
+        schema_source = json_schema;
+    }
     // Fresh context on every role/call. Never retain another role's content in the KV cache.
     llama_memory_clear(llama_get_memory(context.get()), true);
     struct Clear { llama_context * ctx; ~Clear(){ llama_memory_clear(llama_get_memory(ctx), true); } } clear{context.get()};
@@ -129,13 +145,45 @@ nlohmann::json Engine::generate(const nlohmann::json & messages, int cap) {
     const auto prompt_end = Clock::now();
     std::unique_ptr<llama_sampler, decltype(&llama_sampler_free)> sampler(llama_sampler_init_greedy(), llama_sampler_free);
     if (!sampler) throw Failure("Cannot allocate sampler");
+    std::unique_ptr<llama_sampler, decltype(&llama_sampler_free)> grammar(nullptr, llama_sampler_free);
+    if (!json_schema.empty()) {
+        grammar.reset(llama_sampler_init_grammar(vocab, schema_grammar.c_str(), "root"));
+        if (!grammar) throw Failure("Output grammar could not be compiled");
+    }
+    std::vector<llama_token_data> candidates;
+    // Greedy pick; under a grammar, the pick is checked first and only a rejected pick pays for
+    // masking the whole vocabulary (the same rejection scheme as common_sampler_sample).
+    auto next_token = [&]() -> llama_token {
+        llama_token token = llama_sampler_sample(sampler.get(), context.get(), -1);
+        if (!grammar) return token;
+        llama_token_data single = {token, 1.0f, 0.0f};
+        llama_token_data_array one = {&single, 1, -1, false};
+        llama_sampler_apply(grammar.get(), &one);
+        if (single.logit == -INFINITY) {
+            const float * logits = llama_get_logits_ith(context.get(), -1);
+            if (!logits) throw Failure("CPU inference failed; unload and retry with smaller settings");
+            const int n_vocab = llama_vocab_n_tokens(vocab);
+            candidates.resize(n_vocab);
+            for (llama_token id = 0; id < n_vocab; ++id) candidates[id] = {id, logits[id], 0.0f};
+            llama_token_data_array all = {candidates.data(), candidates.size(), -1, false};
+            llama_sampler_apply(grammar.get(), &all);
+            token = LLAMA_TOKEN_NULL;
+            float best = -INFINITY;
+            for (size_t k = 0; k < all.size; ++k) {
+                if (all.data[k].logit > best) { best = all.data[k].logit; token = all.data[k].id; }
+            }
+            if (token == LLAMA_TOKEN_NULL) throw Failure("No output token fits the output schema");
+        }
+        llama_sampler_accept(grammar.get(), token);
+        return token;
+    };
     common_chat_input output;
     int generated = 0;
     bool capped = true;
     Clock::time_point first_token{};
     for (int i=0; i<cap; ++i) {
         check_cancel();
-        const auto token = llama_sampler_sample(sampler.get(), context.get(), -1);
+        const auto token = next_token();
         if (llama_vocab_is_eog(vocab, token)) { capped = false; break; }
         if (generated == 0) first_token = Clock::now();
         ++generated;

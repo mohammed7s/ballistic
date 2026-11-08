@@ -97,6 +97,12 @@ class LocalAiController(
         try { save(selection.value.copy(backend = backend)) }
         catch (_: Exception) { mutableNotice.value = "Could not save backend selection" }
     }
+    /** Planner output constrained to core's action schema (llama.cpp only). Takes effect on the next call. */
+    fun setConstrainPlanner(on: Boolean) {
+        if (!mayChange() || busy.value || engine.state.value.busy) return
+        try { save(selection.value.copy(constrainPlanner = on)) }
+        catch (_: Exception) { mutableNotice.value = "Could not save the setting" }
+    }
     /** Explicit owner choice for an entry offering several backends. Unloads; never automatic. */
     fun chooseComputeBackend(backend: ComputeBackend) = job {
         engine.unload()
