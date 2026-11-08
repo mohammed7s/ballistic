@@ -203,7 +203,7 @@ Measured and estimated on current hardware:
 | Pixel 8 Pro CPU, ~1.5B active | ~100 / ~15 (estimate) | 15–25 s | extrapolated |
 | Pixel 8 Pro GPU, LiteRT, 2B class | 427 / 12 (measured) | ~10 s | LiteRT-LM#1850 |
 | **Pixel 10 Pro Tensor G5 NPU, LiteRT-LM, Gemma 4 E2B G5 bundle** | **2,890–3,181 / 21 (measured, 8 Nov 2026, 3 planner calls of 2.4–2.5K tokens)** | **0.8–0.9 s to first token; 2.5–3.2 s per call** | `apps/assistant/LOCAL_AI.md` |
-| Pixel 10 Pro GPU/NPU | no verified 2k-token workload result | unmeasured | test plan: docs/PIXEL10PRO_MODELS.md |
+| Pixel 10 Pro GPU | no verified 2k-token workload result | unmeasured | test plan: docs/PIXEL10PRO_MODELS.md |
 | Galaxy S26 Ultra, LiteRT GPU | 3808 / 52 (measured) | ~2 s | Google |
 
 Model choice is therefore open. Candidates must have a LiteRT build or acceptable CPU prefill:
