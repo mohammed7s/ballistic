@@ -35,6 +35,18 @@ pub trait Models {
         messages: &[ChatMessage],
         max_tokens: u32,
     ) -> PortResult<Completion>;
+
+    /// What the model `role` is routed to can hold (core/README.md §12, context guard). The
+    /// default advertises no limit: core then sends every prompt as built.
+    fn limits(&mut self, _role: ModelRole) -> PortResult<ModelLimits> {
+        Ok(ModelLimits::default())
+    }
+
+    /// The exact prompt size in tokens, if the host can tokenize for `role`'s model. The
+    /// default is `None` and core uses its conservative estimate (`context::estimate`).
+    fn count_tokens(&mut self, _role: ModelRole, _messages: &[ChatMessage]) -> PortResult<Option<u32>> {
+        Ok(None)
+    }
 }
 
 /// Asks the owner. The harness answers from a script; the app shows the confirmation window.

@@ -276,6 +276,15 @@ pub struct Usage {
     pub completion_tokens: u32,
 }
 
+/// What the host says about the model a role is routed to, for the context guard (`context.rs`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct ModelLimits {
+    /// Prompt plus output tokens the loaded model holds (a compiled bundle's KV cache, or the
+    /// context the runtime was started with). `None`: not known; core enforces nothing.
+    pub context_tokens: Option<u32>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Completion {
     pub text: String,
