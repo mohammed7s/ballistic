@@ -19,6 +19,8 @@ Flags:
   --provider   core only: openai (default; the OpenAI-compatible --base_url) or anthropic (Messages
                API through the official SDK; --base_url is ignored, --model e.g. claude-haiku-5-5)
   --effort     provider anthropic only: output_config.effort low|medium|high (default low)
+  --thinking_headroom  provider anthropic only: tokens added to core's per-role max_tokens, since
+               thinking counts toward it (default 2048; 0 sends core's cap unchanged)
   --agent      t3a (text: UI tree only), m3a (multimodal: screenshot + UI tree) or core (Ballistic's
                agent, ballistic-core over JSON lines; --confirm approve|deny, --reader_model,
                --judge_model, --verifier_model)
@@ -71,6 +73,8 @@ flags.DEFINE_string("verifier_model", None, "core: model for the verifier role, 
 flags.DEFINE_float("core_model_min_interval", 0.0, "core: minimum seconds between HTTP attempts across roles (0 disables pacing)")
 flags.DEFINE_enum("provider", "openai", ["openai", "anthropic"], "core: openai = OpenAI-compatible --base_url; anthropic = Messages API via the official SDK (key from $ANTHROPIC_API_KEY, --base_url ignored)")
 flags.DEFINE_enum("effort", "low", ["low", "medium", "high"], "core, provider anthropic: output_config.effort")
+flags.DEFINE_integer("thinking_headroom", core_bridge.ModelClient.ANTHROPIC_THINKING_HEADROOM,
+                     "core, provider anthropic: tokens added to core's per-role max_tokens (thinking counts toward it); 0 = core's cap", lower_bound=0, upper_bound=core_bridge.ModelClient.MAX_THINKING_HEADROOM)
 flags.DEFINE_bool("core_disable_native_tools", False, "core: opt in to tool_choice=none for every model role; endpoint must support it without tools")
 flags.DEFINE_integer("seed", None, "Seed for task generation; original baseline was unseeded")
 flags.DEFINE_string("task", None, "AndroidWorld task name; random if omitted")
@@ -277,7 +281,8 @@ def core_models() -> core_bridge.ModelClient:
     return core_bridge.ModelClient(routes, FLAGS.temperature, FLAGS.timeout,
                                    min_interval_seconds=FLAGS.core_model_min_interval,
                                    disable_native_tools=FLAGS.core_disable_native_tools,
-                                   provider=FLAGS.provider, effort=FLAGS.effort)
+                                   provider=FLAGS.provider, effort=FLAGS.effort,
+                                   thinking_headroom=FLAGS.thinking_headroom)
 
 
 def serve_core(host: core_bridge.CoreHost, args: list[str]) -> dict[str, Any]:
@@ -326,7 +331,8 @@ def write_core_record(name: str, goal: str, core_mode: str, args: list[str], hos
             "core_model_min_interval": host.models.min_interval_seconds,
             "core_disable_native_tools": host.models.disable_native_tools,
             "provider": host.models.provider,
-            **({"effort": host.models.effort} if host.models.provider == "anthropic" else {}),
+            **({"effort": host.models.effort, "thinking_headroom": host.models.thinking_headroom}
+               if host.models.provider == "anthropic" else {}),
             "base_url": None if host.models.provider == "anthropic" else FLAGS.base_url,
             "confirm": host.confirm_policy, "success": success, "done": run["done"],
             "steps": [e for e in host.events if "step" in e], "finished": run["finished"],

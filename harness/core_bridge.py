@@ -547,12 +547,19 @@ class ModelClient:
     REFUSAL_CATEGORIES = {"cyber", "bio", "reasoning_extraction", "frontier_llm", "general_harms"}
     # A 429 is retried (Anthropic only) when the provider says when, and no later than this.
     RATE_LIMIT_RETRY_MAX_SECONDS = 60.0
+    # Anthropic only: thinking counts toward max_tokens, and claude-haiku-5-5 thinks by default,
+    # so core's per-role cap (reader 64, verifier 400, planner 800) alone can be spent on
+    # thinking before any text. This many tokens are added to the cap sent; core's cap is still
+    # recorded per call. 0 sends core's cap unchanged.
+    ANTHROPIC_THINKING_HEADROOM = 2048
+    MAX_THINKING_HEADROOM = 32000
     _CREDIT_MESSAGE = re.compile(r"credit balance is too low", re.I)
     _BILLING_CODE = re.compile(r"credit|billing|spend_limit|on_hold", re.I)
 
     def __init__(self, routes: dict[str, tuple[Optional[str], str, str]], temperature: float = 0.0, timeout: int = 120,
                  retries: int = 3, backoff_seconds: float = 2.0, min_interval_seconds: float = 0.0,
-                 disable_native_tools: bool = False, provider: str = "openai", effort: str = "low"):
+                 disable_native_tools: bool = False, provider: str = "openai", effort: str = "low",
+                 thinking_headroom: int = ANTHROPIC_THINKING_HEADROOM):
         if not 0 <= min_interval_seconds <= 60:
             raise ValueError("model minimum interval must be between 0 and 60 seconds")
         if type(disable_native_tools) is not bool:
@@ -563,6 +570,10 @@ class ModelClient:
             raise ValueError(f"effort must be one of {EFFORTS}")
         if provider == "anthropic" and disable_native_tools:
             raise ValueError("disable_native_tools applies to the openai provider only")
+        if type(thinking_headroom) is not int or not 0 <= thinking_headroom <= self.MAX_THINKING_HEADROOM:
+            raise ValueError(f"thinking_headroom must be an integer between 0 and {self.MAX_THINKING_HEADROOM}")
+        # Anthropic only (unused on the openai path): tokens added to core's max_tokens.
+        self.thinking_headroom = thinking_headroom
         self.provider = provider
         # Anthropic only: output_config.effort. Thinking is left to the model's default.
         self.effort = effort
@@ -887,11 +898,13 @@ class ModelClient:
 
     def _complete_anthropic(self, role: str, base_url: Optional[str], model: str, api_key: str,
                             messages: list[dict[str, str]], max_tokens: int) -> dict[str, Any]:
-        """messages.create with the role's max_tokens and the configured effort. No sampling
-        parameters (current models reject them) and no `thinking` field (model default)."""
+        """messages.create with the role's max_tokens plus the thinking headroom, and the
+        configured effort. No sampling parameters (current models reject them) and no `thinking`
+        field (model default)."""
         sdk = _anthropic_sdk()
         system, turns = anthropic_messages(messages)
-        request: dict[str, Any] = {"model": model, "max_tokens": max_tokens, "messages": turns,
+        sent_max_tokens = max_tokens + self.thinking_headroom
+        request: dict[str, Any] = {"model": model, "max_tokens": sent_max_tokens, "messages": turns,
                                    "output_config": {"effort": self.effort}}
         if system:
             request["system"] = system
@@ -900,7 +913,8 @@ class ModelClient:
         retried: list[dict[str, Any]] = []
         retried_empty = False
         pacing_seconds = 0.0
-        base = {"provider": "anthropic", "effort": self.effort}
+        base = {"provider": "anthropic", "effort": self.effort, "max_tokens": max_tokens,
+                "max_tokens_sent": sent_max_tokens}
         for attempt in range(self.retries + 1):
             diagnostics: dict[str, Any] = {}
             last = attempt >= self.retries
@@ -933,6 +947,10 @@ class ModelClient:
                         continue
                     raise ModelProviderError(category, status) from None
                 diagnostics = {"http_status": 200, **self._anthropic_metadata(message)}
+                if "completion_tokens" in diagnostics and "thinking_tokens" in diagnostics:
+                    # Visible text longer than core's cap is returned unchanged, and flagged.
+                    diagnostics["text_over_core_cap"] = (
+                        diagnostics["completion_tokens"] - diagnostics["thinking_tokens"] > max_tokens)
                 stop = diagnostics["stop_reason"]
                 if stop == "refusal":
                     diagnostics["error_category"] = "refusal"

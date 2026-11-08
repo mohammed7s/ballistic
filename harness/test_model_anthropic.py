@@ -136,11 +136,14 @@ class AnthropicClientTest(unittest.TestCase):
         self.assertEqual(self.complete('reader', 64)['text'], 'e7')
         self.assertEqual(self.complete('chat', 400)['text'], '{"x":1}')  # no chat route: planner's
         sent = [c.kwargs for c in self.create.call_args_list]
-        self.assertEqual(sent[0], {'model': 'claude-haiku-5-5', 'max_tokens': 800, 'system': 'rules',
+        # Core's cap plus the default thinking headroom (2048): thinking counts toward max_tokens.
+        self.assertEqual(sent[0], {'model': 'claude-haiku-5-5', 'max_tokens': 800 + 2048, 'system': 'rules',
                                    'messages': [{'role': 'user', 'content': 'screen'}],
                                    'output_config': {'effort': 'low'}})
-        self.assertEqual((sent[1]['model'], sent[1]['max_tokens']), ('claude-sonnet-5-5', 64))
-        self.assertEqual((sent[2]['model'], sent[2]['max_tokens']), ('claude-haiku-5-5', 400))
+        self.assertEqual((sent[1]['model'], sent[1]['max_tokens']), ('claude-sonnet-5-5', 64 + 2048))
+        self.assertEqual((sent[2]['model'], sent[2]['max_tokens']), ('claude-haiku-5-5', 400 + 2048))
+        self.assertEqual([(c['max_tokens'], c['max_tokens_sent']) for c in self.client.calls],
+                         [(800, 2848), (64, 2112), (400, 2448)])
         for kwargs in sent:
             for absent in ('temperature', 'top_p', 'top_k', 'thinking', 'tools', 'tool_choice'):
                 self.assertNotIn(absent, kwargs)
@@ -158,6 +161,27 @@ class AnthropicClientTest(unittest.TestCase):
         for bad in ('max', 'xhigh', 'none'):
             with self.subTest(effort=bad), self.assertRaises(ValueError):
                 ModelClient(self.client.routes, provider='anthropic', effort=bad)
+
+    def test_thinking_headroom_is_configurable_and_validated(self):
+        client = ModelClient(self.client.routes, provider='anthropic', effort='low', thinking_headroom=0)
+        self.create.return_value = answer('e1')
+        client.complete('reader', [{'role': 'user', 'content': 'screen'}], 64)
+        self.assertEqual(self.create.call_args.kwargs['max_tokens'], 64)
+        self.assertEqual((client.calls[0]['max_tokens'], client.calls[0]['max_tokens_sent']), (64, 64))
+        for bad in (-1, 32001, 1.5, True, '10'):
+            with self.subTest(headroom=bad), self.assertRaises(ValueError):
+                ModelClient(self.client.routes, provider='anthropic', thinking_headroom=bad)
+
+    def test_text_longer_than_core_cap_is_returned_and_flagged(self):
+        # 20 output tokens of which 12 thinking: 8 text tokens against core's cap.
+        self.create.side_effect = [answer('e1'), answer('e2')]
+        self.complete('reader', 8)
+        self.complete('reader', 7)
+        self.assertEqual([c['text_over_core_cap'] for c in self.client.calls], [False, True])
+        self.create.side_effect = [message([text('e3')], thinking_tokens=None)]  # not reported
+        out = self.client.complete('reader', [{'role': 'user', 'content': 's'}], 7)
+        self.assertEqual(out['text'], 'e3')
+        self.assertNotIn('text_over_core_cap', self.client.calls[-1])
 
     def test_only_text_blocks_are_returned_and_usage_is_recorded(self):
         self.create.return_value = message([thinking(), text('{"action":'), thinking(), text('"home"}')],
@@ -430,7 +454,7 @@ class RealSdkTest(unittest.TestCase):
         self.assertEqual(self.complete(), {'text': 'e7', 'usage': {'prompt_tokens': 11, 'completion_tokens': 7}})
         body = self.requests[0]
         self.assertEqual({k: body[k] for k in ('model', 'max_tokens', 'system', 'messages', 'output_config')},
-                         {'model': 'claude-haiku-5-5', 'max_tokens': 64, 'system': 'rules',
+                         {'model': 'claude-haiku-5-5', 'max_tokens': 64 + 2048, 'system': 'rules',
                           'messages': [{'role': 'user', 'content': 'screen'}], 'output_config': {'effort': 'low'}})
         for absent in ('temperature', 'top_p', 'top_k', 'thinking'):
             self.assertNotIn(absent, body)

@@ -93,6 +93,7 @@ Core asks and the harness answers, one JSON line each way (`core/src/bridge.rs`)
 | `--core_disable_native_tools` | opt in to `tool_choice: "none"` for all core model roles; default false; endpoint must accept it without `tools` |
 | `--provider openai\|anthropic` | `openai` (default): every role on the OpenAI-compatible `--base_url`, unchanged. `anthropic`: the Anthropic Messages API through the official `anthropic` SDK; `--base_url` is ignored; core only |
 | `--effort low\|medium\|high` | provider `anthropic` only: `output_config.effort`; default `low` |
+| `--thinking_headroom N` | provider `anthropic` only: tokens added to core's per-role `max_tokens`, since thinking counts toward it; 0–32000, default 2048 |
 
 A core run's JSON has the same fields as before plus `core_args`, `roles`, `confirm`,
 `finished` (core's last event), `confirmations`, `exit_code`, `stderr`, `provider` (and `effort`
@@ -118,8 +119,14 @@ messages, output_config={"effort": ...})`: core's leading system message becomes
 rest are user/assistant turns with consecutive same-role messages merged. No `temperature`,
 `top_p`, `top_k` or `thinking` is sent (current models reject sampling parameters; thinking is
 left to the model's default, which effort controls). Only `text` blocks are returned to core;
-thinking blocks are counted, never read. Thinking counts toward `max_tokens`, so a small role
-cap (the reader's 64) can end with `stop_reason: max_tokens` and no text.
+thinking blocks are counted, never read. Thinking counts toward `max_tokens`, and
+`claude-haiku-5-5` thinks by default: with core's caps alone (reader 64, verifier 400, planner
+800) the first Haiku suite (8 November 2026) had verifier replies spend 390–400 of 400 tokens on
+thinking and end at `max_tokens` with truncated or no text, which ended runs whose checker had
+passed. So the client sends core's cap plus `--thinking_headroom` (default 2048; `THINKING_HEADROOM`
+for `run_suite.sh`; 0 sends core's cap unchanged). Each call records `max_tokens` (core's),
+`max_tokens_sent` and `text_over_core_cap` (visible text tokens above core's cap; the text is
+returned unchanged).
 
 Outcomes, all recorded with code-owned names only (no provider message, body, prompt or key):
 
