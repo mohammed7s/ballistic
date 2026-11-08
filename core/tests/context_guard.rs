@@ -108,22 +108,38 @@ fn a_reported_usage_without_a_limit_still_reaches_the_step_event() {
 }
 
 #[test]
-fn reduction_a_drops_the_oldest_history_lines_first() {
+fn the_planner_budget_shrinks_before_any_history_line_goes() {
+    // Recorded planner replies are 36-49 tokens: a smaller budget costs nothing, a lost history
+    // line costs context. Step 6 keeps all five lines and gets the room left.
+    let mut base = fake(varied(5), vec![]);
+    drive(&mut base, "wait for the screen", 6, &harness());
+    let full = &calls(&base, ModelRole::Planner)[5];
+    let limit = estimate(full) + 300;
+    let mut f = fake(varied(5), vec![(ModelRole::Planner, limit)]);
+    drive(&mut f, "wait for the screen", 6, &harness());
+    assert_eq!(&calls(&f, ModelRole::Planner)[5], full);
+    assert_eq!(sent_max(&f, ModelRole::Planner)[5], 300);
+    let c = check(&f.events[5]);
+    assert_eq!(c["reductions"], json!(["max_tokens"]));
+    assert!(c.get("history_lines_dropped").is_none());
+}
+
+#[test]
+fn reduction_a_drops_the_oldest_history_lines_only_when_the_minimum_budget_does_not_fit() {
     let mut base = fake(varied(5), vec![]);
     drive(&mut base, "wait for the screen", 6, &harness());
     let full = &calls(&base, ModelRole::Planner)[5];
     let trimmed = drop_oldest_history(full, 1);
-    let limit = estimate(&trimmed) + 800;
-    assert!(estimate(full) + 800 > limit);
+    let limit = estimate(&trimmed) + 256;
+    assert!(estimate(full) + 256 > limit);
     let mut f = fake(varied(5), vec![(ModelRole::Planner, limit)]);
     drive(&mut f, "wait for the screen", 6, &harness());
     let sent = calls(&f, ModelRole::Planner);
-    // Earlier steps fitted and went out unchanged; step 6 lost exactly its oldest line.
-    assert_eq!(sent[..5], calls(&base, ModelRole::Planner)[..5]);
+    // Step 6 lost exactly its oldest line and kept the planner's minimum budget.
     assert_eq!(sent[5], trimmed);
-    assert_eq!(sent_max(&f, ModelRole::Planner)[5], 800);
+    assert_eq!(sent_max(&f, ModelRole::Planner)[5], 256);
     let c = check(&f.events[5]);
-    assert_eq!(c["reductions"], json!(["history"]));
+    assert_eq!(c["reductions"], json!(["max_tokens", "history"]));
     assert_eq!(c["history_lines_dropped"], 1);
     assert_eq!(c["full_prompt_estimate"], estimate(full));
     assert_eq!(c["prompt_estimate"], estimate(&trimmed));
@@ -135,20 +151,27 @@ fn reduction_a_drops_the_oldest_history_lines_first() {
 }
 
 #[test]
-fn history_never_goes_below_its_floor_and_then_max_tokens_shrinks() {
+fn history_never_goes_below_its_floor() {
     let mut base = fake(varied(5), vec![]);
     drive(&mut base, "wait for the screen", 6, &harness());
     let full = &calls(&base, ModelRole::Planner)[5];
     let at_floor = drop_oldest_history(full, 3);
-    // Even at the floor (two lines) 800 output tokens do not fit; 300 do.
-    let limit = estimate(&at_floor) + 300;
+    // At the floor (two lines) exactly the minimum fits.
+    let limit = estimate(&at_floor) + 256;
     let mut f = fake(varied(5), vec![(ModelRole::Planner, limit)]);
     drive(&mut f, "wait for the screen", 6, &harness());
     assert_eq!(calls(&f, ModelRole::Planner)[5], at_floor);
-    assert_eq!(sent_max(&f, ModelRole::Planner)[5], 300);
+    assert_eq!(sent_max(&f, ModelRole::Planner)[5], 256);
     let c = check(&f.events[5]);
-    assert_eq!(c["reductions"], json!(["history", "max_tokens"]));
+    assert_eq!(c["reductions"], json!(["max_tokens", "history"]));
     assert_eq!(c["history_lines_dropped"], 3);
+    // One token less: the floors hold and a call is refused rather than cut further (an earlier
+    // step with two lines of its own may already be the one refused).
+    let mut g = fake(varied(5), vec![(ModelRole::Planner, limit - 1)]);
+    let report = drive(&mut g, "wait for the screen", 6, &harness());
+    assert_eq!(report["failure_category"], "model_context");
+    let refused = report["context_guard"].as_array().unwrap().last().unwrap();
+    assert_eq!((refused["fits"].as_bool(), refused["max_tokens"].as_u64()), (Some(false), Some(256)));
 }
 
 #[test]
@@ -159,7 +182,10 @@ fn reduction_b_drops_reader_facts_older_than_the_previous_step_only() {
     let full = &calls(&base, ModelRole::Planner)[2];
     assert!(full[1].content.contains("reader facts f1"), "{}", full[1].content);
     let trimmed = drop_facts_block(full);
-    let limit = estimate(&trimmed) + 800;
+    // Room for step 3 without its old facts at the planner's minimum budget, and for step 2.
+    let step2 = &calls(&base, ModelRole::Planner)[1];
+    let limit = estimate(&trimmed).max(estimate(step2)) + 256;
+    assert!(estimate(full) + 256 > limit);
     let mut f = fake(vec![READ_FACTS, WAIT, WAIT], vec![(ModelRole::Planner, limit), (ModelRole::Reader, limit)]);
     f.reader = vec![facts_reply()];
     drive(&mut f, "what does the newest message say?", 3, &harness());
@@ -167,10 +193,11 @@ fn reduction_b_drops_reader_facts_older_than_the_previous_step_only() {
     // Step 2 acts on the facts just read: they stay, whatever else had to give.
     assert!(sent[1][1].content.contains("reader facts f1"));
     assert!(!f.events[1]["context_guard"][0]["reductions"].as_array().unwrap().contains(&json!("old_reader_facts")));
-    // Step 3: history is at its floor (two lines), so the step-1 fact set goes.
+    // Step 3: the budget is at its minimum and history at its floor (two lines), so the step-1
+    // fact set goes.
     assert_eq!(sent[2], trimmed);
-    assert_eq!(sent_max(&f, ModelRole::Planner)[2], 800);
-    assert_eq!(check(&f.events[2])["reductions"], json!(["old_reader_facts"]));
+    assert_eq!(sent_max(&f, ModelRole::Planner)[2], limit - estimate(&trimmed));
+    assert_eq!(check(&f.events[2])["reductions"], json!(["max_tokens", "old_reader_facts"]));
     // The reader call itself was checked too, and never shortened.
     let reader = f.events[0]["context_guard"].as_array().unwrap().iter().find(|c| c["role"] == "reader").unwrap();
     assert_eq!(reader["reductions"], json!([]));
@@ -207,7 +234,8 @@ fn reduction_e_refuses_without_calling_the_model() {
     assert!(reason.ends_with("the model was not asked"), "{reason}");
     let c = &report["context_guard"][0];
     assert_eq!(c["fits"], false);
-    assert_eq!(c["reductions"], json!([]));
+    // The planner tried its smaller budget first; nothing else could be dropped.
+    assert_eq!(c["reductions"], json!(["max_tokens"]));
 }
 
 #[test]

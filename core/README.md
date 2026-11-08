@@ -814,9 +814,12 @@ stops at the first that fits:
    judge call therefore stops before any confirmation or dispatch.
 
 Reductions only remove lines core itself wrote; nothing is added, and the rules, schema, owner's
-request, screen and the step's correction messages are never touched. The order is fixed: with
-the conservative estimator below, history lines go before the output budget shrinks, even though
-measured planner replies were 36–49 tokens.
+request, screen and the step's correction messages are never touched. The order is fixed, with one
+exception (9 Nov 2026): **the planner shrinks its output budget first** (step 4, down to 256),
+because measured planner replies were 36–49 tokens; history lines and old fact sets go only when
+even the minimum does not fit, and the budget then gets whatever room the shorter prompt leaves,
+up to 800. A planner check therefore logs `reductions: ["max_tokens", "history", …]` in that order.
+Other roles keep steps 1–4 as listed.
 
 **Measuring.** The host's exact count when `count_tokens` returns one (no host does yet), else
 `context::estimate`: every ASCII digit one token, every other UTF-8 byte a third of a token
