@@ -1,0 +1,14 @@
+flowchart TD
+  A[Owner types request and presses Send] --> B{Nonempty and no active run?}
+  B -- No --> Z[No new run]
+  B -- Yes --> C{Phone awake and unlocked; requests enabled?}
+  C -- No --> D[Park request; ask owner to unlock / enable]
+  D -- Cancel --> Z
+  D -- Unlock --> C
+  C -- Yes --> E[Create run ID, elapsed timer and cancellation state]
+  E --> F{Real core available and model configured?}
+  F -- No --> G[Explicitly labelled scripted demo]
+  F -- Yes --> H[Call Rust core.run through Kotlin / UniFFI]
+  H --> I[Core owns the task cycle: see next diagram]
+  I --> J[Return status, execution evidence and result to UI]
+  G --> J

@@ -1,0 +1,18 @@
+flowchart TD
+  A{Host observation adapter} -- Phone APK --> N[Check read rules and local / connected route]
+  N --> NOT[Permitted notification text + allowed launchable apps]
+  A -- AndroidWorld core harness --> TREE[Structured UI tree + host capabilities]
+  NOT --> FILTER[Deterministic Rust filter: no model call]
+  TREE --> FILTER
+  FILTER --> STRUCT[Planner view: control IDs, labels, state, bounded values]
+  FILTER --> CONTENT[Private content map: c1, c2... to source text]
+  STRUCT --> P[Planner sees content references, not raw bodies]
+  P -- Element read requested --> ER[Reader model sees selected content candidates]
+  CONTENT --> ER
+  ER --> VALID{One allowed element ID or none?}
+  VALID -- Yes --> RET[Core returns ID + source tag to next planner step]
+  VALID -- No --> REJ[Core rejects response; no tool executed]
+  P -- Summary explicitly requested by owner --> SR[Reader selects source excerpts]
+  CONTENT --> SR
+  SR --> CHECK[Validate excerpts; observe again and check freshness]
+  CHECK --> OWNER[Return excerpts or unavailable status to OWNER; end run]

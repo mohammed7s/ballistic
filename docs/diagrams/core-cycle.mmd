@@ -1,0 +1,33 @@
+flowchart TD
+  A[Initialize task history, reader picks and repeat guards] --> B{Stopped or step limit reached?}
+  B -- Yes --> END[Return report; no further actions]
+  B -- No --> O[Observe permitted state, or reuse a saved snapshot]
+  O --> F[Filter in Rust; build compact planner input]
+  F --> P[Planner model proposes ONE JSON action]
+  P --> V{Valid action and current target?}
+  V -- No --> R{Correction already used this step?}
+  R -- No --> P
+  R -- Yes --> END
+  V -- Yes --> K{Action kind?}
+  K -- Read --> READ[Reader path: see data diagram]
+  READ -- Element result --> L[Log outcome; update bounded history]
+  READ -- Owner excerpts / terminal failure --> END
+  K -- Give up / unsupported answer --> END
+  K -- Phone operation --> G{Capability and app grant permit it?}
+  G -- No --> END
+  G -- Yes --> C{Guarded operation needs approval?}
+  C -- Yes --> AP{Owner approves exact operation?}
+  AP -- No --> END
+  AP -- Yes --> X[Recheck cancellation / authorization; dispatch via host]
+  C -- No --> X
+  X --> HOST[Android host rechecks live app rule; asks if Always approval]
+  HOST --> Q{Execution outcome?}
+  Q -- Unknown --> END
+  Q -- Acknowledged / not executed --> L
+  L --> B
+  K -- Done claim --> OBS[Observe fresh state]
+  OBS --> VER[Launch postcondition in code; otherwise verifier model]
+  VER --> OK{Completion supported by evidence?}
+  OK -- Yes --> DONE[Return verified completion]
+  OK -- No: general task --> L
+  OK -- No: launch-only task --> END

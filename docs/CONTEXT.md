@@ -1459,3 +1459,13 @@ compatibility, actual accelerator use, RAM and speed remain untested. Google's d
 custom fine-tuned SLM compiler path currently targets G6, so G5 support for our own tuned model
 must be established before choosing it as the deployment target. Details and sources are in
 the [model/runtime diagnosis](log/2026-11-08-model-harness-diagnosis.md#tensor-g5-accelerator-research--8-november-2026).
+
+## Prompt flow clarification — 8 November 2026
+
+Read-only ADB check now sees Pixel 10 Pro serial 56181FDCH0070R authorized on the ThinkPad,
+alongside emulator-5554. This establishes connectivity, not installation or NPU validation.
+Source-derived Mermaid diagrams in `docs/diagrams/` separate command admission before core.run,
+observation/read routing restrictions, deterministic filtering, planner/reader calls, execution
+authorization and completion verification. These describe current root source; pending app
+branches and installed native-library provenance are separate. The core loop is tree-only;
+the current phone adapter supplies permitted notifications, not general screen vision or UI access.
