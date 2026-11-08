@@ -1,8 +1,8 @@
 # Benchmark runs: Ballistic core vs the stock T3A agent on 20 AndroidWorld tasks
 
 Measured facts only. Same 20 tasks (`harness/run_suite.sh`), same emulator (AndroidWorldAvd, API
-33, ThinkPad), same model `gemini-flash-lite-latest` (Gemini resolves it to `gemini-3.5-flash-lite`),
-core seed 0; the T3A baseline was unseeded. Goals therefore differ. Run artefacts: `ballistic_runs/suite_core_<stamp>/` on the Latitude (git-ignored) and
+33, ThinkPad), same model `gemini-flash-lite-latest` (Gemini resolves it to `gemini-3.5-flash-lite`)
+except the Haiku rows, which use `claude-haiku-5-5` through the Anthropic API, core seed 0; the T3A baseline was unseeded. Goals therefore differ. Run artefacts: `ballistic_runs/suite_core_<stamp>/` on the Latitude (git-ignored) and
 `~/ballistic_runs/` on the ThinkPad.
 
 ## Runs
@@ -16,6 +16,8 @@ core seed 0; the T3A baseline was unseeded. Goals therefore differ. Run artefact
 | **Core 4** | **7 Nov 2026 02:32–03:02** | **core** | **`8098265`** | **4 / 9 / 7** | **1,039.5 s** | **53.9 s** | **197** | **2,158** |
 | Core 5 (incomplete) | 7 Nov 2026 05:23–05:37 | core | `7a9238e` | **4 / 5 / 2; 9 NOT RUN** | 553.8 s (11 attempts) | — | 113 | 2,427 (112 known-usage attempts) |
 | **Core 6** | **7 Nov 2026 08:35–09:04** | **core** | **`05ab6eb`** | **8 / 10 / 2** | **1,258.3 s** | **52.75 s** | **223** | **2,651** |
+| Haiku 1 (no thinking headroom) | 8 Nov 2026 19:22–19:47 | core, `claude-haiku-5-5` | harness `c75fa07`, core of `a29b611` | 2 / 8 / 10 | 990.7 s | 40.75 s | 262 | 3,360 |
+| **Haiku 2** | **8 Nov 2026 19:48–20:17** | **core, `claude-haiku-5-5`** | **harness `b8d1030`, core of `a29b611`** | **6 / 14 / 0** | **1,261.3 s** | **49.55 s** | **341** | **3,358** |
 
 Core 3 was run on a second API key after the first key's daily quota was used up.
 This records the historical run; daily-quota exhaustion must stop a run, without automatic key rotation.
@@ -25,6 +27,88 @@ setup and checker. Core 3 adds 15.93 s checker time; Core 4 adds 17.40 s. Suite 
 setup and gaps and is not the sum in this table. Errors and early failed stops reduce recorded
 time. These runs do **not** establish a speedup or a controlled latency comparison.
 Prompt means include only usage-bearing calls; failed-call usage is unknown.
+
+## Core with Claude Haiku 5.5 — 8 November 2026
+
+Model `claude-haiku-5-5` through the official `anthropic` Python SDK 2.6.0 (AndroidWorld venv on
+the ThinkPad), `--provider anthropic --effort low`, no `thinking`, `temperature`, `top_p` or
+`top_k` field (adaptive thinking is the model's default). Same 20 tasks in suite order, seed 0,
+judge off, confirmations approved by the harness, complexity-based step budgets, core role caps
+800 planner / 64 reader / 400 verifier, no pacing. Core built from master `a29b611` with
+`rustup run stable cargo build --release`; both runs used binary SHA-256
+`2f174280e7c3d83373ce5904e430dcef0bfffbccb674ceb32f97b036dd9d948e`. Pre-run smoke call through
+the client: HTTP 200, text `ok`, 21 prompt + 4 output tokens (excluded below). Cost uses the
+published rates for prompts up to 100K tokens, **$0.10 / M input and $0.50 / M output**, on the
+recorded usage; thinking is billed as output. No call exceeded 100K prompt tokens, no prompt
+caching was used (cache read/creation 0).
+
+**Haiku 2 (harness `b8d1030`, thinking headroom 2048): 6 PASS / 14 FAIL / 0 ERROR; independent
+state 10/20; zero false done.** Below Core 6 (8 combined / 11 state) and T3A 13/20.
+
+**Haiku 1 (harness `c75fa07`, run by the earlier agent's supervisor, no headroom): 2 PASS / 8 FAIL
+/ 10 ERROR; state 8/20; zero false done.** All ten errors are a final call that ended at
+`stop_reason: max_tokens` with only a thinking block (`missing_content`): 5 reader (cap 64),
+4 verifier (cap 400), 1 planner (cap 800). 22 of its 262 calls stopped at `max_tokens`; the 11
+verifier calls among them spent 304–400 of 400 tokens thinking. Four ERRORs (ContactsAddContact,
+ClockStopWatchRunning, SimpleSmsSend, MarkorCreateFolder) had state passed. Commit `b8d1030` then
+sent core's cap plus 2048 tokens and recorded both (`max_tokens`, `max_tokens_sent`).
+
+| Totals | Haiku 1 | Haiku 2 |
+|---|---:|---:|
+| Logical calls / HTTP attempts / retries | 262 / 262 / 0 | 341 / 341 / 0 |
+| HTTP status | 262 × 200 | 341 × 200 |
+| Planner / reader / verifier calls | 210 / 31 / 21 | 267 / 46 / 28 |
+| Calls stopped at `max_tokens` | 22 | 4 (planner, all 2,848 tokens) |
+| Prompt tokens (per call) | 880,438 (3,360) | 1,144,988 (3,358) |
+| Output tokens, of which thinking | 79,126, 56,715 | 117,860, 76,196 |
+| Cost, input + output | $0.0880 + $0.0396 = **$0.1276** | $0.1145 + $0.0589 = **$0.1734** |
+| Agent seconds (median) | 990.7 (40.75) | 1,261.3 (49.55) |
+| Checker seconds | 15.800 | 15.052 |
+| Suite wall (UTC) | 19:22:40–19:47:15 | 19:48:04–20:17:01 |
+
+No 429, 5xx, refusal, billing or unknown-usage attempt in either run. In Haiku 2 four planner
+replies (SimpleSmsSend, SimpleSmsReplyMostRecent, SimpleCalendarAddOneEvent, ExpenseAddSingle)
+used the whole 2,848 tokens with 225–488 thinking, so 2,360–2,623 visible text tokens against
+core's 800; one reader reply was 65 text tokens against 64. Likely runaway text; the
+replies were not retained beyond core's handling. Core timing excludes setup and checker, as above.
+
+| Task | T3A | Core 6 | Haiku 1 | Haiku 2 combined / state | Agent s | Calls | Haiku 2 cause (from the run JSON) |
+|---|---|---|---|---|---:|---:|---|
+| ContactsAddContact | PASS | PASS | ERROR | **PASS** / passed | 53.2 | 14 | Agent done and checker agree |
+| ClockTimerEntry | FAIL | FAIL | FAIL | FAIL / failed | 43.6 | 11 | Nine taps on three targets (e8, e4, e15); budget exhausted, timer not set (likely digit entry) |
+| ClockStopWatchRunning | PASS | PASS | ERROR | **PASS** / passed | 41.0 | 10 | Agent done and checker agree |
+| OpenAppTaskEval | PASS | PASS | FAIL | FAIL / passed | 53.1 | 19 | Settings open at step 1; nine done claims rejected "citation has no readable evidence"; budget exhausted |
+| SystemWifiTurnOff | PASS | PASS | PASS | **PASS** / passed | 44.2 | 14 | Agent done and checker agree |
+| SystemBluetoothTurnOn | FAIL | PASS | ERROR | **PASS** / passed | 44.8 | 13 | Agent done and checker agree |
+| SystemBrightnessMax | FAIL | FAIL | FAIL | FAIL / passed | 43.1 | 15 | Reached the slider through settings search; the step-10 swipe likely met the goal; budget gone before done |
+| TurnOnWifiAndOpenApp | PASS | PASS | PASS | **PASS** / passed | 47.6 | 14 | Agent done and checker agree |
+| SimpleSmsSend | PASS | FAIL | ERROR | FAIL / passed | 76.4 | 19 | Sent at step 6; five done claims rejected "current screen does not establish every requested postcondition" |
+| SimpleSmsReplyMostRecent | PASS | FAIL | ERROR | FAIL / passed | 79.4 | 24 | Five reads to find the newest thread, replied at step 9; two done claims rejected as above; budget exhausted |
+| SimpleCalendarAddOneEvent | FAIL | FAIL | FAIL | FAIL / failed | 168.8 | 36 | Title and description typed; from step 16, 18 taps alternating e29/e10 (likely the time picker); never saved, 34 steps used |
+| SimpleCalendarEventsOnDate | FAIL | FAIL | ERROR | FAIL / failed | 42.4 | 16 | Six reader date queries and scrolls; never reached 27 Oct 2023 or answered |
+| MarkorCreateNote | FAIL | FAIL | ERROR | FAIL / failed | 68.6 | 19 | Name and `txt` typed, five reads of the name/extension fields (three deduplicated), body typed, then back; no done |
+| MarkorDeleteNote | PASS | FAIL | ERROR | FAIL / failed | 37.1 | 14 | Found and opened the note, read its title, backed out; no delete before budget |
+| MarkorCreateFolder | PASS | PASS | ERROR | **PASS** / passed | 46.9 | 11 | Agent done and checker agree |
+| ExpenseAddSingle | FAIL | ERROR | FAIL | FAIL / failed | 51.5 | 11 | Reader found no Transportation among five category rows; scrolls; planner gave up |
+| ExpenseDeleteSingle | PASS | ERROR | FAIL | FAIL / failed | 31.7 | 10 | Delete dialog opened at step 4; reader could not name the item; planner gave up without confirming |
+| RecipeAddSingleRecipe | PASS | PASS | FAIL | FAIL / failed | 133.6 | 27 | Fields typed, then 14 scrolls, mostly alternating down/up; reader found no Servings/Directions field; budget exhausted |
+| FilesDeleteFile | PASS | FAIL | ERROR | FAIL / failed | 95.3 | 32 | Never reached the Music folder: scrolls and reader "none"; budget exhausted |
+| CameraTakePhoto | PASS | FAIL | FAIL | FAIL / failed | 59.0 | 12 | Shutter tapped at step 3, done rejected, more taps; checker failed (photo count unknown) |
+
+Haiku 2 passes 5 of T3A's 13 passes plus SystemBluetoothTurnOn, which T3A failed. Of the 14
+failures, 4 have state passed but no accepted done (OpenAppTaskEval, SystemBrightnessMax and the two
+SMS tasks): done rejected by core's evidence checks or budget exhausted after the effect. The other 10
+are navigation, entry or effect failures that exhausted the step budget or gave up. Compared with
+Core 6, Haiku 2 passes a subset (6 of Core 6's 8) and misses OpenAppTaskEval and
+RecipeAddSingleRecipe; both runs are single
+seed-0 trials, so no model ranking or causal claim follows. The state passes do not establish
+absence of duplicate or unrelated side effects.
+
+Evidence (git-ignored, Latitude): `ballistic_runs/suite_haiku55_20261108-194804/` (Haiku 2: TSV,
+20 logs, 20 JSONs, supervisor script/status, suite output) and
+`ballistic_runs/suite_haiku55_c75fa07_20261108-192240/` (Haiku 1); originals in `~/ballistic_runs/`
+on the ThinkPad. Both supervisors released the emulator lock (19:47:15 and 20:17:01 UTC). The
+copied files contain no API key.
 
 ## Core 8 targeted — 7 November 2026 (three tasks, not a full suite)
 

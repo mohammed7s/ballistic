@@ -17,7 +17,8 @@ class SuiteRowTests(unittest.TestCase):
         self.assertEqual(model_usage(calls), {
             'http_attempts': 4, 'retry_attempts': 2, 'prompt_tokens': 180,
             'completion_tokens': 20, 'unknown_prompt_attempts': 2,
-            'unknown_completion_attempts': 2, 'pacing_seconds': 5.75, 'quota_limited': True})
+            'unknown_completion_attempts': 2, 'pacing_seconds': 5.75, 'quota_limited': True,
+            'billing_error': False})
 
     def test_invalid_usage_is_unknown_and_zero_is_known(self):
         result = model_usage([

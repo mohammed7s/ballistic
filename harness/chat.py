@@ -9,6 +9,8 @@ whatever screen is showing, so instructions can build on each other ("open the C
   bash harness/chat.sh --agent core --chat
                                           # a conversation: core answers, asks or runs a task
   ~/android_world/.venv/bin/python harness/chat.py --model ... --base_url ...   (key: $BALLISTIC_API_KEY)
+  bash harness/chat.sh --agent core --provider anthropic --model claude-haiku-5-5 --effort low
+                                          # core on the Anthropic API (key: $ANTHROPIC_API_KEY)
 
 Agents: t3a / m3a (AndroidWorld's, history cleared per line) or core (each line starts
 `ballistic-core run --request <line> --max-steps <budget>`, served by core_bridge.CoreHost on the
@@ -149,7 +151,7 @@ def main(argv) -> None:
     def android_world_agent(name: str):
         nonlocal llm
         if llm is None:
-            llm = run_task.OpenAICompatWrapper(FLAGS.base_url, FLAGS.model, run_task.api_key(), FLAGS.temperature, FLAGS.max_tokens, FLAGS.timeout, FLAGS.no_think)
+            llm = run_task.OpenAICompatWrapper(FLAGS.base_url, FLAGS.model, run_task.t3a_api_key(), FLAGS.temperature, FLAGS.max_tokens, FLAGS.timeout, FLAGS.no_think)
         if name not in android_world_agents:
             android_world_agents[name] = m3a.M3A(env, llm) if name == "m3a" else t3a.T3A(env, llm)
         return android_world_agents[name]
@@ -162,7 +164,7 @@ def main(argv) -> None:
     def describe() -> str:
         if agent_name != "core":
             return f"agent {agent_name}, model {FLAGS.model}"
-        roles = {r: m for r, (_, m, _) in run_task.core_models().routes.items()}
+        roles = run_task.core_models().role_models()
         return (f"agent core ({FLAGS.core_bin or core_bridge.default_core_bin()}), "
                 f"models {json.dumps(roles)}, confirm {confirm_policy}"
                 + (f", chat (last {FLAGS.chat_history_turns} turns kept)" if FLAGS.chat else "")

@@ -31,7 +31,10 @@ def model_usage(calls):
     result['pacing_seconds'] = round(sum(c.get('pacing_seconds', 0) for c in calls
         if type(c.get('pacing_seconds', 0)) in (int, float)
         and math.isfinite(c.get('pacing_seconds', 0)) and c.get('pacing_seconds', 0) >= 0), 3)
-    result['quota_limited'] = any(a.get('http_status') == 429 for a in all_attempts)
+    # A call that ended on HTTP 429 stops the suite. A 429 recovered within the call's attempt
+    # budget (Anthropic, provider-given retry delay) stays visible in `retried` only.
+    result['quota_limited'] = any(c.get('http_status') == 429 for c in calls)
+    result['billing_error'] = any(a.get('error_category') == 'billing' for a in all_attempts)
     return result
 
 
@@ -57,7 +60,7 @@ def summarize(task, log_path, process_exit):
                   model_calls=len(record.get('model_calls', [])),
                   run_json=path, checker_seconds=record.get('checker_seconds', ''))
     result.update(model_usage(record.get('model_calls', [])))
-    if (result['quota_limited'] or record.get('benchmark_status') == 'error' or process_exit != 0
+    if (result['quota_limited'] or result['billing_error'] or record.get('benchmark_status') == 'error' or process_exit != 0
             or record.get('exit_code', 0) != 0 or record.get('failure_category') == 'environment'):
         result.update(result='ERROR', failure_category='environment')
     return result
@@ -69,10 +72,13 @@ def main():
     p.add_argument('--log', required=True)
     p.add_argument('--exit', dest='process_exit', required=True, type=int)
     p.add_argument('--stop-on-quota', action='store_true',
-                   help='Print the row, then exit 75 if the run hit HTTP 429.')
+                   help='Print the row, then exit 75 if a call ended on HTTP 429, or 76 on a '
+                        'provider billing error (e.g. credit balance too low).')
     a = p.parse_args()
     row = summarize(a.task, a.log, a.process_exit)
     print('\t'.join(str(row[c]).replace('\t', ' ').replace('\n', ' ') for c in COLUMNS))
+    if a.stop_on_quota and row.get('billing_error'):
+        raise SystemExit(76)
     if a.stop_on_quota and row.get('quota_limited'):
         raise SystemExit(75)
 
