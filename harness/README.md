@@ -121,9 +121,9 @@ rest are user/assistant turns with consecutive same-role messages merged. No `te
 left to the model's default, which effort controls). Only `text` blocks are returned to core;
 thinking blocks are counted, never read. Thinking counts toward `max_tokens`, and
 `claude-haiku-5-5` thinks by default: with core's caps alone (reader 64, verifier 400, planner
-800) the first Haiku suite (8 November 2026) had verifier replies spend 390–400 of 400 tokens on
-thinking and end at `max_tokens` with truncated or no text, which ended runs whose checker had
-passed. So the client sends core's cap plus `--thinking_headroom` (default 2048; `THINKING_HEADROOM`
+800) the first Haiku suite (8 November 2026, `docs/BENCHMARK_RUNS.md`) had 22 calls end at
+`max_tokens` (verifier ones after 304–400 of 400 tokens of thinking) and 10 of 20 tasks end on a
+reply with no text, four of them after the checker's state had passed. So the client sends core's cap plus `--thinking_headroom` (default 2048; `THINKING_HEADROOM`
 for `run_suite.sh`; 0 sends core's cap unchanged). Each call records `max_tokens` (core's),
 `max_tokens_sent` and `text_over_core_cap` (visible text tokens above core's cap; the text is
 returned unchanged).
