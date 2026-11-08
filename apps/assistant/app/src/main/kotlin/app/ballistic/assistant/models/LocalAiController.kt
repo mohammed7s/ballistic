@@ -53,6 +53,15 @@ class LocalAiController(
     @Volatile private var importSignal: CancellationSignal? = null
     @Volatile private var importStream: java.io.InputStream? = null
     val phone = "${Build.MANUFACTURER} ${Build.MODEL}"
+    val chip = PhoneChip.of(TensorSupport.abi, Build.SOC_MANUFACTURER, Build.SOC_MODEL)
+    /** The short picker: two recommended for this phone, the rest under More models. */
+    val picker: PickerLists get() = ModelPicker.lists(catalogue, chip)
+    private val speedRecords = SpeedRecordStore(app.filesDir.resolve("speed-records.json"))
+    private val mutableLastSpeed = MutableStateFlow(0)
+    /** Bumps when a ~2K check is recorded, so the main page re-reads [lastSpeed]. */
+    val speedVersion = mutableLastSpeed.asStateFlow()
+    /** The last ~2K check of [modelId] (on [backend] if given), kept across restarts. */
+    fun lastSpeed(modelId: String, backend: ComputeBackend? = null): SpeedRecord? = speedRecords.latest(modelId, backend)
     val tensorInfo: String get() = TensorSupport.describe(app)
     fun memory(): ActivityManager.MemoryInfo = ActivityManager.MemoryInfo().also {
         app.getSystemService(ActivityManager::class.java).getMemoryInfo(it)
@@ -238,6 +247,10 @@ class LocalAiController(
             val result = SpeedResult(target.modelId, target.modelName, target.runtime, target.backend,
                 engine.state.value.metadata?.backendReport, check, metrics)
             mutableResults.value = (listOf(result) + mutableResults.value).take(20)
+            SpeedWords.record(result, System.currentTimeMillis())?.let { record ->
+                runCatching { speedRecords.save(record) }
+                mutableLastSpeed.value++
+            }
             android.util.Log.i("Ballistic", String.format(Locale.ROOT,
                 "speed check model=%s runtime=%s backend=%s check=%s prompt_tokens=%d generated_tokens=%d ttft_ms=%.0f prefill_tps=%.1f decode_tps=%.1f duration_ms=%.0f",
                 target.modelId, target.runtime.name, target.backend.name, check.name, metrics.promptTokens, metrics.generatedTokens,
