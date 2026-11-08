@@ -14,6 +14,7 @@ mod typed_value;
 pub mod agent;
 pub mod run;
 pub mod reader;
+pub mod judge;
 pub mod readback;
 
 pub mod values;

@@ -54,7 +54,14 @@ pub enum ActionError {
     NoSuchContent(u32),
     #[error("{0} must not be empty")]
     Empty(&'static str),
+    #[error("answer value {0:?} is not in the owner's request, a control label or a reader fact; read the content with shape facts first, or answer without that value")]
+    UnsourcedAnswer(String),
+    #[error("answer text must be at most {MAX_ANSWER_CHARS} characters")]
+    LongAnswer,
 }
+
+/// Longest planner answer core accepts.
+pub const MAX_ANSWER_CHARS: usize = 600;
 
 /// A parsed reply: the action and the planner's short reason (logged, not executed).
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -416,6 +423,23 @@ pub fn tainted_values(action: &Action, view: &FilteredScreen, request: &str, car
         .filter(|(_, source)| !source.is_owner())
         .map(|(found, source)| Tagged { value: found.raw, source })
         .collect()
+}
+
+/// Answer provenance (core/README.md §7): every number, phone number, amount or link in an
+/// answer must come from the owner's request, a control label on this screen, a value carried
+/// into the request with its source, or a reader fact. Returns every value with its source, or
+/// the first value that has none.
+pub fn answer_values(text: &str, view: &FilteredScreen, request: &str, carried: &[Tagged], facts: &[Tagged]) -> Result<Vec<Tagged>, ActionError> {
+    if text.trim().is_empty() { return Err(ActionError::Empty("text")); }
+    if text.chars().count() > MAX_ANSWER_CHARS { return Err(ActionError::LongAnswer); }
+    let labels: Vec<&str> = view.elements.iter().filter_map(|e| e.label.as_deref()).collect();
+    let provenance = crate::values::Provenance::new(&[request], &labels, facts);
+    let unsourced = Source::Model("planner".into());
+    let tagged = provenance.tag_with(text, carried, &unsourced);
+    if let Some((found, _)) = tagged.iter().find(|(_, s)| *s == unsourced) {
+        return Err(ActionError::UnsourcedAnswer(found.raw.clone()));
+    }
+    Ok(tagged.into_iter().map(|(found, source)| Tagged { value: found.raw, source }).collect())
 }
 
 /// The confirmation wording for [`tainted_values`].

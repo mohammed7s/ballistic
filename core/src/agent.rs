@@ -5,7 +5,7 @@ use std::io::{BufRead, Write};
 use std::time::Instant;
 use serde_json::{json, Value};
 use crate::{capabilities, verification, launch_completion, actions, bridge::Bridge, ports::*, run::{Host, Options},
-    readback::{self, Readback}, reader::{self, summary, ElementAnswer, ReaderPick},
+    readback::{self, Readback}, reader::{self, summary, ElementAnswer, ReaderPick}, judge::{self, Verdict}, values,
     screen_filter::{self, FilterContext, FilteredScreen}, types::*};
 
 const RULES: &str = include_str!("../prompts/planner.txt");
@@ -92,10 +92,13 @@ pub(crate) fn drive<H: Host>(host: &mut H, request:&str, max_steps:u32) -> PortR
     drive_task(host, &Task::owner(request), max_steps, &Options::harness())
 }
 
-pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, _options:&Options) -> PortResult<Value> {
+pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, options:&Options) -> PortResult<Value> {
     let request=task.request;
     // Typed reader-fact values seen in this run, each with its source (reader facts, §7).
-    let facts_values: Vec<Tagged> = Vec::new();
+    let mut facts_values: Vec<Tagged> = Vec::new();
+    let mut fact_sets: Vec<reader::facts::Facts> = Vec::new();
+    // A facts read repeats only when its content or question changed.
+    let mut facts_queries = Vec::<String>::new();
     let mut typed = Vec::new();
     let mut history = Vec::<String>::new();
     let mut apps = Vec::new();
@@ -139,6 +142,7 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, _opti
                 facts.push(format!("reader: element e{id} (source {})",reader::source_tag(&p.source)));
             }
         }
+        for (i,f) in fact_sets.iter().enumerate() { facts.push(f.planner_line(i+1,request)); }
         let app_names:Vec<_>=apps.iter().map(|a|a.label.as_str()).collect();
         let facts_block=if facts.is_empty() {String::new()} else {format!("Reader facts:\n{}\n",facts.join("\n"))};
         let request_values=if task.tainted.is_empty() {String::new()} else {
@@ -152,7 +156,11 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, _opti
         for attempt in 0..2 {
             stop_if_cancelled!(step-1);
             let completion=host.complete(ModelRole::Planner,&messages,800)?;
-            match actions::parse_reply(&completion.text).and_then(|r|{ actions::resolve(&r.action,&view,&screen,&apps)?;Ok(r) }) {
+            match actions::parse_reply(&completion.text).and_then(|r|{
+                actions::resolve(&r.action,&view,&screen,&apps)?;
+                if let Action::Answer{text}=&r.action { actions::answer_values(text,&view,request,task.tainted,&facts_values)?; }
+                Ok(r)
+            }) {
                 Ok(reply)=> {
                     if attempt==0 {
                         if let Action::Read{targets,question,shape:ReadShape::Element}=&reply.action {
@@ -194,6 +202,8 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, _opti
         let mut reader_event: Option<Value> = None;
         // Only final report publication may consume this. Never history, events or prompts.
         let mut owner_output: Option<summary::Output> = None;
+        let mut answer_out: Option<Value> = None;
+        let mut judge_event: Option<&str> = None;
         match &action {
             Action::Done{..}=> {
                 stop_if_cancelled!(step-1);
@@ -303,8 +313,46 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, _opti
                 reader_event=Some(json!({"summary_status":result.status}));
                 owner_output=Some(result);
             },
-            Action::Read{..}=> {outcome="reader facts are not implemented".into();next_screen=Some(screen.clone());},
-            Action::Answer{..}=> {outcome="answer provenance is not implemented".into();task_status="unsupported";failure_category=Some("planning");terminal=true;},
+            Action::Read{targets,question,shape:ReadShape::Facts}=> {
+                // One extra reader call, only when the planner asks. The planner then sees
+                // typed fields with the content's source tag (reader/facts.rs), never prose.
+                match reader::facts::Input::new(&view,targets,&screen) {
+                    None=> { outcome="reader facts unavailable: use one to four current cN from one granted app, each at most 4096 characters; no reader call was made".into(); },
+                    Some(input)=> {
+                        let reader_messages=input.messages(question);
+                        let query=serde_json::to_string(&reader_messages).expect("serializable reader messages");
+                        if facts_queries.contains(&query) {
+                            outcome="these reader facts are already listed; no reader call was made".into();
+                        } else {
+                            facts_queries.push(query);
+                            stop_if_cancelled!(step-1);
+                            let answer=host.complete(ModelRole::Reader,&reader_messages,reader::facts::FACTS_TOKENS)?;
+                            stop_if_cancelled!(step-1);
+                            outcome=match input.parse(&answer.text) {
+                                Some(f)=> {
+                                    let line=format!("reader facts f{} recorded (source {})",fact_sets.len()+1,reader::source_tag(&f.source));
+                                    facts_values.extend(f.values()); fact_sets.push(f); line
+                                },
+                                None=> {
+                                    reader_event=Some(json!({"rejected":true,"reply_chars":answer.text.chars().count()}));
+                                    "reader: facts rejected (not the fixed shape)".into()
+                                },
+                            };
+                        }
+                    },
+                }
+                next_screen=Some(screen.clone());
+            },
+            Action::Answer{text}=> {
+                // Every value was checked against its source when the reply was validated. The
+                // answer goes to the owner with those sources; it is not verified.
+                let sourced=actions::answer_values(text,&view,request,task.tainted,&facts_values).unwrap_or_default();
+                answer_out=Some(json!({"text":text,"display":values::annotate(text,&sourced),"values":sourced}));
+                outcome="answered; each value was checked against its source, the answer itself is not verified".into();
+                task_status="pending";
+                verification=Verification{evidence_basis:"answer_values_sourced".into(),..Verification::default()};
+                terminal=true;
+            },
             _=> {
                 let op=actions::resolve(&action,&view,&screen,&apps).map_err(|e|PortError::Malformed(e.to_string()))?.ok_or_else(||PortError::Malformed("no hands operation".into()))?;
                 let app=capabilities::app_scope(&op,&screen.package);
@@ -327,6 +375,29 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, _opti
                 if !terminal && prior>=GUARDED_REPEAT_LIMIT {
                     outcome="guarded input already acknowledged twice; not dispatched".into();
                     failure_category=Some("verification"); task_status="pending"; terminal=true;
+                }
+                if !terminal && options.judge && judge::state_changing(&action) {
+                    // Deny-only (§8): sees the request, the action in plain words, value sources
+                    // and core's history lines, never content. Allow changes nothing below.
+                    let sourced:Vec<Tagged>=match &action {
+                        Action::Type{text,..}=> {
+                            let labels:Vec<&str>=view.elements.iter().filter_map(|e|e.label.as_deref()).collect();
+                            values::Provenance::new(&[request],&labels,&facts_values)
+                                .tag_with(text,task.tainted,&Source::Model("planner".into())).into_iter()
+                                .map(|(f,source)|Tagged{value:f.raw,source}).collect()
+                        },
+                        _=>vec![],
+                    };
+                    let words=judge::plain_words(&action,&view,&apps,&screen.package);
+                    stop_if_cancelled!(step-1);
+                    let reply=host.complete(ModelRole::Judge,&judge::messages(request,&words,&sourced,&history),judge::JUDGE_TOKENS)?;
+                    stop_if_cancelled!(step-1);
+                    judge_event=Some("allow");
+                    if let Verdict::Block(why)=judge::parse(&reply.text) {
+                        judge_event=Some("block");
+                        outcome=format!("blocked by the safety check: {why}");
+                        failure_category=Some("policy_denial"); task_status="failed"; terminal=true;
+                    }
                 }
                 if !terminal {
                     if let Some(r)=reason.as_mut() {
@@ -388,7 +459,7 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, _opti
             }
         }
         stop_if_cancelled!(step-1);
-        host.log(&json!({"step":step,"action":actions::to_json(&action),"why":reply.why,"outcome":outcome,"task_status":task_status,"execution_status":execution_status,"verification":verification,"failure_category":failure_category,"step_execution_status":step_execution_status,"readback":readback_event,"reader":reader_event,"capability_mode":if screen.capabilities.is_some(){"advertised"}else{"missing_denied"},"seconds":start.elapsed().as_secs_f64()}))?;
+        host.log(&json!({"step":step,"action":actions::to_json(&action),"why":reply.why,"outcome":outcome,"task_status":task_status,"execution_status":execution_status,"verification":verification,"failure_category":failure_category,"step_execution_status":step_execution_status,"readback":readback_event,"reader":reader_event,"judge":judge_event,"capability_mode":if screen.capabilities.is_some(){"advertised"}else{"missing_denied"},"seconds":start.elapsed().as_secs_f64()}))?;
         if let Some(output)=owner_output {
             let reason=if output.is_available() {output.display()} else {outcome};
             let report=json!({"done":false,"reason":reason,"steps":step,"task_status":task_status,"execution_status":execution_status,"verification":verification,"failure_category":failure_category,"owner_output":output});
@@ -402,7 +473,18 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, _opti
             history.push(line);
             if history.len()>8 {history.remove(0);}
         }
-        if terminal {return Ok(json!({"done":done,"reason":outcome,"steps":step,"task_status":task_status,"execution_status":execution_status,"verification":verification,"failure_category":failure_category}));}
+        if terminal {
+            let mut report=json!({"done":done,"reason":outcome,"steps":step,"task_status":task_status,"execution_status":execution_status,"verification":verification,"failure_category":failure_category});
+            if let Some(answer)=answer_out {
+                // Display for the owner: the answer with its value sources, and the facts it
+                // drew on. Hosts must not feed either back into a model prompt.
+                report["reason"]=answer["display"].clone();
+                report["answer"]=answer;
+                report["owner_facts"]=json!(fact_sets);
+            }
+            if judge_event==Some("block") { report["blocked_by"]=json!("judge"); }
+            return Ok(report);
+        }
     }
     Ok(json!({"done":false,"reason":"step budget exhausted","steps":max_steps,"task_status":task_status,"execution_status":execution_status,"verification":verification,"failure_category":if verification.evidence_basis=="model_assessment" {"verification"} else {"planning"}}))
 }

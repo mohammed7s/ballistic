@@ -61,6 +61,13 @@ data class RunResult(
     val verification: Verification = Verification(),
     @SerialName("failure_category") val failureCategory: String? = null,
     val stopped: Boolean = false,
+    /**
+     * A planner answer for the owner: `{"text","display","values":[Tagged]}`. [reason] already
+     * holds `display` (the text with each value's source). Shown, never fed back to a model.
+     */
+    val answer: JsonElement? = null,
+    /** `"judge"` when core's deny-only safety check stopped the run; [reason] says why. */
+    @SerialName("blocked_by") val blockedBy: String? = null,
 )
 
 /** Set by Stop. Core checks it before every model call and immediately before every dispatch. */

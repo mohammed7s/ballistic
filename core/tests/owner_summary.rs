@@ -183,13 +183,28 @@ fn unrelated_action_request_cannot_obtain_an_unsolicited_summary() {
     assert_eq!(h.0.borrow().calls.len(),1); assert_eq!(r["done"],false); boundary(&h);
 }
 
+// Revised 8 Nov 2026 when `answer` gained provenance checks (core/README.md §7): a planner
+// answer is a separate channel from the summary, never an excerpt, and an answer value with
+// no source is rejected before anything is published.
 #[test]
-fn arbitrary_planner_answer_stays_unsupported() {
+fn planner_answer_is_not_an_owner_summary() {
     let h=host(screen("example.notes",&["Venue is Hall C."]),Ok(answer("Venue is Hall C.")));
     h.0.borrow_mut().plan=json!({"action":"answer","text":"ARBITRARY_PLANNER_PROSE"}).to_string();
-    let r=drive(&h,"Summarize this note."); assert_eq!(r["task_status"],"unsupported");
-    assert!(r["owner_output"].is_null()); assert!(!r.to_string().contains("ARBITRARY_PLANNER_PROSE"));
+    let r=drive(&h,"Summarize this note."); assert_eq!(r["task_status"],"pending");
+    assert!(r["owner_output"].is_null()); assert_eq!(r["answer"]["text"],"ARBITRARY_PLANNER_PROSE");
+    assert_eq!(r["verification"]["evidence_basis"],"answer_values_sourced"); assert_eq!(r["done"],false);
     assert_eq!(h.0.borrow().calls.len(),1); boundary(&h);
+}
+
+#[test]
+fn planner_answer_with_an_unsourced_value_is_rejected() {
+    let h=host(screen("example.notes",&["Venue is Hall C."]),Ok(answer("Venue is Hall C.")));
+    h.0.borrow_mut().plan=json!({"action":"answer","text":"The venue is Hall 42."}).to_string();
+    let r=drive(&h,"Summarize this note.");
+    assert!(r["answer"].is_null()); assert!(!r.to_string().contains("Hall 42"));
+    let s=h.0.borrow();
+    assert!(s.calls[1].1.last().unwrap().content.contains("answer value \"42\" is not in the owner's request"));
+    assert!(s.calls.iter().all(|c| c.0==ModelRole::Planner)); assert_eq!((s.acts,s.confirms,s.tools),(0,0,0));
 }
 
 #[test]

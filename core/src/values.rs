@@ -281,6 +281,31 @@ impl<'a> Provenance<'a> {
     }
 }
 
+/// `text` with each value from app content followed by its source, and each unchecked phone
+/// number, amount or link (a model's own text) marked as unverified.
+pub fn annotate(text: &str, tagged: &[Tagged]) -> String {
+    let mut out = String::new();
+    let mut rest = text;
+    for v in tagged {
+        let note = match &v.source {
+            s if s.is_owner() => continue,
+            Source::Model(_) => match single(&v.value, &[ValueKind::Phone, ValueKind::Amount, ValueKind::Url]) {
+                Some(_) => " (unverified)".to_string(),
+                None => continue,
+            },
+            s => format!(" (from {})", crate::reader::source_tag(s)),
+        };
+        if let Some(at) = rest.find(&v.value) {
+            let end = at + v.value.len();
+            out.push_str(&rest[..end]);
+            out.push_str(&note);
+            rest = &rest[end..];
+        }
+    }
+    out.push_str(rest);
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

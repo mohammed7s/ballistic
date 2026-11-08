@@ -22,7 +22,7 @@ use crate::ports::*;
 use crate::reader::{parse_source_tag, source_tag};
 use crate::run::{Host, Options};
 use crate::types::*;
-use crate::values::{self, Provenance, ValueKind};
+use crate::values::{self, annotate, Provenance, ValueKind};
 
 pub const CHAT_PROMPT: &str = include_str!("../prompts/chat.txt");
 pub const CHAT_SCHEMA: &str = include_str!("../schema/chat.json");
@@ -225,30 +225,6 @@ fn provenance(history: &[Turn], message: &str, text: &str) -> Vec<Tagged> {
     p.tag(text, &Source::Model("chat".into())).into_iter()
         .filter(|(_, s)| !s.is_owner())
         .map(|(f, source)| Tagged { value: f.raw, source }).collect()
-}
-
-/// `text` with each value from app content followed by its source, and each unchecked phone
-/// number, amount or link marked as not from the owner's data.
-fn annotate(text: &str, tagged: &[Tagged]) -> String {
-    let mut out = String::new();
-    let mut rest = text;
-    for v in tagged {
-        let note = match &v.source {
-            Source::Model(_) => match values::single(&v.value, &[ValueKind::Phone, ValueKind::Amount, ValueKind::Url]) {
-                Some(_) => " (unverified)".to_string(),
-                None => continue,
-            },
-            s => format!(" (from {})", source_tag(s)),
-        };
-        if let Some(at) = rest.find(&v.value) {
-            let end = at + v.value.len();
-            out.push_str(&rest[..end]);
-            out.push_str(&note);
-            rest = &rest[end..];
-        }
-    }
-    out.push_str(rest);
-    out
 }
 
 /// The task line's outcome words, from the report's code-owned fields only.

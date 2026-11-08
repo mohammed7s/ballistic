@@ -18,6 +18,9 @@ use crate::types::*;
 /// Terminal, display-only excerpts. They never become element picks or planner facts.
 pub mod summary;
 
+/// Typed fields for the planner, each tagged with the content's source.
+pub mod facts;
+
 /// Fixed reader rules, shipped with the build.
 pub const READER_PROMPT: &str = include_str!("../prompts/reader.txt");
 
