@@ -900,7 +900,7 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if ((lib.uniffi_ballistic_core_checksum_func_run() and 0xFFFF) != 65317) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if ((lib.uniffi_ballistic_core_checksum_func_run_with_options() and 0xFFFF) != 51656) {
+    if ((lib.uniffi_ballistic_core_checksum_func_run_with_options() and 0xFFFF) != 9682) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_ballistic_core_checksum_method_hostports_observe() and 0xFFFF) != 64120) {
@@ -1476,10 +1476,11 @@ public object FfiConverterTypeHostPorts: FfiConverterCallbackInterface<HostPorts
     
 
         /**
-         * [`run`] with options as JSON (`{"judge":true,"chat_history_turns":12,"max_steps":15}`,
-         * every field optional, missing fields take the app defaults; `max_steps` here is ignored in
-         * favour of the argument). Unknown fields or a malformed object end with an `error` line and
-         * no port call.
+         * [`run`] with options as JSON (`{"judge":true,"chat_history_turns":12,"max_steps":15,
+         * "skills":[...]}`, every field optional, missing fields take the app defaults; `max_steps`
+         * here is ignored in favour of the argument; `skills` are the `skill` objects of earlier
+         * verified reports). Unknown fields or a malformed object end with an `error` line and no
+         * port call.
          */ fun `runWithOptions`(`request`: kotlin.String, `maxSteps`: kotlin.UInt, `optionsJson`: kotlin.String, `host`: HostPorts): kotlin.String {
             return FfiConverterString.lift(
     uniffiRustCall() { _status ->

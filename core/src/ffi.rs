@@ -69,10 +69,11 @@ pub fn run(request: String, max_steps: u32, host: Box<dyn HostPorts>) -> String 
     run_with_options(request, max_steps, String::new(), host)
 }
 
-/// [`run`] with options as JSON (`{"judge":true,"chat_history_turns":12,"max_steps":15}`,
-/// every field optional, missing fields take the app defaults; `max_steps` here is ignored in
-/// favour of the argument). Unknown fields or a malformed object end with an `error` line and
-/// no port call.
+/// [`run`] with options as JSON (`{"judge":true,"chat_history_turns":12,"max_steps":15,
+/// "skills":[...]}`, every field optional, missing fields take the app defaults; `max_steps`
+/// here is ignored in favour of the argument; `skills` are the `skill` objects of earlier
+/// verified reports). Unknown fields or a malformed object end with an `error` line and no
+/// port call.
 #[uniffi::export]
 pub fn run_with_options(request: String, max_steps: u32, options_json: String, host: Box<dyn HostPorts>) -> String {
     let options = match options(&options_json) {
