@@ -100,40 +100,42 @@ class LiteRtLmDriver(private val context: Context) : LocalDriver {
         } catch (t: Throwable) {
             runCatching { if (candidate.isInitialized()) candidate.close() }
             val failure = startFailure(spec.backend, t)
-            val npuLog = if (spec.backend == ComputeBackend.NPU) npuRegistryLog(loadStarted) else null
-            throw if (npuLog == null) failure else LocalFailure("${failure.message} $npuLog")
+            val runtime = runtimeLog(loadStarted)
+            throw if (runtime == null) failure else LocalFailure("${failure.message} $runtime")
         }
         engine = candidate
         backend = spec.backend
         context0 = maxTokens ?: 0
-        val npuLog = if (spec.backend == ComputeBackend.NPU) npuRegistryLog(loadStarted) else null
-        Log.i(TAG, "LiteRT-LM engine initialized backend=${runtimeBackend.name} npu_log=${npuLog ?: "n/a"}")
+        val runtime = runtimeLog(loadStarted)
+        Log.i(TAG, "LiteRT-LM engine initialized backend=${runtimeBackend.name} runtime_log=${runtime ?: "unavailable"}")
         return LocalMetadata(
             description = "LiteRT-LM bundle",
             trainingContext = 0,
             context = context0,
             backendReport = "LiteRT-LM engine started on ${runtimeBackend.name}. It was asked for this backend only and did not report a failure." +
-                (npuLog?.let { " $it" } ?: ""),
+                (runtime?.let { " $it" } ?: ""),
         )
     }
 
     /**
-     * LiteRT logs whether it registered an NPU accelerator. The app may read its own process log;
-     * only a code-owned summary of the matching lines is returned, never the lines themselves.
+     * LiteRT logs which accelerators it registered and how many graph nodes each delegate took.
+     * The app may read its own process log; only a code-owned summary (counts and an uppercase
+     * delegate identifier) is returned, never the log lines themselves.
      */
-    private fun npuRegistryLog(sinceEpochSeconds: Double): String? = runCatching {
-        val process = ProcessBuilder("logcat", "-d", "-v", "epoch", "--pid", android.os.Process.myPid().toString(), "-s", "litert:*")
+    private fun runtimeLog(sinceEpochSeconds: Double): String? = runCatching {
+        val process = ProcessBuilder("logcat", "-d", "-v", "epoch", "--pid", android.os.Process.myPid().toString(), "-s", "litert:*", "tflite:*")
             .redirectErrorStream(true).start()
         val lines = process.inputStream.bufferedReader().use { it.readLines() }
         process.waitFor()
         val recent = lines.filter { line -> line.trim().substringBefore(' ').toDoubleOrNull()?.let { it >= sinceEpochSeconds - 1 } == true }
-        val failed = recent.any { "npu_registry" in it && "could not be loaded" in it }
-        val registered = recent.any { "RegisterAccelerator" in it && Regex("NPU|Npu|Tensor|Dispatch|GoogleTensor").containsMatchIn(it) }
-        when {
-            registered -> "LiteRT's log for this start shows an NPU accelerator registered."
-            failed -> "LiteRT's log for this start says its NPU accelerator could not be loaded."
-            else -> "LiteRT's log for this start has no NPU registration line."
-        }
+        val parts = mutableListOf<String>()
+        if (recent.any { "npu_registry" in it && "could not be loaded" in it }) parts += "NPU accelerator could not be loaded"
+        if (recent.any { "RegisterAccelerator" in it && Regex("NPU|Npu|Tensor|Dispatch").containsMatchIn(it) }) parts += "NPU accelerator registered"
+        val delegated = Regex("Replacing (\\d+) out of (\\d+) node\\(s\\) with delegate \\(([A-Z0-9_]{1,40})\\)")
+        recent.mapNotNull { delegated.find(it) }.map { "${it.groupValues[1]}/${it.groupValues[2]} nodes on ${it.groupValues[3]}" }
+            .distinct().take(4).let { parts += it }
+        if (parts.isEmpty()) "LiteRT's log for this start has no accelerator or delegation lines."
+        else "LiteRT's log for this start: " + parts.joinToString("; ") + "."
     }.getOrNull()
 
     private fun startFailure(backend: ComputeBackend, t: Throwable): LocalFailure {
@@ -204,10 +206,12 @@ class LiteRtLmDriver(private val context: Context) : LocalDriver {
             val lastPrefill = info?.lastPrefillTokenCount ?: 0
             val decodeTokens = info?.lastDecodeTokenCount ?: 0
             val decodeRate = info?.lastDecodeTokensPerSecond?.takeIf { it > 0 }
-            // "Last prefill" covers only the final prefill chunk (measured: 2 tokens for a ~2.5K
+            // "Last prefill" covers only the final prefill chunk (measured: 2 tokens for a 2,008-token
             // prompt), so the prompt size is the conversation's KV-cache count minus decoded tokens.
+            // When that is not larger than the last chunk (seen on a short prompt, where the KV
+            // count was below the decode count), the prompt size is reported as not measured (0).
             val cached = runCatching { call.getTokenCount() }.getOrNull()
-            val promptTokens = cached?.let { (it - decodeTokens).coerceAtLeast(lastPrefill) } ?: lastPrefill
+            val promptTokens = cached?.let { it - decodeTokens }?.takeIf { it > lastPrefill } ?: 0
             val wallFirst = firstAt?.let { (it - started) / 1e6 }
             val firstTokenMs = info?.timeToFirstTokenInSecond?.takeIf { it > 0 }?.let { it * 1000 } ?: wallFirst
             val metrics = LocalMetrics(

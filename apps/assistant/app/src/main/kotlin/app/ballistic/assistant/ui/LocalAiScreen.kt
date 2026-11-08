@@ -214,7 +214,7 @@ fun LocalAiScreen(graph: AppGraph, activity: Activity, onOpenAsk: () -> Unit = {
             Metric("First token", m?.firstTokenMs?.let(::duration))
             Metric("Prompt processing", m?.promptTokensPerSecond?.let { "${decimal(it)} tokens/s" })
             Metric("Generation", m?.generationTokensPerSecond?.let { "${decimal(it)} tokens/s" })
-            Metric("Prompt tokens", m?.promptTokens?.toString())
+            Metric("Prompt tokens", m?.promptTokens?.takeIf { it > 0 }?.toString())
             Text("Short: a counting prompt, up to 32 output tokens. ~2K prefill: a synthetic list of screen elements (about two thousand prompt tokens; the runtime reports the exact count), up to 16 output tokens. No phone actions or model network request.", style = MaterialTheme.typography.bodySmall)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(onClick = { ai.speedCheck(SpeedCheck.Short) }, enabled = enabled && engine.metadata != null) { Text("Short check") }
@@ -224,7 +224,7 @@ fun LocalAiScreen(graph: AppGraph, activity: Activity, onOpenAsk: () -> Unit = {
                 Text("Results this session", style = MaterialTheme.typography.titleMedium)
                 results.forEach { r ->
                     Text("${r.modelName} · ${r.runtime.label} ${r.backend.name} · ${r.check.label}", style = MaterialTheme.typography.bodyMedium)
-                    Text("${r.metrics.promptTokens} prompt tokens · first token ${r.metrics.firstTokenMs?.let(::duration) ?: "not measured"} · prefill ${r.metrics.promptTokensPerSecond?.let { decimal(it) } ?: "-"} tok/s · decode ${r.metrics.generationTokensPerSecond?.let { decimal(it) } ?: "-"} tok/s", style = MaterialTheme.typography.bodySmall)
+                    Text("${r.metrics.promptTokens.takeIf { it > 0 }?.toString() ?: "unmeasured"} prompt tokens · first token ${r.metrics.firstTokenMs?.let(::duration) ?: "not measured"} · prefill ${r.metrics.promptTokensPerSecond?.let { decimal(it) } ?: "-"} tok/s · decode ${r.metrics.generationTokensPerSecond?.let { decimal(it) } ?: "-"} tok/s", style = MaterialTheme.typography.bodySmall)
                 }
                 Text("Kept in memory until the app process ends. LiteRT-LM rates are its own benchmark numbers; llama.cpp rates are its timing counters.", style = MaterialTheme.typography.bodySmall)
             }
