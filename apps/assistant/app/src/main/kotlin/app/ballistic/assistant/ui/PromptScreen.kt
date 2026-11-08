@@ -53,6 +53,7 @@ import kotlinx.coroutines.delay
 import app.ballistic.assistant.session.actionLabel
 import app.ballistic.assistant.session.evidenceLabel
 import app.ballistic.assistant.session.runStatusLine
+import app.ballistic.assistant.session.recentForAsk
 import app.ballistic.assistant.confirm.ConfirmActivity
 import app.ballistic.assistant.storage.SecretStore
 
@@ -82,7 +83,7 @@ fun PromptScreen(graph: AppGraph, activity: Activity, onOpenLocalAi: () -> Unit 
     // A request parked by a locked gate brings up the prompt at once.
     LaunchedEffect(state.phase) { if (state.phase == Phase.NeedsUnlock) unlock() }
     LaunchedEffect(state.runs.size, state.runs.lastOrNull()?.steps?.size) {
-        if (state.runs.isNotEmpty()) list.animateScrollToItem(state.runs.size - 1)
+        if (state.runs.isNotEmpty()) list.animateScrollToItem((list.layoutInfo.totalItemsCount - 1).coerceAtLeast(0))
     }
 
     Column(Modifier.padding(12.dp).imePadding(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -118,7 +119,11 @@ fun PromptScreen(graph: AppGraph, activity: Activity, onOpenLocalAi: () -> Unit 
                     }
                 }
             }
-            items(state.runs, key = { it.id }) {
+            val older = state.runs.size - recentForAsk(state.runs).size
+            if (older > 0) item {
+                Text("$older earlier ${if (older == 1) "request is" else "requests are"} in Activity", style = MaterialTheme.typography.bodySmall)
+            }
+            items(recentForAsk(state.runs), key = { it.id }) {
                 val active = state.canStop && it.id == state.runs.lastOrNull()?.id
                 RunCard(it, graph.session, active, awaitingApproval = active && state.phase == Phase.AwaitingApproval) {
                     activity.startActivity(Intent(activity, ConfirmActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP))
@@ -183,14 +188,12 @@ private fun RunCard(run: RunView, session: PromptSession, active: Boolean, await
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Column(Modifier.weight(1f).padding(vertical = 6.dp)) {
-                    if (active) {
-                        Text(run.request, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text(status, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                            color = if (awaitingApproval) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
-                    } else {
-                        Text(status, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                            color = if (failed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface)
-                    }
+                    // Line 1: the owner's request; line 2: what is happening, or the plain result.
+                    // An answer is the result, so it is shown in full without expanding.
+                    Text(run.request, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(status, style = MaterialTheme.typography.bodySmall,
+                        maxLines = if (active) 1 else 8, overflow = TextOverflow.Ellipsis,
+                        color = if (failed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Text(elapsedLabel(elapsed), style = MaterialTheme.typography.labelMedium)
                 Text(if (expanded) "▴" else "▾", style = MaterialTheme.typography.titleMedium,
