@@ -1,0 +1,579 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ballistic — UX proposal, raw greyscale revision (wireframes)</title>
+<style>
+/* Tokens. Dark is the default; .light overrides. Values match docs/UX_SYNTHESIS.md §5–6. */
+:root{
+  --bg:#111111;--bar:#181818;--field:#202020;--div:#2e2e2e;--outline:#6b6b6b;--t2:#969696;--ink:#e6e6e6;
+  --inv-bg:#e6e6e6;--inv-ink:#111111;--live:#2ef5a0;
+  --sans:system-ui,Roboto,"Segoe UI",Arial,sans-serif;
+  --mono:ui-monospace,"Roboto Mono","DejaVu Sans Mono",Menlo,monospace;
+}
+.light{
+  --bg:#e4e4e4;--bar:#ececec;--field:#f6f6f6;--div:#c9c9c9;--outline:#7a7a7a;--t2:#545454;--ink:#151515;
+  --inv-bg:#151515;--inv-ink:#e4e4e4;--live:#0a8f58;
+}
+*{box-sizing:border-box}
+body{margin:0;background:#0b0b0b;color:#e6e6e6;font:14px/1.45 var(--sans)}
+a{color:inherit}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+/* ---------- document chrome ---------- */
+header.page,section.doc{max-width:1260px;margin:0 auto;padding:18px 16px 4px}
+header.page h1{font-size:18px;font-weight:600;margin:0 0 8px;display:flex;align-items:center;gap:10px}
+header.page h1 img{width:26px;height:26px;filter:grayscale(1)}
+header.page p,section.doc p{color:#a8a8a8;margin:6px 0;font-size:13px;max-width:900px}
+.statement{border:1px solid #6b6b6b;padding:8px 10px;font-size:13px;color:#e6e6e6;max-width:900px;margin:10px 0}
+.statement b{font-weight:600}
+section.doc h2{font:600 11px/1.4 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:#969696;border-top:1px solid #2e2e2e;padding-top:10px;margin:18px 0 8px}
+.spec{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:16px}
+.spec>div{border:1px solid #2e2e2e;padding:10px}
+.spec h3{font-size:13px;margin:0 0 8px;font-weight:600}
+.sw{display:grid;grid-template-columns:28px 1fr auto;gap:8px;align-items:center;font-size:12px;padding:3px 0;border-bottom:1px solid #222}
+.sw i{display:block;width:28px;height:18px;border:1px solid #6b6b6b}
+.sw span:last-child{font-family:var(--mono);color:#969696}
+.logos{display:flex;gap:12px;flex-wrap:wrap}
+.logos figure{margin:0;width:120px;font-size:11px;color:#969696}
+.logos img,.logos svg{width:96px;height:96px;display:block;margin-bottom:4px}
+.gs{filter:grayscale(1)}
+ul.tight{margin:4px 0;padding-left:18px;font-size:12.5px;color:#bdbdbd}
+ul.tight li{margin:2px 0}
+
+/* ---------- screen grid ---------- */
+.grid{max-width:1260px;margin:0 auto;padding:10px 16px 30px;display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:22px 18px;align-items:start}
+figure.scr{margin:0}
+figcaption{font-size:12px;color:#a8a8a8;margin:8px 0 0;line-height:1.5}
+figcaption b{color:#e6e6e6;display:block;font-size:13px;font-weight:600;margin-bottom:2px}
+
+/* ---------- phone ---------- */
+.phone{background:var(--bg);color:var(--ink);border:1px solid #3a3a3a;min-height:740px;display:flex;flex-direction:column;overflow:hidden;font-size:14px}
+.light.phone{border-color:#9a9a9a}
+.sys{display:flex;justify-content:space-between;font:10px/1 var(--mono);color:var(--t2);padding:6px 10px 5px}
+.top{display:flex;align-items:center;gap:8px;height:42px;padding:0 10px;background:var(--bar);border-top:1px solid var(--div);border-bottom:1px solid var(--div)}
+.top img{width:18px;height:18px;filter:grayscale(1)}
+.top .name{font-weight:600;font-size:15px}
+.top .sp{flex:1}
+.top .gear{font-size:13px;color:var(--t2);padding:4px 2px 4px 6px}
+.top .back{font-size:16px;padding:0 4px 0 0}
+.route{font:500 10px/1 var(--mono);letter-spacing:.04em;text-transform:uppercase;border:1px solid var(--outline);padding:4px 6px;white-space:nowrap;color:var(--ink)}
+.route.inv{background:var(--inv-bg);color:var(--inv-ink);border-color:var(--inv-bg);font-weight:700}
+.demo{background:var(--inv-bg);color:var(--inv-ink);font:700 10px/1 var(--mono);letter-spacing:.06em;padding:4px 10px;text-transform:uppercase}
+.body{flex:1;padding:12px;display:flex;flex-direction:column;gap:12px;overflow:hidden}
+.grow{flex:1}
+
+/* text roles */
+.lab{display:inline-block;font:500 10px/1.3 var(--mono);letter-spacing:.06em;text-transform:uppercase;border:1px solid var(--outline);padding:1px 5px;color:var(--ink)}
+.lab.plain{border-color:transparent;padding-left:0;color:var(--t2)}
+.lab.inv{background:var(--inv-bg);color:var(--inv-ink);border-color:var(--inv-bg);font-weight:700}
+.l1{font-weight:600;font-size:15px;margin-top:4px}
+.l2{color:var(--t2);font-size:12.5px}
+.meta{font:10.5px/1.4 var(--mono);color:var(--t2)}
+.h{font-size:20px;font-weight:600;line-height:1.3;margin:2px 0}
+.sec{font:500 10px/1.3 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--t2);margin:4px 0 -4px}
+u{text-underline-offset:2px}
+
+/* chat */
+.you{font-weight:500}
+.you::before{content:"› ";font-family:var(--mono);color:var(--t2)}
+.reply{padding-left:12px}
+.reply .meta{margin-top:2px}
+
+/* blocks */
+.box{border:1px solid var(--outline);padding:10px}
+.box.thin{border-color:var(--div)}
+.row{display:flex;align-items:center;gap:8px}
+.row .sp{flex:1}
+.live{display:inline-block;width:8px;height:8px;background:var(--live);margin-right:6px;vertical-align:0}
+.btn{display:inline-block;border:1px solid var(--outline);border-radius:2px;padding:7px 11px;font-size:13px;font-weight:500;color:var(--ink);background:transparent;line-height:1.3}
+.btn.strong{border-width:2px;padding:6px 10px;font-weight:700}
+.btn.link{border:0;padding:7px 2px;text-decoration:underline;text-underline-offset:2px}
+.btns{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.btns.two>*{flex:1;text-align:center;display:flex;align-items:center;justify-content:center}
+.disc{border-top:1px solid var(--div);margin-top:10px;padding-top:8px;font-size:12.5px}
+.disc::before{content:"▸ ";font-family:var(--mono);color:var(--t2)}
+.disc.open::before{content:"▾ "}
+.kv{display:grid;grid-template-columns:96px 1fr;gap:8px;font-size:12.5px;padding:5px 0;border-bottom:1px solid var(--div)}
+.kv span{color:var(--t2)}
+.kv b{font-weight:500}
+.kv b.mono{font-size:12px}
+.steps{border-left:1px solid var(--outline);margin:8px 0 0 3px;padding-left:10px;font-size:12.5px;color:var(--t2)}
+.steps p{margin:0 0 7px}
+.steps b{color:var(--ink);font-weight:600}
+.warn{border-left:3px solid var(--ink);padding:2px 0 2px 8px;font-weight:600;font-size:13px;margin-top:8px}
+.warn .lab{margin-right:6px;vertical-align:1px}
+.src{font:10.5px/1.4 var(--mono);color:var(--t2);margin-top:4px}
+.radio{border:1px solid var(--div);padding:9px 10px;font-size:13px}
+.radio.on{border:2px solid var(--ink);padding:8px 9px}
+.radio .r{font-family:var(--mono);margin-right:6px}
+.radio small{display:block;color:var(--t2);font-size:12px;margin-top:2px;padding-left:28px}
+.list .item{border-bottom:1px solid var(--div);padding:8px 0}
+.list .item b{font-weight:600;font-size:13.5px}
+.list .item small{display:block;color:var(--t2);font-size:12px}
+.bar{height:6px;border:1px solid var(--outline);margin:8px 0 4px}
+.bar i{display:block;height:100%;width:33%;background:var(--ink)}
+.select{border:1px solid var(--outline);border-radius:2px;padding:8px 10px;display:flex;gap:8px;font-size:13px;background:var(--field)}
+.select .sp{flex:1}
+.menu{border:1px solid var(--outline);border-top:0;background:var(--field)}
+.menu .opt{padding:7px 10px;border-bottom:1px solid var(--div);font-size:13px;display:grid;grid-template-columns:1fr auto;gap:2px 8px}
+.menu .opt:last-child{border-bottom:0}
+.menu .opt.cur{border-left:3px solid var(--ink);padding-left:7px;font-weight:600}
+.menu .opt .meta{grid-column:1}
+.menu .opt .lab{grid-row:1 / span 2;grid-column:2;align-self:center}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+
+/* bottom area */
+.composer{border-top:1px solid var(--div);padding:8px 10px;background:var(--bar)}
+.field{display:flex;gap:8px;align-items:center;border:1px solid var(--outline);border-radius:2px;background:var(--field);padding:6px 6px 6px 10px;color:var(--t2);font-size:13.5px}
+.field .p{font-family:var(--mono);color:var(--t2)}
+.field .sp{flex:1}
+.field .btn{padding:5px 10px;font-size:12.5px}
+.field .btn.off{color:var(--t2);border-color:var(--div)}
+.taskbar{display:flex;align-items:center;gap:8px;background:var(--bar);border-top:1px solid var(--div);padding:6px 8px 6px 10px;font:12px/1.3 var(--mono)}
+.taskbar .sp{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.taskbar .btn{font-family:var(--sans);padding:4px 10px;font-size:12.5px}
+.nav{display:flex;border-top:1px solid var(--div);background:var(--bar)}
+.nav div{flex:1;text-align:center;font-size:12.5px;color:var(--t2);padding:11px 0 12px;border-top:2px solid transparent;margin-top:-1px}
+.nav div.on{color:var(--ink);font-weight:600;border-top-color:var(--ink)}
+.secure{background:var(--inv-bg);color:var(--inv-ink);font:700 9.5px/1.3 var(--mono);letter-spacing:.06em;text-transform:uppercase;padding:5px 10px}
+
+/* single-screen view for screenshots: open the file with #s3 etc. */
+body:has(.grid figure:target)>:not(.grid){display:none}
+.grid:has(figure:target){display:block;max-width:440px;padding:10px}
+.grid:has(figure:target) figure:not(:target){display:none}
+body:has(#palette:target)>:not(#palette){display:none}
+
+@media (max-width:440px){.grid{grid-template-columns:1fr;padding:8px}.phone{min-height:700px}}
+</style>
+</head>
+<body>
+
+<header class="page">
+  <h1><img src="../assets/brand/ballistic-logo-v1.png" alt="">Ballistic — UX proposal, raw greyscale revision</h1>
+  <div class="statement"><b>Whose proposal this is.</b> This is the coding agent's (Claude's) suggestion, merged from the designer's studies in <span class="mono">design/</span> (prototype, directions, refined, raw review, app audit) and the functions the app needs. It is not the designer's own design and not a decided design. Revised 8 Nov 2026 after owner feedback: the look is to be rawer and greyscale, with one small colour; the information and options stay.</div>
+  <p>Static wireframes with sample data. Nothing here is implemented. Chat, the chat/task router, streamed replies, read/approval records and the first-run flow do not exist in the app yet; the model catalogue, Stop, Continue in background, app rules and the separate approval window do. Reasoning and open questions: <span class="mono">docs/UX_SYNTHESIS.md</span>. Open with <span class="mono">#s1</span>…<span class="mono">#s13</span> or <span class="mono">#palette</span> to view one panel alone.</p>
+</header>
+
+<section class="doc" id="palette">
+<h2>Visual language</h2>
+<div class="spec">
+  <div>
+    <h3>Dark (default when the phone is dark)</h3>
+    <div class="sw"><i style="background:#111111"></i><span>Background</span><span>#111111</span></div>
+    <div class="sw"><i style="background:#181818"></i><span>Bars: top, composer, task bar, nav</span><span>#181818</span></div>
+    <div class="sw"><i style="background:#202020"></i><span>Fields, open menus</span><span>#202020</span></div>
+    <div class="sw"><i style="background:#2e2e2e"></i><span>Dividers (hairline)</span><span>#2E2E2E</span></div>
+    <div class="sw"><i style="background:#6b6b6b"></i><span>Outlines: buttons, boxes</span><span>#6B6B6B</span></div>
+    <div class="sw"><i style="background:#969696"></i><span>Secondary text, labels</span><span>#969696</span></div>
+    <div class="sw"><i style="background:#e6e6e6"></i><span>Text, inverted blocks</span><span>#E6E6E6</span></div>
+    <div class="sw"><i style="background:#2ef5a0"></i><span><b>Live marker only</b></span><span>#2EF5A0</span></div>
+  </div>
+  <div>
+    <h3>Light (default when the phone is light)</h3>
+    <div class="sw"><i style="background:#e4e4e4"></i><span>Background</span><span>#E4E4E4</span></div>
+    <div class="sw"><i style="background:#ececec"></i><span>Bars</span><span>#ECECEC</span></div>
+    <div class="sw"><i style="background:#f6f6f6"></i><span>Fields, open menus</span><span>#F6F6F6</span></div>
+    <div class="sw"><i style="background:#c9c9c9"></i><span>Dividers</span><span>#C9C9C9</span></div>
+    <div class="sw"><i style="background:#7a7a7a"></i><span>Outlines</span><span>#7A7A7A</span></div>
+    <div class="sw"><i style="background:#545454"></i><span>Secondary text</span><span>#545454</span></div>
+    <div class="sw"><i style="background:#151515"></i><span>Text, inverted blocks</span><span>#151515</span></div>
+    <div class="sw"><i style="background:#0a8f58"></i><span><b>Live marker only</b></span><span>#0A8F58</span></div>
+  </div>
+  <div>
+    <h3>Rules</h3>
+    <ul class="tight">
+      <li><b>One colour, one meaning.</b> Mint (sampled from the logo chevron) appears only as the <span class="live"></span>live marker: Ballistic is acting on this phone right now. Task card, task bar, notification. Idle = no colour anywhere in the app.</li>
+      <li><b>Never coloured:</b> Approve, Send, links, "done", "on this phone", success. Colour must not suggest "safe" or nudge toward approving.</li>
+      <li><b>Attention = inversion</b>, not colour: <span class="lab inv">Not from you</span> <span class="lab inv">Needs you</span> <span class="lab inv">Error</span> and the route when it leaves the phone. Warnings add a glyph or word, bold text and a 3px rule, so they read in greyscale and for colour-blind owners.</li>
+      <li>Ordinary states: outlined label <span class="lab">Done</span> <span class="lab">Stopped</span>.</li>
+      <li>Flat. No gradients, glow, shadows. Radius 0 on surfaces, 2px on buttons and fields. 1px rules instead of cards.</li>
+      <li>System font for words; monospace for values, times, sizes, status labels and raw records.</li>
+    </ul>
+  </div>
+  <div>
+    <h3>Logo</h3>
+    <div class="logos">
+      <figure><img src="../assets/brand/ballistic-logo-v1.png" alt="">Current v1 (ivory + mint)</figure>
+      <figure><img class="gs" src="../assets/brand/ballistic-logo-v1.png" alt="">Greyscale v1 (CSS filter): in-app header</figure>
+      <figure><svg viewBox="0 0 1254 1254" aria-hidden="true"><rect width="1254" height="1254" fill="#111111"/><path fill="#e6e6e6" fill-rule="evenodd" d="M260 387 460 252 797 252 953 454 848 609 997 782 812 1002 441 1001 261 841Z M377 455 463 376 735 376 802 456 733 554 377 554Z M377 679 733 679 827 780 750 877 466 877 377 800Z"/><path fill="#2ef5a0" d="M622 554 733 554 788 616 733 679 622 679 678 616Z"/></svg>Suggested launcher: neutral grey B, mint chevron kept (redrawn approximation, inferred)</figure>
+    </div>
+    <ul class="tight">
+      <li>Suggestion: the launcher icon keeps the mint chevron (the brand's one colour, outside the app); the B moves from warm ivory to neutral #E6E6E6 to sit with the greys. Inside the app the header logo is greyscale, so in-app colour only ever means "acting now". Owner question 18.</li>
+    </ul>
+  </div>
+  <div>
+    <h3>Reference taken from GrapheneOS's own style</h3>
+    <ul class="tight">
+      <li>grapheneos.org (fetched 8 Nov 2026): text-first pages, a plain top bar of text links, no cards or illustrations; Roboto and Roboto Mono; neutral greys #FAFAFA / #121212 / #212121, text at 87% black or white, 1px grey rules (#74777F / #8E9099); the logo shown monochrome (inverted) in the menu; one blue for links and the current page.</li>
+      <li>Taken: neutral greys, Roboto + mono, text-first, hairline rules, monochrome mark, a single accent.</li>
+      <li>Not taken: their blue, their logo or name. Ballistic's accent is its own mint. No affiliation is implied; "Graphene" never appears in product names or UI copy.</li>
+    </ul>
+  </div>
+  <div>
+    <h3>Type and spacing</h3>
+    <div style="font-size:20px;font-weight:600">Send a text message? <span class="meta">20/26 600</span></div>
+    <div style="font-size:15px;font-weight:600">Opening Clock <span class="meta">15/20 600</span></div>
+    <div style="font-size:14px">Ask a question, or ask me to do something. <span class="meta">14/20</span></div>
+    <div style="font-size:12.5px;color:#969696">Thinking on this phone · 12 s on this step <span class="meta">12.5/17</span></div>
+    <div><span class="lab">Not confirmed</span> <span class="mono" style="font-size:12px">21.8 tok/s · 0:42</span> <span class="meta">mono 10–12</span></div>
+    <p style="font-size:12px;margin-top:8px">4dp grid: 4 / 8 / 12 / 16. Screen padding 12. Touch targets ≥ 48dp (mockup buttons are drawn smaller for density).</p>
+  </div>
+</div>
+</section>
+
+<section class="doc"><h2>Screens</h2></section>
+
+<div class="grid">
+
+<!-- 1 -->
+<figure class="scr" id="s1">
+<div class="phone">
+  <div class="sys"><span>14:02</span><span>5G 82%</span></div>
+  <div class="top"><img src="../assets/brand/ballistic-logo-v1.png" alt=""><span class="name">Ballistic</span><span class="sp"></span><span class="route">On this phone</span><span class="gear">⚙</span></div>
+  <div class="body">
+    <div class="you">What's 15% of 64?</div>
+    <div class="reply">9.6<div class="meta">on this phone · no phone actions</div></div>
+    <div class="you">Open the clock</div>
+    <div class="box">
+      <div class="row"><span class="lab plain">Phone task</span><span class="sp"></span><span class="mono" style="font-size:12px"><span class="live"></span>0:42</span></div>
+      <div class="l1">Opening Clock</div>
+      <div class="l2">Thinking on this phone · 12 s on this step</div>
+      <div class="btns"><span class="btn">Stop</span><span class="btn">Continue in background</span></div>
+      <div class="disc">Details · 2 steps</div>
+    </div>
+    <div class="grow"></div>
+  </div>
+  <div class="composer"><div class="field"><span class="p">›</span><span class="sp">Task running. Stop it to send another.</span><span class="btn off">Send</span></div></div>
+  <div class="nav"><div class="on">Ask</div><div>Activity</div><div>Local AI</div></div>
+</div>
+<figcaption><b>1 · Ask: chat and a running task in one thread (dark)</b>Owner turns are prompt lines (›), replies are plain text with a route line. A phone task is always a ruled box: line 1 current step in plain words, line 2 sub-state, elapsed in mono. The mint square is the only colour: it means "acting now" and disappears when the task ends.</figcaption>
+</figure>
+
+<!-- 2 -->
+<figure class="scr" id="s2">
+<div class="phone">
+  <div class="sys"><span>14:03</span><span>5G 82%</span></div>
+  <div class="top"><img src="../assets/brand/ballistic-logo-v1.png" alt=""><span class="name">Ballistic</span><span class="sp"></span><span class="route">On this phone</span><span class="gear">⚙</span></div>
+  <div class="body">
+    <div class="you">Open the clock</div>
+    <div class="box">
+      <div class="row"><span class="lab">Not confirmed</span><span class="sp"></span><span class="mono" style="font-size:12px">0:08</span></div>
+      <div class="l1">Opened Clock</div>
+      <div class="l2">Android accepted the launch; I couldn't confirm it's on screen.</div>
+      <div class="disc open">Details</div>
+      <div class="kv"><span>Result</span><b>Opened, not confirmed</b></div>
+      <div class="kv"><span>Checked by</span><b>No evidence available</b></div>
+      <div class="kv"><span>AI</span><b class="mono">on phone · 2 calls · 5.4 s</b></div>
+      <div class="steps">
+        <p><b>1 Checked what's available</b><br>Read: notifications from allowed apps (none)</p>
+        <p><b>2 Opened Clock</b><br>Why: you asked to open the clock<br>Outcome: launch accepted</p>
+        <p><b>Approvals</b><br>None needed</p>
+      </div>
+      <div class="disc">Raw record</div>
+    </div>
+    <div class="you">now set an alarm for 8</div>
+    <div class="box">
+      <div class="row"><span class="lab">Not supported</span></div>
+      <div class="l1">I can't set alarms on this phone yet</div>
+      <div class="l2">I can open Clock for you. <u>See what I can do</u></div>
+    </div>
+  </div>
+  <div class="composer"><div class="field"><span class="p">›</span><span class="sp">Message Ballistic</span><span class="btn">Send</span></div></div>
+  <div class="nav"><div class="on">Ask</div><div>Activity</div><div>Local AI</div></div>
+</div>
+<figcaption><b>2 · Finished task expanded, and a follow-up</b>Short honest headline and an outlined label; evidence, route, reads, steps (what / why / outcome) and approvals in the dropdown; raw record behind a second disclosure. The follow-up refers to the previous turn and gets an unsupported result, never a fake success.</figcaption>
+</figure>
+
+<!-- 3 -->
+<figure class="scr" id="s3">
+<div class="phone">
+  <div class="secure">Approval window · capture blocked · overlays hidden</div>
+  <div class="sys"><span>14:05</span><span>5G 82%</span></div>
+  <div class="body" style="padding-top:6px">
+    <span class="lab" style="align-self:flex-start">Needs your fingerprint</span>
+    <div class="h">Send a text message?</div>
+    <div>
+      <div class="kv"><span>App</span><b>Messages</b></div>
+      <div class="kv" style="border-bottom:0"><span>To</span><b>Ali Hassan<br><span class="mono">+44 7700 900123</span></b></div>
+      <div class="warn"><span class="lab inv">! Not from you</span>Number taken from an SMS by an unknown sender.</div>
+    </div>
+    <div style="border-top:1px solid var(--div);padding-top:10px">
+      <div class="meta">TEXT</div>
+      <div style="font-size:17px;margin-top:2px">“Running late, 10 min”</div>
+      <div class="src">source: your request</div>
+    </div>
+    <p class="l2" style="margin:0"><b style="color:var(--ink)">Why I'm asking:</b> this sends a message, and the number didn't come from you or your contacts.</p>
+    <div class="disc" style="margin-top:0">Exact operation (raw)</div>
+    <div class="grow"></div>
+    <div class="btns two"><span class="btn">Deny</span><span class="btn strong">Approve with fingerprint</span></div>
+    <p class="l2" style="margin:0;font-size:11.5px">Only your finger on this screen can approve. Ballistic's assistant can't press these buttons. Back denies.</p>
+  </div>
+</div>
+<figcaption><b>3 · Approval window, hard approval with an untrusted value (dark)</b>The loudest element is the reason to hesitate (inverted "Not from you" + 3px rule + bold), not the Approve button. Deny and Approve are the same size; Approve has a heavier outline, no colour. Values from you get a quiet mono source line. Illustrative: the current APK cannot send messages.</figcaption>
+</figure>
+
+<!-- 4 -->
+<figure class="scr" id="s4">
+<div class="phone">
+  <div class="sys"><span>09:12</span><span>5G 82%</span></div>
+  <div class="top"><img src="../assets/brand/ballistic-logo-v1.png" alt=""><span class="name">Ballistic</span><span class="sp"></span><span class="route">On this phone</span><span class="gear">⚙</span></div>
+  <div class="body">
+    <div class="grow"></div>
+    <div>Ask a question, or ask me to do something on this phone.</div>
+    <div class="l2"><u>What I can do here</u></div>
+    <div class="sec">Try</div>
+    <div class="list">
+      <div class="item">› Open Clock</div>
+      <div class="item">› Check local AI speed</div>
+    </div>
+  </div>
+  <div class="composer"><div class="field"><span class="p">›</span><span class="sp">Message Ballistic</span><span class="btn">Send</span></div></div>
+  <div class="nav"><div class="on">Ask</div><div>Activity</div><div>Local AI</div></div>
+</div>
+<figcaption><b>4 · Ask, idle (first use)</b>No headline, no watermark, no illustration. One plain line at the bottom near the thumb; suggestions are plain rows generated from what is allowed and supported now (Clock only if Clock may be opened). After first use the conversation continues.</figcaption>
+</figure>
+
+<!-- 5 -->
+<figure class="scr" id="s5">
+<div class="phone">
+  <div class="sys"><span>09:12</span><span>5G 82%</span></div>
+  <div class="top"><img src="../assets/brand/ballistic-logo-v1.png" alt=""><span class="name">Ballistic</span><span class="sp"></span><span class="route inv">Requests locked</span><span class="gear">⚙</span></div>
+  <div class="demo">Demo engine · not real</div>
+  <div class="body">
+    <div class="sec">States on Ask, one at a time in practice</div>
+    <div class="box thin"><span class="lab">Set up AI first</span><div class="l1">No model on this phone</div><div class="l2">Download the starter (639 MB, Qwen3 0.6B, Apache-2.0) or pick another in Local AI.</div><div class="btns"><span class="btn strong">Set up AI</span></div></div>
+    <div class="box thin row"><span class="lab">Not loaded</span><span>Model isn't loaded</span><span class="sp"></span><span class="btn">Load</span></div>
+    <div class="box thin"><span class="lab inv">No internet</span><div class="l1">The connected AI can't be reached</div><div class="l2">I won't switch AI by myself.</div><div class="btns"><span class="btn">Use on-phone AI</span><span class="btn link">Retry</span></div></div>
+    <div class="box thin"><span class="lab inv">Locked</span><div class="l1">Requests are locked</div><div class="l2">Your phone unlock is enough to enable it again.</div><div class="btns"><span class="btn">Enable requests</span></div></div>
+    <div class="box thin row"><span class="lab">Blocked</span><span>Clock isn't allowed</span><span class="sp"></span><u class="l2">App rules</u></div>
+  </div>
+  <div class="composer"><div class="field"><span class="p">›</span><span class="sp">Requests are locked</span><span class="btn off">Send</span></div></div>
+  <div class="nav"><div class="on">Ask</div><div>Activity</div><div>Local AI</div></div>
+</div>
+<figcaption><b>5 · Ask states</b>No model, unloaded, offline with connected AI (no silent fallback), locked, blocked app, and the demo-engine bar (shown only when the fake engine is loaded). States that need the owner use inversion; the rest are outlined. One obvious fix in place for each.</figcaption>
+</figure>
+
+<!-- 6 -->
+<figure class="scr" id="s6">
+<div class="phone">
+  <div class="sys"><span>14:02</span><span>5G 82%</span></div>
+  <div class="top"><span class="name">Activity</span><span class="sp"></span><span class="route">On this phone</span><span class="gear">⚙</span></div>
+  <div class="body">
+    <div class="row l2"><span>Show typed text: <b style="color:var(--ink)">off</b></span><span class="sp"></span><span class="btn link">Refresh</span></div>
+    <div class="list" style="margin-top:-8px">
+      <div class="item"><div class="row"><span class="mono" style="font-size:11px"><span class="live"></span>RUNNING</span><span class="sp"></span><span class="meta">14:02</span></div><b>Open the clock</b><small>Step 2 · 0:42 · on this phone</small></div>
+      <div class="item"><div class="row"><span class="lab">Not confirmed</span><span class="sp"></span><span class="meta">09:38</span></div><b>Open Clock</b><small>Opened Clock · 2 steps · 0:08 · on this phone</small>
+        <div class="disc open" style="border:0;margin-top:4px;padding-top:2px">What happened</div>
+        <div class="steps"><p><b>Read</b><br>Notifications from allowed apps: none</p><p><b>Did</b><br>1 Opened Clock — Android accepted the launch</p><p><b>Approvals</b><br>None needed</p><p><b>Checked by</b><br>No evidence available</p></div>
+        <div class="disc" style="border:0;margin-top:0;padding-top:0">Raw record</div></div>
+      <div class="item"><div class="row"><span class="lab">Stopped</span><span class="sp"></span><span class="meta">yesterday</span></div><b>Open Settings</b><small>Stopped by you before any action · left phone: api host</small></div>
+    </div>
+  </div>
+  <div class="taskbar"><span class="live"></span><span class="sp">Opening Clock · 0:42</span><span class="btn">Stop</span></div>
+  <div class="nav"><div>Ask</div><div class="on">Activity</div><div>Local AI</div></div>
+</div>
+<figcaption><b>6 · Activity, with the task bar</b>A flat list with hairline dividers instead of cards; request visible, typed values hidden until revealed. Read / Did / Approvals / Checked by; route per run. The task bar (live marker + step + Stop) sits above the tabs on every screen while a task runs. "Read" and "Approvals" need new log records.</figcaption>
+</figure>
+
+<!-- 7 -->
+<figure class="scr" id="s7">
+<div class="phone">
+  <div class="sys"><span>14:10</span><span>5G 82%</span></div>
+  <div class="top"><span class="name">Local AI</span><span class="sp"></span><span class="route">On this phone</span><span class="gear">⚙</span></div>
+  <div class="body">
+    <div class="sec">Where AI runs</div>
+    <div>
+      <div class="radio on"><span class="r">(•)</span>On this phone<small>Prompts and screen information stay on this phone.</small></div>
+      <div class="radio" style="border-top:0"><span class="r">( )</span>Connected server<small>Set up in Settings · prompts leave the phone</small></div>
+    </div>
+    <div class="sec">Model</div>
+    <div>
+      <div class="select"><span class="sp"><b>Qwen3 0.6B Q8</b> <span class="meta">llama.cpp · CPU</span></span><span class="mono">▴</span></div>
+      <div class="menu">
+        <div class="opt cur"><span>Qwen3 0.6B Q8</span><span class="lab">In use</span><span class="meta">llama.cpp · CPU · 639 MB</span></div>
+        <div class="opt"><span>Qwen3 1.7B Q8</span><span class="lab plain">Download</span><span class="meta">llama.cpp · CPU · 1.8 GB</span></div>
+        <div class="opt"><span>Gemma 4 E2B</span><span class="lab plain">Download</span><span class="meta">LiteRT-LM · GPU or CPU · 2.6 GB</span></div>
+        <div class="opt"><span>Gemma 4 E2B Tensor G5</span><span class="lab plain">Downloaded</span><span class="meta">LiteRT-LM · NPU only · 3.2 GB</span></div>
+        <div class="opt"><span>Gemma 3 1B Tensor G5</span><span class="lab plain">Import only</span><span class="meta">gated · NPU only · 2.0 GB</span></div>
+              </div>
+    </div>
+    <div class="kv"><span>Running on</span><b><span class="mono">llama.cpp · CPU</span> · loaded</b></div>
+    <div class="kv"><span>Short check</span><b class="mono">0.4 s first token · 21.8 tok/s</b></div>
+    <div class="kv"><span>~2K check</span><b>Not measured on this phone</b></div>
+    <div class="btns" style="margin-top:0"><span class="btn">Unload</span><span class="btn">Check speed</span><span class="btn">~2K check</span></div>
+    <div class="disc" style="margin-top:0">Storage · import verified file · delete</div>
+    <div class="disc" style="margin-top:0">Technical details · context, threads, memory, licences</div>
+  </div>
+  <div class="nav"><div>Ask</div><div>Activity</div><div class="on">Local AI</div></div>
+</div>
+<figcaption><b>7 · Local AI: route and the model dropdown</b>Route as plain radio rows; the model is a dropdown over the shipped catalogue with runtime, backend and size in mono per row. "Running on" names the runtime and backend actually started. Speed values are the 8 Nov Pixel short check (llama.cpp CPU); the ~2K check has no phone result. Menu shows 5 of the 7 catalogue entries (it scrolls; your own imported file is listed last); status labels are sample.</figcaption>
+</figure>
+
+<!-- 8 -->
+<figure class="scr" id="s8">
+<div class="phone">
+  <div class="sys"><span>14:12</span><span>5G 82%</span></div>
+  <div class="top"><span class="name">Local AI</span><span class="sp"></span><span class="route inv">Leaves phone ›</span><span class="gear">⚙</span></div>
+  <div class="body">
+    <div class="sec">Where AI runs</div>
+    <div>
+      <div class="radio"><span class="r">( )</span>On this phone</div>
+      <div class="radio on" style="margin-top:-1px"><span class="r">(•)</span>Connected server<small class="mono">generativelanguage.googleapis.com</small></div>
+    </div>
+    <div class="warn" style="margin-top:0"><span class="lab inv">Leaves phone</span>Prompts and screen information are sent to this server. Apps set to "this phone only" are left out.</div>
+    <div class="btns" style="margin-top:0"><span class="btn">Connection settings</span></div>
+    <div class="sec">On-phone model</div>
+    <div class="box thin">
+      <div class="row"><b>Gemma 4 E2B Tensor G5</b><span class="sp"></span><span class="lab">Downloading</span></div>
+      <div class="bar"><i></i></div>
+      <div class="mono" style="font-size:12px">1,058 / 3,206 MB · 33 %</div>
+      <div class="l2">You can leave the app. Stopping discards the partial file.</div>
+      <div class="btns"><span class="btn">Stop download</span></div>
+    </div>
+    <div class="box thin"><span class="lab inv">Error</span><div class="l2" style="margin-top:6px;color:var(--ink)">No internet connection. Connect to Wi-Fi and try again.</div><div class="meta" style="margin-top:4px">shown next to the control that failed</div></div>
+  </div>
+  <div class="nav"><div>Ask</div><div>Activity</div><div class="on">Local AI</div></div>
+</div>
+<figcaption><b>8 · Connected route, download and error</b>When requests leave the phone the top-bar route inverts ("Leaves phone ›", tap for destination). That inversion is the SPEC §6 visible indicator, done without colour. Download shows MB and percent; errors sit beside the control.</figcaption>
+</figure>
+
+<!-- 9 -->
+<figure class="scr" id="s9">
+<div class="phone">
+  <div class="sys"><span>14:15</span><span>5G 82%</span></div>
+  <div class="top"><span class="back">←</span><span class="name">Settings</span><span class="sp"></span></div>
+  <div class="body">
+    <div class="list" style="margin-top:-6px">
+      <div class="item"><b>Requests</b><small>Allowed while your phone is unlocked · Lock</small></div>
+      <div class="item"><b>App rules</b><small>2 apps allowed · new apps start blocked</small></div>
+      <div class="item"><b>Phone permissions</b><small>Android settings · notification access · task notifications</small></div>
+      <div class="item"><b>Connected AI</b><small>Server, model, API key · used only when you choose it</small></div>
+      <div class="item"><b>What Ballistic can do here</b><small>Supported and unavailable actions</small></div>
+      <div class="item"><b>About &amp; diagnostics</b><small>Engine: real core · build · licences</small></div>
+    </div>
+    <div class="sec">App rules › Clock</div>
+    <div>
+      <div class="l2">These rules work inside Android's permissions. They can't grant access Android hasn't given.</div>
+      <div class="kv"><span>Read</span><b>Nothing ▾</b></div>
+      <div class="kv"><span>Act</span><b>Open the app ▾</b></div>
+      <div class="kv"><span>AI route</span><b>This phone only ▾</b></div>
+      <div class="kv"><span>Approval</span><b>Sensitive actions ▾</b></div>
+      <div class="btns"><span class="btn strong" style="flex:1;text-align:center">Save with fingerprint</span></div>
+      <div class="meta" style="margin-top:6px">Finish or stop any task before saving.</div>
+    </div>
+  </div>
+</div>
+<figcaption><b>9 · Settings (behind the gear) and an app rule</b>Six groups as a plain list. App rules get a one-line summary per app and plain values; saving shows the exact change in the system fingerprint prompt (existing behaviour).</figcaption>
+</figure>
+
+<!-- 10 -->
+<figure class="scr" id="s10">
+<div class="phone">
+  <div class="sys"><span>14:16</span><span>5G 82%</span></div>
+  <div class="top"><span class="back">←</span><span class="name">What Ballistic can do here</span></div>
+  <div class="body">
+    <div class="l2">Built from this phone's permissions, your app rules and the AI you've set up.</div>
+    <div class="sec">Can now</div>
+    <div class="list"><div class="item"><b>Open apps you allow</b><small>Clock, Files</small></div><div class="item"><b>Read notifications from apps you allow</b><small>None allowed</small></div><div class="item"><b>Answer questions</b><small>After the chat update · no phone actions</small></div></div>
+    <div class="sec">Not on this phone yet</div>
+    <div class="list"><div class="item"><b>Tap, type or scroll inside other apps</b><small>Needs platform support (Computer Control) this setup doesn't provide</small></div><div class="item"><b>Set alarms, send messages, read another app's screen</b><small>Not available in this build</small></div></div>
+    <div class="sec">Never</div>
+    <div class="list"><div class="item"><b>Log in, pay, or get around an app's restrictions</b><small>If an app blocks assistants, Ballistic tells you and leaves it alone</small></div></div>
+  </div>
+</div>
+<figcaption><b>10 · Capability page</b>Generated from advertised operations, rules and model state. Linked from idle Ask, every unsupported result and Settings. No implication that Ballistic can operate any app.</figcaption>
+</figure>
+
+<!-- 11 -->
+<figure class="scr" id="s11">
+<div class="phone">
+  <div class="sys"><span>09:00</span><span>5G 82%</span></div>
+  <div class="body" style="padding-top:18px">
+    <div class="meta">SETUP 3 / 4</div>
+    <div class="h">Where should AI run?</div>
+    <div class="l2">You can change this later in Local AI. Ballistic never switches by itself.</div>
+    <div>
+      <div class="radio on"><span class="r">(•)</span>On this phone <span class="meta">recommended</span><small>Download the 639 MB starter (Qwen3 0.6B, Apache-2.0); other models are in Local AI. Prompts stay on the phone. Wi-Fi recommended.</small></div>
+      <div class="radio" style="border-top:0"><span class="r">( )</span>Connected server<small>An AI server you configure. Prompts and screen information leave your phone.</small></div>
+    </div>
+    <div class="btns" style="margin-top:0"><span class="btn strong">Download starter</span><span class="btn">Import a verified file</span></div>
+    <div class="grow"></div>
+    <div class="row l2"><span>Next: allow apps (optional) · task notifications</span><span class="sp"></span><span class="btn link">Skip</span></div>
+  </div>
+</div>
+<figcaption><b>11 · First run, step 3 of 4</b>Welcome → phone lock check → where AI runs → allow apps (optional), then task notifications explained before Android asks. A mono step counter instead of dots. Replaces today's notification prompt on first launch.</figcaption>
+</figure>
+
+<!-- 12 -->
+<figure class="scr" id="s12">
+<div class="phone light">
+  <div class="sys"><span>14:02</span><span>5G 82%</span></div>
+  <div class="top"><img src="../assets/brand/ballistic-logo-v1.png" alt=""><span class="name">Ballistic</span><span class="sp"></span><span class="route">On this phone</span><span class="gear">⚙</span></div>
+  <div class="body">
+    <div class="you">What's 15% of 64?</div>
+    <div class="reply">9.6<div class="meta">on this phone · no phone actions</div></div>
+    <div class="you">Open the clock</div>
+    <div class="box">
+      <div class="row"><span class="lab plain">Phone task</span><span class="sp"></span><span class="mono" style="font-size:12px"><span class="live"></span>0:42</span></div>
+      <div class="l1">Opening Clock</div>
+      <div class="l2">Thinking on this phone · 12 s on this step</div>
+      <div class="btns"><span class="btn">Stop</span><span class="btn">Continue in background</span></div>
+      <div class="disc">Details · 2 steps</div>
+    </div>
+    <div class="box thin">
+      <div class="row"><span class="lab inv">Needs you</span><span class="sp"></span><span class="mono" style="font-size:12px">1:10</span></div>
+      <div class="l1">Waiting for your approval</div>
+      <div class="btns"><span class="btn strong">Review</span><span class="btn">Stop</span></div>
+    </div>
+    <div class="grow"></div>
+  </div>
+  <div class="composer"><div class="field"><span class="p">›</span><span class="sp">Task running. Stop it to send another.</span><span class="btn off">Send</span></div></div>
+  <div class="nav"><div class="on">Ask</div><div>Activity</div><div>Local AI</div></div>
+</div>
+<figcaption><b>12 · Ask, light</b>Same components on light grey. The live marker uses the darker mint (#0A8F58) so it keeps 3:1 against the background. Second box shows the "waiting for your approval" state (inverted "Needs you", no live marker: the task is paused on you). Two tasks at once are drawn only to show both states.</figcaption>
+</figure>
+
+<!-- 13 -->
+<figure class="scr" id="s13">
+<div class="phone light">
+  <div class="secure">Approval window · capture blocked · overlays hidden</div>
+  <div class="sys"><span>14:05</span><span>5G 82%</span></div>
+  <div class="body" style="padding-top:6px">
+    <span class="lab" style="align-self:flex-start">Needs your fingerprint</span>
+    <div class="h">Send a text message?</div>
+    <div>
+      <div class="kv"><span>App</span><b>Messages</b></div>
+      <div class="kv" style="border-bottom:0"><span>To</span><b>Ali Hassan<br><span class="mono">+44 7700 900123</span></b></div>
+      <div class="warn"><span class="lab inv">! Not from you</span>Number taken from an SMS by an unknown sender.</div>
+    </div>
+    <div style="border-top:1px solid var(--div);padding-top:10px">
+      <div class="meta">TEXT</div>
+      <div style="font-size:17px;margin-top:2px">“Running late, 10 min”</div>
+      <div class="src">source: your request</div>
+    </div>
+    <p class="l2" style="margin:0"><b style="color:var(--ink)">Why I'm asking:</b> this sends a message, and the number didn't come from you or your contacts.</p>
+    <div class="disc" style="margin-top:0">Exact operation (raw)</div>
+    <div class="grow"></div>
+    <div class="btns two"><span class="btn">Deny</span><span class="btn strong">Approve with fingerprint</span></div>
+    <p class="l2" style="margin:0;font-size:11.5px">Only your finger on this screen can approve. Ballistic's assistant can't press these buttons. Back denies.</p>
+  </div>
+</div>
+<figcaption><b>13 · Approval window, light</b>Identical structure. No colour at all in the approval window: the task is paused, so there is no live marker, and nothing coloured invites a tap on Approve.</figcaption>
+</figure>
+
+</div>
+
+<section class="doc" style="padding-bottom:40px">
+<h2>What changed in this revision</h2>
+<ul class="tight">
+<li><b>Removed:</b> one screen of a feature dropped from the product; screens renumbered 1–13.</li>
+<li><b>Kept from the merged design:</b> chat + task cards in one thread, two-line running task with a Details dropdown, Stop on every tab, Continue in background, approval window with value sources, Local AI with route and model dropdown, Settings with app rules, Activity, capability page, Ask states, first run.</li>
+<li><b>Changed:</b> graphite/mint and paper/green palettes → neutral greys; status pills and filled tags → outlined mono labels; amber/red → inversion + glyph + bold + rule; cards → hairline rules; chat bubbles → prompt lines; icon tabs → text tabs; segmented controls → radio rows; progress dots → step counter; watermark and illustrations removed; logo greyscale in the app.</li>
+<li><b>Kept from the designer:</b> approval card structure and footer copy, Activity "What happened", trace key-value rows, "Not measured", disclosures for technical detail, three destinations with Settings behind a gear, the raw review's restraint.</li>
+<li><b>Updated for the current repo:</b> Local AI now shows the model catalogue dropdown, "Running on" runtime/backend and the ~2K check (merged 8 Nov).</li>
+</ul>
+</section>
+</body>
+</html>

@@ -1,0 +1,91 @@
+{
+  "scope": "Current Android source plus model-setup APK delivery manifest; no device runtime inspection. adb not available on PATH.",
+  "apk": "/home/wakeel/Desktop/ballistic/ballistic_runs/model_download_20261107/Ballistic-model-setup-debug.apk",
+  "device_test_record": "not run; ThinkPad SSH timed out",
+  "screens": {
+    "Ask": [
+      "real versus demo engine",
+      "local/connected routing disclosure",
+      "lock/unlock",
+      "local model setup",
+      "request composer",
+      "activity phase",
+      "Stop",
+      "action/reason/outcome",
+      "result evidence/error"
+    ],
+    "Activity": [
+      "append-only action log",
+      "content redaction",
+      "reload",
+      "step timestamp/duration",
+      "task and execution status",
+      "failure category",
+      "prompt tokens",
+      "engine identity"
+    ],
+    "Local AI": [
+      "local/connected selection",
+      "verified starter download and progress",
+      "GGUF import and managed copy",
+      "remove/load/unload/cancel",
+      "speed check",
+      "suggested phone settings",
+      "context choices",
+      "available system memory",
+      "model metadata",
+      "runtime and license details"
+    ],
+    "Settings": [
+      "connected endpoint/model/API key save and forget",
+      "notification access",
+      "build capabilities",
+      "per-app observe/act/route/confirm",
+      "debug import"
+    ],
+    "Approval": [
+      "exact operation",
+      "app/verb/target",
+      "values and sources",
+      "approve/deny",
+      "biometric for hard confirmation"
+    ]
+  },
+  "metrics": {
+    "available_after_local_call": [
+      "input/output tokens",
+      "prefill tok/s",
+      "generation tok/s excluding first token",
+      "first-token latency",
+      "call duration",
+      "generation cap flag"
+    ],
+    "available_after_load": [
+      "load duration",
+      "model metadata"
+    ],
+    "missing": [
+      "live token progress callbacks",
+      "per-run persisted model-call analytics",
+      "device GPU/NPU detection and backend use reporting"
+    ],
+    "connected": "HTTP completion is non-streaming; provider usage may be absent. Do not equate end-to-end output tokens/time with decode speed."
+  },
+  "prototype_gaps": [
+    "Settings and some model controls are coverage placeholders, not functional native settings",
+    "7-day filtering and request grouping are proposed; current native log is step-oriented",
+    "multi-model catalog proposed; current source has one verified starter",
+    "secure approval remains native, not simulated authentication"
+  ],
+  "design_decision": "Raw utility review: keep existing functionality, use compact top tabs, plain controls, rows and expandable diagnostics. Preserve session/permission/approval distinctions. Defer speculative multi-model catalog. Request grouping/time filters, device accelerator inventory and live metrics remain separate implementation work.",
+  "reviewed_at": "2026-11-08",
+  "latest_design_review": "design/ballistic-raw-review.html",
+  "updates_since_previous_audit": [
+    "Ask has per-run elapsed timer",
+    "Session labels now Authenticated / Authenticate",
+    "Local AI and Settings provide in-place SessionAccess authentication",
+    "Starter setup can authenticate before showing download confirmation",
+    "Download progress includes MB and percent",
+    "Settings clarifies notification access is unnecessary for local model setup"
+  ]
+}
