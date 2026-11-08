@@ -275,6 +275,19 @@ validation is rejected and counted; the model gets one retry with the error.
 Every action carries a short `why` string (logged, not executed). The model never emits
 coordinates: core resolves `e7` to the node's centre.
 
+**Repeated inputs (9 Nov 2026, `agent::repeated_inputs`).** The same two acknowledged inputs
+alternating (A, B, A, B), or one input three times, where each repeat was planned on a screen that
+reads back unchanged in code (readback.rs) from the previous time, is no progress; so is scrolling
+one target down and up (or left and right) twice, whatever the screens show. Recorded in Haiku 2:
+the calendar time picker opened and closed unchanged 18 times; the recipe form scrolled down and up
+14 times after every field was typed. Core then adds one history line in its own words
+(`warning: tap e10 and tap e29 alternated twice, and the screen returned to the same state each
+time; …`) and, if the next input continues the pattern, stops the run before the next planner call
+(`failure_category: "planning"`, `task_status: "pending"`). The planner prompt also lists the
+labels of the fields core typed into in this task (`Fields typed in this task: Title, Servings`),
+labels only, so it keeps them after a scroll moves the fields off the screen. Tests:
+`tests/navigation.rs` on the recorded calendar and recipe screens.
+
 ## 7. Planner, reader and provenance
 
 **Planner prompt**, assembled by core, never by the model:

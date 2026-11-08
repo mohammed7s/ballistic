@@ -8,6 +8,12 @@ use serde_json::{json, Value};
 
 const WAIT: &str = r#"{"action":"wait","why":"settle"}"#;
 const TAP_DELETE: &str = r#"{"action":"tap","target":"e2"}"#;
+
+/// `n` harmless inputs that never repeat in a pattern (core stops repeated inputs on an
+/// unchanged screen), so each step adds one history line.
+fn varied(n: usize) -> Vec<&'static str> {
+    [WAIT, r#"{"action":"back","why":"settle"}"#, r#"{"action":"home","why":"settle"}"#].into_iter().cycle().take(n).collect()
+}
 const MESSAGE: &str = "From Ali: my new number is +1 555 0100. Dinner was $40 on Tue 3 Nov 14:05.";
 const READ_FACTS: &str = r#"{"action":"read","targets":["c1"],"question":"what does the newest message say?","shape":"facts"}"#;
 
@@ -103,13 +109,13 @@ fn a_reported_usage_without_a_limit_still_reaches_the_step_event() {
 
 #[test]
 fn reduction_a_drops_the_oldest_history_lines_first() {
-    let mut base = fake(vec![WAIT; 5], vec![]);
+    let mut base = fake(varied(5), vec![]);
     drive(&mut base, "wait for the screen", 6, &harness());
     let full = &calls(&base, ModelRole::Planner)[5];
     let trimmed = drop_oldest_history(full, 1);
     let limit = estimate(&trimmed) + 800;
     assert!(estimate(full) + 800 > limit);
-    let mut f = fake(vec![WAIT; 5], vec![(ModelRole::Planner, limit)]);
+    let mut f = fake(varied(5), vec![(ModelRole::Planner, limit)]);
     drive(&mut f, "wait for the screen", 6, &harness());
     let sent = calls(&f, ModelRole::Planner);
     // Earlier steps fitted and went out unchanged; step 6 lost exactly its oldest line.
@@ -130,13 +136,13 @@ fn reduction_a_drops_the_oldest_history_lines_first() {
 
 #[test]
 fn history_never_goes_below_its_floor_and_then_max_tokens_shrinks() {
-    let mut base = fake(vec![WAIT; 5], vec![]);
+    let mut base = fake(varied(5), vec![]);
     drive(&mut base, "wait for the screen", 6, &harness());
     let full = &calls(&base, ModelRole::Planner)[5];
     let at_floor = drop_oldest_history(full, 3);
     // Even at the floor (two lines) 800 output tokens do not fit; 300 do.
     let limit = estimate(&at_floor) + 300;
-    let mut f = fake(vec![WAIT; 5], vec![(ModelRole::Planner, limit)]);
+    let mut f = fake(varied(5), vec![(ModelRole::Planner, limit)]);
     drive(&mut f, "wait for the screen", 6, &harness());
     assert_eq!(calls(&f, ModelRole::Planner)[5], at_floor);
     assert_eq!(sent_max(&f, ModelRole::Planner)[5], 300);

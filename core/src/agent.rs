@@ -59,6 +59,34 @@ fn target_node(action: &Action, view: &FilteredScreen) -> Option<NodeId> {
 }
 
 
+/// Inputs that make no progress: the same two inputs alternating (A, B, A, B), or one input three
+/// times (A, A, A), where each repeat was planned on a screen that reads back unchanged from the
+/// previous time it was planned (readback.rs, in code). Scrolling one target down and up (or
+/// left and right) twice ends where it began whatever the screens show, so that alternation
+/// counts without the screen comparison. The result names only core's own action descriptions.
+pub fn repeated_inputs(effects: &[Effect]) -> Option<String> {
+    let said=|e:&Effect| actions::describe(&e.action);
+    let unchanged=|a:&Effect,b:&Effect| readback::compare(&a.before,&b.before,None).outcome==readback::ReadbackOutcome::Unchanged;
+    let again=|a:&Effect,b:&Effect| said(a)==said(b) && unchanged(a,b);
+    let opposite=|a:&Effect,b:&Effect| match (&a.action,&b.action) {
+        (Action::Scroll{target:t1,direction:d1,..},Action::Scroll{target:t2,direction:d2,..}) => t1==t2 && matches!((d1,d2),
+            (Direction::Up,Direction::Down)|(Direction::Down,Direction::Up)|(Direction::Left,Direction::Right)|(Direction::Right,Direction::Left)),
+        _ => false,
+    };
+    let n=effects.len();
+    if n>=4 {
+        let (a1,b1,a2,b2)=(&effects[n-4],&effects[n-3],&effects[n-2],&effects[n-1]);
+        let alternated=if opposite(a1,b1) { said(a1)==said(a2) && said(b1)==said(b2) } else { again(a1,a2) && again(b1,b2) };
+        if said(a1)!=said(b1) && alternated {
+            return Some(format!("{} and {} alternated twice",said(a1),said(b1)));
+        }
+    }
+    if n>=3 && again(&effects[n-3],&effects[n-2]) && again(&effects[n-2],&effects[n-1]) {
+        return Some(format!("{} was repeated three times",said(&effects[n-1])));
+    }
+    None
+}
+
 pub fn run<R: BufRead,W:Write>(host: &mut Bridge<R,W>, request:&str, max_steps:u32) -> PortResult<Value> {
     drive(host, request, max_steps)
 }
@@ -134,6 +162,11 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, optio
     // Every input Hands acknowledged, with the screen it was planned on: evidence for the typed
     // postconditions (postcondition.rs), read in code only.
     let mut effects: Vec<Effect> = Vec::new();
+    // effects.len() when the repeated-input warning was given; cleared when the pattern ends.
+    let mut loop_warned: Option<usize> = None;
+    // Labels of the fields core typed into in this task, in order (labels only, never content):
+    // the planner keeps them after a scroll moves the fields off the screen.
+    let mut typed_fields: Vec<String> = Vec::new();
     // Per step: what the context guard checked and the usage the host reported for every call.
     let mut guard_log: Vec<context::Check> = Vec::new();
     let mut step_usage = Usage::default();
@@ -167,6 +200,22 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, optio
             let change=readback::compare(&before,&screen,target);
             history.push(format!("{line}; screen {}",change.describe()));
             if history.len()>8 {history.remove(0);}
+        }
+        // Repeated inputs: warn once in the history, stop if the planner continues the pattern.
+        match repeated_inputs(&effects) {
+            Some(pattern) => match loop_warned {
+                Some(at) if effects.len()>at => {
+                    let reason=format!("stopped: {pattern} again after a warning, and the screen kept returning to the same state");
+                    return Ok(json!({"done":false,"reason":reason,"steps":step-1,"task_status":"pending","execution_status":execution_status,"verification":verification,"failure_category":"planning"}));
+                },
+                Some(_) => {},
+                None => {
+                    loop_warned=Some(effects.len());
+                    history.push(format!("warning: {pattern}, and the screen returned to the same state each time; this makes no progress. Do something different (another control or value, or give_up). Continuing the same pattern stops the run."));
+                    if history.len()>8 {history.remove(0);}
+                },
+            },
+            None => loop_warned=None,
         }
         if !screen.installed_apps.is_empty() { apps=screen.installed_apps.clone(); }
         let mut view=screen_filter::filter(&screen,&FilterContext{request,typed:&typed});
@@ -214,7 +263,8 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, optio
                 .chain(fact_lines.iter().filter(|(old,_)|!(t.old_facts && *old)).map(|(_,l)|l.as_str())).collect();
             let facts_block=if facts.is_empty() {String::new()} else {format!("Reader facts:\n{}\n",facts.join("\n"))};
             let kept=&history[t.history_lines.min(history.len())..];
-            let state=format!("Owner request: {request}\n{request_values}Apps: {apps_line}\nHistory: {}\n{facts_block}Screen {} / {}:\n{rendered}",kept.join("\n"),screen.package,screen.activity);
+            let fields=if typed_fields.is_empty() {String::new()} else {format!("Fields typed in this task: {}\n",typed_fields.join(", "))};
+            let state=format!("Owner request: {request}\n{request_values}Apps: {apps_line}\nHistory: {}\n{fields}{facts_block}Screen {} / {}:\n{rendered}",kept.join("\n"),screen.package,screen.activity);
             vec![message("system",system.clone()),message("user",state)]
         };
         let planner_room=Room{history_lines:history.len().saturating_sub(context::HISTORY_FLOOR),old_facts:fact_lines.iter().any(|(old,_)|*old),chat_turns:0};
@@ -503,7 +553,12 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, optio
                             task_status=if matches!(op,HandsOp::OpenApp{..}) {"opened_ui"} else {"pending"};
                             verification=Verification::default();
                             outcome=if matches!(op,HandsOp::OpenApp{..}) {"opened_ui"} else {"host acknowledged input"}.into();
-                            if let Action::Type{text,..}=&action {typed.push(text.clone());}
+                            if let Action::Type{text,target,..}=&action {
+                                typed.push(text.clone());
+                                if let Some(label)=view.element(*target).and_then(|e|e.label.clone()) {
+                                    if !typed_fields.contains(&label) { typed_fields.push(label); }
+                                }
+                            }
                             recorder.executed(&action,&op,&view,&screen,taint.is_empty());
                             if confirmation_required {
                                 // An input acknowledgment is not an effect receipt. Read the screen
