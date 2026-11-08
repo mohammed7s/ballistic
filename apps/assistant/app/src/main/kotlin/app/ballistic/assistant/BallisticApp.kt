@@ -74,7 +74,8 @@ class AppGraph(val app: Application) {
 
 
     val modelSelection = ModelSelectionStore(app.filesDir.resolve("model-selection.json")) { modelsConfig.load() != null }
-    val localModels = LocalModels(LlamaDriver())
+    /** One engine per runtime; only one model is loaded at a time (LocalModels unloads both). */
+    val localModels = LocalModels(mapOf(ModelRuntime.LlamaCpp to LlamaDriver(), ModelRuntime.LiteRtLm to LiteRtLmDriver(app)))
     val pendingModelImport = kotlinx.coroutines.flow.MutableStateFlow<android.net.Uri?>(null)
     val localAi: LocalAiController = LocalAiController(app, scope, localModels, modelSelection) {
         gate.canAcceptCommands() && session.state.value.canSubmit && session.state.value.pendingRequest == null

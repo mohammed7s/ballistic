@@ -46,6 +46,15 @@
         android:networkSecurityConfig="@xml/network_security_config"
         android:theme="@style/Theme.Ballistic">
 
+        <!-- Optional platform/vendor libraries LiteRT-LM may open: OpenCL for its GPU backend
+             (LiteRT-LM Kotlin guide) and the Google Tensor TPU client (official Pixel 10 TPU
+             sample). required="false": the app installs and runs without them, and the backend
+             that needs them fails with an explicit message. The NPU runtime AAR adds
+             libedgetpu_litert.so and libedgetpu_util.so through manifest merging. -->
+        <uses-native-library android:name="libvndksupport.so" android:required="false" />
+        <uses-native-library android:name="libOpenCL.so" android:required="false" />
+        <uses-native-library android:name="libedgetpu_client.google.so" android:required="false" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"

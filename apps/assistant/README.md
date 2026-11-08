@@ -26,6 +26,10 @@ core-api/            pure Kotlin/JVM; builds and tests without an Android SDK
   core/PolicyStore.kt    policy.json load (fail to defaults) / atomic save
   core/ActionLog.kt      append-only JSON-lines log of core's step events
   models/ModelsHttp.kt   Models port over an OpenAI-compatible endpoint, per-role config
+  models/LocalModels.kt  on-device Models port: one loaded model, one engine per runtime, no fallback
+  models/ModelDownload.kt, ManagedModel.kt  pinned catalogue, verified download/import, model library
+  models/SpeedCheck.kt   short and ~2K-token prefill speed checks
+app/.../models/LiteRtLmDriver.kt  LiteRT-LM engine (CPU/GPU/Tensor NPU) behind the same port
   session/PromptSession.kt  prompt-box state machine (gate, run, approval, Stop, log)
   session/Labels.kt      result/evidence/action wording ("acknowledged" is never "sent")
 app/                 the Android application
@@ -59,7 +63,7 @@ SharedPreferences `secrets`, which holds only ciphertext. Backup and device tran
 | Kotlin data shapes and JSON | Real. Tested against serde output of core/src/types.rs and every recorded screen in core/tests/screens. |
 | Ports | Real interfaces. Synchronous, because core calls them from its own thread and blocks on each call. |
 | Engine | **Real** when libballistic_core is in the APK and a model is configured: `UniffiCoreEngine` runs core's loop in-process (same loop, prompts, filter, checks and step events as the harness). Otherwise `FakeCoreEngine.demo()` replays a fixed script. The Ask and Settings tabs say which, and why ("no model configured", "libballistic_core is not in this build"). |
-| Prompt box | Real UI over `PromptSession`: gate check, one run at a time, steps as they arrive (action, why, outcome), Stop, result wording per ANDROID_APP.md. |
+| Prompt box | Real UI over `PromptSession`: gate check, one run at a time, steps as they arrive (action, why, outcome), Stop, result wording per ANDROID_APP.md. Each run card is collapsed by default: the active run shows the request with elapsed time and one plain progress line (`runStatusLine` in `session/Labels.kt`, built from known lifecycle strings and step metadata only, never model text, typed text or error bodies); a finished run shows one line (result and duration). The 48dp header row toggles details (latest six timestamped events while running, full feed afterwards, step list, evidence, error). Expansion is saved per run id and new events do not expand it. Stop stays in the input row; while awaiting approval the card keeps a Review approval button visible. |
 | Command gate | Real BiometricPrompt (BIOMETRIC_STRONG). The session locks when no Ballistic activity is visible or the screen turns off. Passkey and voice are not built. |
 | Confirmation window | Real: FLAG_SECURE, overlays hidden, input filter, Back denies, a hard request needs a biometric bound to a per-operation key that signs the exact request. **Untested on a device.** |
 | Policy settings | Real table. Edits need the gate unlocked. A file that does not parse falls back to the defaults. |
@@ -85,6 +89,21 @@ and are not committed. An APK built without them still installs and runs the fak
 so. The generated binding `core-api/.../core/ffi/ballistic_core.kt` is committed. Regenerate it
 with the script whenever `core/src/ffi.rs` changes. A binding that does not match the library
 fails at load, and the app falls back to the fake engine.
+
+The embedded llama.cpp build needs NDK `29.0.14206865` and CMake `3.31.6` from the SDK
+(`sdkmanager --install "ndk;29.0.14206865" "cmake;3.31.6"`); both were installed on the
+ThinkPad on 8 Nov 2026 for this purpose. LiteRT-LM (`litertlm-android`) and the Google Tensor NPU
+runtime (`litert-npu-runtime-google-tensor`) are Google Maven dependencies, so the first build
+needs network access. `jniLibs` use legacy (extracted) packaging so LiteRT-LM can load the Tensor
+dispatch library from `nativeLibraryDir`; see [LOCAL_AI.md](LOCAL_AI.md).
+
+**Signing and in-place updates.** A debug APK is signed with the building machine's
+`~/.android/debug.keystore`. Android refuses `adb install -r` over an install signed by another
+key (`INSTALL_FAILED_UPDATE_INCOMPATIBLE`), and uninstalling deletes the app's data (downloaded
+models, settings, the stored API key). The owner's Pixel install is signed by the Latitude's debug
+key (certificate SHA-256 `39de30ed…8236`); the ThinkPad's debug key is `4cc422a4…25a4`. To update
+the Pixel in place, sign the ThinkPad-built APK on the Latitude with `apksigner sign --ks
+~/.android/debug.keystore …` (the key never leaves the Latitude), then install the signed copy.
 
 `:core-api:test` includes `UniffiCoreEngineTest`, which runs the real core on the JVM through the
 binding with scripted ports. It needs the host library at `core/target/release/libballistic_core.so`
@@ -279,3 +298,15 @@ confirmation it downloads, checks the pinned digest and size, installs the manag
 loads it locally. Manual GGUF import remains available. Downloads require the app to stay open;
 interrupted transfers restart. No phone-quality recommendation or fine-tuning result is claimed.
 See [setup guide](LOCAL_AI.md) and [validation record](../../docs/log/2026-11-07-model-download.md).
+
+## Model catalogue and LiteRT-LM — 8 November 2026 update
+
+Local AI has a **Models** dropdown over a pinned catalogue: three llama.cpp GGUF files and four
+LiteRT-LM bundles, including Google's precompiled Tensor G5 bundles for Gemma 4 E2B and (gated,
+import only) Gemma 3 1B. Each entry can be downloaded (confirm, size and SHA-256 check), imported
+as a verified file, used (unload, then load) or deleted. `LiteRtLmDriver` runs bundles on the
+owner-chosen CPU/GPU/NPU backend behind the same Models port, a fresh conversation per call. There
+is no automatic fallback to another backend, model or connected model. A ~2K-token prefill speed
+check sits beside the short check. The build and emulator checks passed; the Pixel install
+succeeded but the phone stayed locked, so no NPU or phone LiteRT-LM measurement exists yet. See
+[LOCAL_AI.md](LOCAL_AI.md) for the catalogue, gating, backend reporting and measurements.

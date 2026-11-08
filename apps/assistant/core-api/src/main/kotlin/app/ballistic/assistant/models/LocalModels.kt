@@ -12,10 +12,21 @@ import kotlinx.serialization.Serializable
     val backend: ModelBackend = ModelBackend.Local,
     val contextTokens: Int = 4096,
     val threads: Int = 2,
+    /** Catalogue id or [DownloadableModel.IMPORTED_MODEL_ID]; null means the imported slot (older builds). */
+    val activeModel: String? = null,
+    /** Owner's explicit backend for an entry offering more than one; never set by a failure. */
+    val backendChoice: ComputeBackend? = null,
 ) {
     fun validated() = apply {
         require(contextTokens in 512..8192 && threads in 1..8) { "Invalid local engine settings" }
+        require(activeModel == null || activeModel.matches(Regex("[a-z0-9-]{1,80}"))) { "Invalid model selection" }
     }
+}
+
+/** The backend a load uses: the owner's explicit choice if the entry offers it, else its default. */
+fun DownloadableModel?.backendFor(selection: ModelSelection): ComputeBackend {
+    val options = this?.backends ?: listOf(ComputeBackend.CPU)
+    return selection.backendChoice?.takeIf { it in options } ?: options.first()
 }
 
 /** Separate file: old endpoint/role JSON and encrypted keys are never rewritten by migration. */
@@ -57,6 +68,8 @@ fun selectPhoneProfile(profiles: List<PhoneProfile>, manufacturer: String, model
     val quantization: String? = null,
     val trainingContext: Int,
     val context: Int,
+    /** What the runtime itself reported about where it runs, if anything (code-owned text). */
+    val backendReport: String? = null,
 )
 @Serializable data class LocalMetrics(
     val promptTokens: Int,
@@ -66,74 +79,108 @@ fun selectPhoneProfile(profiles: List<PhoneProfile>, manufacturer: String, model
     val firstTokenMs: Double? = null,
     val durationMs: Double,
     val capped: Boolean = false,
+    /** Rates the runtime measured itself (LiteRT-LM benchmark info); preferred when present. */
+    val reportedPromptTokensPerSecond: Double? = null,
+    val reportedGenerationTokensPerSecond: Double? = null,
 ) {
-    val promptTokensPerSecond: Double? get() = rate(promptTokens, promptMs)
+    val promptTokensPerSecond: Double? get() = reportedPromptTokensPerSecond?.takeIf { it > 0 } ?: rate(promptTokens, promptMs)
     // Generation time begins at first token; subsequent tokens each require one decode.
-    val generationTokensPerSecond: Double? get() = rate(generatedTokens - 1, generationMs)
+    val generationTokensPerSecond: Double? get() = reportedGenerationTokensPerSecond?.takeIf { it > 0 } ?: rate(generatedTokens - 1, generationMs)
     private fun rate(tokens: Int, ms: Double): Double? = if (tokens > 0 && ms > 0) tokens * 1000.0 / ms else null
 }
 @Serializable data class LocalReply(val text: String, val metrics: LocalMetrics)
 enum class LocalPhase { Unloaded, Loading, Ready, Generating, Error }
+
+/** Which weights to load, on which runtime and backend. Chosen by the owner, never by a failure. */
+data class LoadTarget(
+    val modelId: String,
+    val modelName: String,
+    val runtime: ModelRuntime = ModelRuntime.LlamaCpp,
+    val backend: ComputeBackend = ComputeBackend.CPU,
+)
+data class LoadSpec(val path: String, val context: Int, val threads: Int, val backend: ComputeBackend)
+
 data class LocalState(
     val phase: LocalPhase = LocalPhase.Unloaded,
     val metadata: LocalMetadata? = null,
     val loadMs: Double? = null,
     val metrics: LocalMetrics? = null,
     val error: String? = null,
+    /** The loaded (or loading/failed) target. Backend is the one the engine was started on. */
+    val target: LoadTarget? = null,
 ) { val busy: Boolean get() = phase == LocalPhase.Loading || phase == LocalPhase.Generating }
 
-/** JNI implementation uses an in-process CPU engine. Methods except cancel require serialized ownership. */
+/** In-process engine. Methods except cancel require serialized ownership. */
 interface LocalDriver {
     fun resetCancellation()
     fun cancel()
     fun load(path: String, context: Int, threads: Int): LocalMetadata
+    /** Engines with more than one backend override this; the default is the CPU-only signature. */
+    fun load(spec: LoadSpec): LocalMetadata {
+        if (spec.backend != ComputeBackend.CPU) throw LocalFailure("This runtime supports CPU only")
+        return load(spec.path, spec.context, spec.threads)
+    }
     fun unload()
     fun generate(messages: List<ChatMessage>, maxTokens: Int): LocalReply
 }
 
-/** One owner for weights/context, shared by all roles. No network or retry/fallback path. */
-class LocalModels(private val driver: LocalDriver, private val nanoTime: () -> Long = System::nanoTime) : Models {
+/**
+ * One owner for weights/context, shared by all roles, with one engine per runtime. Only one model
+ * is loaded at a time: loading any target first unloads every engine. A failed load leaves
+ * nothing loaded; there is no network, retry, other-backend or previous-model fallback path.
+ */
+class LocalModels(private val drivers: Map<ModelRuntime, LocalDriver>, private val nanoTime: () -> Long = System::nanoTime) : Models {
+    constructor(driver: LocalDriver, nanoTime: () -> Long = System::nanoTime) : this(mapOf(ModelRuntime.LlamaCpp to driver), nanoTime)
+
     private val ownership = ReentrantLock()
     private val control = Any()
     private val mutable = MutableStateFlow(LocalState())
     val state = mutable.asStateFlow()
+    @Volatile private var active: LocalDriver? = null
 
     private inline fun <T> owned(block: () -> T): T {
         if (!ownership.tryLock()) throw PortException.Host("Local engine is busy")
         try { return block() } finally { ownership.unlock() }
     }
-    private fun prepare(cancelled: () -> Boolean = { false }) = synchronized(control) {
+    private fun prepare(driver: LocalDriver, cancelled: () -> Boolean = { false }) = synchronized(control) {
         if (cancelled()) throw PortException.Host("Local inference stopped")
         driver.resetCancellation()
     }
-    fun cancel() = synchronized(control) { driver.cancel() }
+    fun cancel() = synchronized(control) { drivers.values.forEach { it.cancel() } }
+    private fun unloadAll() { active = null; drivers.values.forEach { it.unload() } }
 
-    fun load(file: File, selection: ModelSelection, cancelled: () -> Boolean = { false }) = owned {
+    fun load(file: File, selection: ModelSelection, cancelled: () -> Boolean = { false }) =
+        load(file, selection, LoadTarget(DownloadableModel.IMPORTED_MODEL_ID, file.name), cancelled)
+
+    fun load(file: File, selection: ModelSelection, target: LoadTarget, cancelled: () -> Boolean = { false }) = owned {
         selection.validated()
-        mutable.value = LocalState(phase = LocalPhase.Loading)
+        mutable.value = LocalState(phase = LocalPhase.Loading, target = target)
         val start = nanoTime()
         try {
-            prepare(cancelled)
-            driver.unload()
-            val metadata = driver.load(file.absolutePath, selection.contextTokens, selection.threads)
-            mutable.value = LocalState(LocalPhase.Ready, metadata, (nanoTime() - start) / 1e6)
+            val driver = drivers[target.runtime] ?: throw LocalFailure("${target.runtime.label} is not available in this build")
+            prepare(driver, cancelled)
+            unloadAll()
+            val metadata = driver.load(LoadSpec(file.absolutePath, selection.contextTokens, selection.threads, target.backend))
+            active = driver
+            mutable.value = LocalState(LocalPhase.Ready, metadata, (nanoTime() - start) / 1e6, target = target)
         } catch (e: Exception) {
-            driver.unload()
-            mutable.value = LocalState(phase = LocalPhase.Error, error = safeError(e))
+            unloadAll()
+            mutable.value = LocalState(phase = LocalPhase.Error, error = safeError(e), target = target)
             throw PortException.Host(safeError(e))
         }
     }
     fun unload() = owned {
-        driver.unload()
+        unloadAll()
         mutable.value = LocalState()
     }
     override fun complete(role: ModelRole, messages: List<ChatMessage>, maxTokens: Int): Completion =
         complete(messages, maxTokens) { false }
 
     fun complete(messages: List<ChatMessage>, maxTokens: Int, cancelled: () -> Boolean): Completion = owned {
-        if (mutable.value.metadata == null) throw PortException.Host("Local model is not loaded. Open Local AI.")
+        val driver = active
+        if (mutable.value.metadata == null || driver == null) throw PortException.Host("Local model is not loaded. Open Local AI.")
         require(maxTokens > 0)
-        prepare(cancelled)
+        prepare(driver, cancelled)
         mutable.value = mutable.value.copy(phase = LocalPhase.Generating, metrics = null, error = null)
         try {
             val reply = driver.generate(messages, maxTokens.coerceAtMost(1024))

@@ -44,6 +44,12 @@ android {
     buildFeatures {
         compose = true
     }
+
+    packaging {
+        // LiteRT-LM loads the Google Tensor dispatch library from nativeLibraryDir, which is
+        // populated only when native libraries are extracted at install (official TPU sample).
+        jniLibs { useLegacyPackaging = true }
+    }
 }
 
 kotlin {
@@ -57,6 +63,10 @@ dependencies {
     // JNA for the UniFFI binding: the aar carries libjnidispatch.so for each ABI.
     implementation("net.java.dev.jna:jna:${libs.versions.jna.get()}@aar")
     implementation(libs.kotlinx.coroutines.android)
+    // LiteRT-LM (CPU/GPU/NPU engine; arm64-v8a and x86_64) and the Google Tensor NPU dispatch
+    // runtime (arm64-v8a only; its manifest declares the optional vendor edgetpu libraries).
+    implementation(libs.litertlm.android)
+    implementation(libs.litert.npu.google.tensor)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)

@@ -96,7 +96,7 @@ class ModelDownloadTest {
     @Test fun shippedCatalogueIsValidAndBackwardsCompatibleImportsRemainReadable() = fixture { store ->
         val root = java.io.File(System.getProperty("ballistic.repo"))
         val catalogue = CoreJson.decodeFromString(ListSerializer(DownloadableModel.serializer()),root.resolve("apps/assistant/app/src/main/assets/model_catalogue.json").readText())
-        assertEquals(1,catalogue.size)
+        assertEquals("qwen3-06b-q8-preview",catalogue.first().id)
         catalogue.forEach { it.validated() }
         store.modelFile.writeBytes(bytes)
         store.directory.resolve("model.json").writeText("""{"name":"Old import","bytes":520}""")
@@ -107,7 +107,7 @@ class ModelDownloadTest {
         val path = System.getenv("BALLISTIC_TEST_DOWNLOAD_DIR")
         assumeTrue(path != null)
         val root = java.io.File(System.getProperty("ballistic.repo"))
-        val spec = CoreJson.decodeFromString(ListSerializer(DownloadableModel.serializer()),root.resolve("apps/assistant/app/src/main/assets/model_catalogue.json").readText()).single()
+        val spec = CoreJson.decodeFromString(ListSerializer(DownloadableModel.serializer()),root.resolve("apps/assistant/app/src/main/assets/model_catalogue.json").readText()).first()
         val store = ManagedModelStore(java.io.File(path!!))
         val result = ModelDownloader(HttpsModelDownloadSource()).install(spec,store,{false},{})
         assertEquals(spec.sha256,result.sha256)

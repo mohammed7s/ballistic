@@ -4,7 +4,31 @@ import java.io.InputStream
 import java.net.HttpURLConnection
 import java.net.URI
 import java.net.URL
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.builtins.ListSerializer
+import app.ballistic.assistant.core.CoreJson
+
+/** Which in-process engine reads the weights. Both sit behind the same Models port. */
+@Serializable enum class ModelRuntime(val label: String) {
+    @SerialName("llama_cpp") LlamaCpp("llama.cpp"),
+    @SerialName("litert_lm") LiteRtLm("LiteRT-LM"),
+}
+
+/** The hardware a catalogue file was built for. A Tensor G5 bundle is compiled for that NPU only. */
+@Serializable enum class Accelerator(val label: String) {
+    @SerialName("cpu") Cpu("CPU"),
+    @SerialName("gpu") Gpu("GPU"),
+    @SerialName("tensor_g5_npu") TensorG5Npu("Tensor G5 NPU"),
+}
+
+/** The backend an engine is asked to start on. Never changed automatically after a failure. */
+@Serializable enum class ComputeBackend { CPU, GPU, NPU }
+
+enum class ModelFormat(val fileName: String, val label: String) {
+    Gguf("model.gguf", "GGUF"),
+    LiteRtLm("model.litertlm", "LiteRT-LM bundle"),
+}
 
 /** Shipped, pinned catalogue. It is never populated from a model response or remote manifest. */
 @Serializable data class DownloadableModel(
@@ -15,15 +39,55 @@ import kotlinx.serialization.Serializable
     val sha256: String,
     val license: String,
     val sourcePage: String,
+    val runtime: ModelRuntime = ModelRuntime.LlamaCpp,
+    val accelerator: Accelerator = Accelerator.Cpu,
+    val fileName: String = "",
+    /** The publisher requires a signed-in account that accepted its terms; no in-app download. */
+    val gated: Boolean = false,
+    val note: String = "",
 ) {
+    val format: ModelFormat get() = if (runtime == ModelRuntime.LiteRtLm) ModelFormat.LiteRtLm else ModelFormat.Gguf
+    val publisherFileName: String get() = fileName.ifEmpty { URI(url).path.substringAfterLast('/') }
+
+    /** Owner-selectable backends, default first. There is no automatic fallback between them. */
+    val backends: List<ComputeBackend> get() = when {
+        runtime == ModelRuntime.LlamaCpp -> listOf(ComputeBackend.CPU)
+        accelerator == Accelerator.TensorG5Npu -> listOf(ComputeBackend.NPU)
+        accelerator == Accelerator.Gpu -> listOf(ComputeBackend.GPU, ComputeBackend.CPU)
+        else -> listOf(ComputeBackend.CPU, ComputeBackend.GPU)
+    }
+
     fun validated() = apply {
-        require(id.matches(Regex("[a-z0-9-]{1,80}")))
+        require(id.matches(Regex("[a-z0-9-]{1,80}")) && id != IMPORTED_MODEL_ID)
+        require(name.isNotBlank() && name.length <= 80)
         require(bytes > 8 && bytes <= 8L * 1024 * 1024 * 1024)
         require(sha256.matches(Regex("[a-f0-9]{64}")))
         val uri = URI(url)
-        require(uri.scheme == "https" && uri.host == "huggingface.co" && uri.userInfo == null)
+        require(uri.scheme == "https" && uri.host == "huggingface.co" && uri.userInfo == null && uri.query == null)
         require(Regex("/resolve/[a-f0-9]{40}/").containsMatchIn(uri.path))
+        require(fileName.isEmpty() || uri.path.endsWith("/$fileName"))
+        val extension = if (runtime == ModelRuntime.LiteRtLm) ".litertlm" else ".gguf"
+        require(publisherFileName.endsWith(extension)) { "Catalogue file does not match its runtime" }
+        // The embedded llama.cpp build is CPU-only; GPU/NPU targets need LiteRT-LM.
+        require(runtime == ModelRuntime.LiteRtLm || accelerator == Accelerator.Cpu)
+        require(sourcePage.startsWith("https://huggingface.co/"))
+        require(note.length <= 400)
     }
+
+    companion object {
+        /** Reserved identity for the owner's own imported GGUF (not a catalogue entry). */
+        const val IMPORTED_MODEL_ID = "imported"
+    }
+}
+
+/** Parses and validates the shipped catalogue; any invalid entry rejects the whole file. */
+fun parseModelCatalogue(text: String): List<DownloadableModel> {
+    val entries = CoreJson.decodeFromString(ListSerializer(DownloadableModel.serializer()), text)
+    require(entries.isNotEmpty()) { "Empty model catalogue" }
+    entries.forEach { it.validated() }
+    require(entries.map { it.id }.toSet().size == entries.size) { "Duplicate catalogue id" }
+    require(entries.map { it.sha256 }.toSet().size == entries.size) { "Duplicate catalogue file" }
+    return entries
 }
 
 data class DownloadProgress(val received: Long, val total: Long) {
@@ -105,6 +169,8 @@ class ModelDownloader(private val source: ModelDownloadSource) {
     fun install(model: DownloadableModel, store: ManagedModelStore, cancelled: () -> Boolean,
                 progress: (DownloadProgress) -> Unit, freeBytes: () -> Long = { store.directory.usableSpace }): ManagedModel {
         model.validated()
+        if (model.gated) throw LocalFailure("This publisher requires a Hugging Face account that accepted its terms. Download the file on a computer, then use Import verified file.")
+        if (model.format != store.format) throw LocalFailure("Model storage does not match this catalogue entry")
         store.directory.mkdirs()
         store.discardIncompleteImport()
         // The old model remains in place while the replacement is downloaded and verified.
