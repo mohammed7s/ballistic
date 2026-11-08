@@ -71,9 +71,11 @@ A Tensor G5 bundle is compiled for that NPU and is offered on NPU only. A generi
 offers GPU and CPU; the owner picks one with the chips under the entry. Nothing switches backend,
 model or to a connected model after a failure. The status card shows **Running on:** the runtime
 and the backend the engine was started on. LiteRT-LM has no API that returns "the backend in use";
-per the LiteRT-LM 0.19.1 source, the engine builds the executor for the requested backend or
-fails, so a successful start on NPU is the runtime's own acceptance of that backend, not a
-separate hardware trace. Logcat also carries LiteRT-LM's native log lines.
+per the LiteRT-LM 0.19.1 source (read for the earlier build; not re-read for 0.18.1), the engine
+builds the executor for the requested backend or fails, so a successful start on NPU is the
+runtime's own acceptance of that backend, not a separate hardware trace. NPU execution is claimed
+only when LiteRT's log shows nodes delegated to the dispatch delegate and a speed check completes.
+Logcat also carries LiteRT-LM's native log lines.
 
 **Tensor NPU support.** The APK includes `com.google.ai.edge.litertlm:litertlm-android:0.18.1`
 (arm64-v8a and x86_64) and the official `com.google.ai.edge.litert:litert-npu-runtime-google-tensor:2.3.2`,
@@ -266,6 +268,26 @@ dispatch library, were extracted to the app's library directory. At startup the 
 download moved to its catalogue slot without re-download, and the saved selection kept it active.
 The phone stayed locked (keyguard showing) for the whole session, so no Local AI action, download,
 NPU load or speed check could be run on it. **No NPU, GPU or phone LiteRT-LM result exists yet.**
+
+**Pixel 10 Pro, later on 8 November 2026 (build fingerprint
+`google/blazer/blazer:17/CP3A.261005.005/2026110700:user/release-keys`).** With the phone unlocked,
+**Use** on Gemma 4 E2B · Tensor G5 (LiteRT-LM 0.19.1, dispatch 2.3.2) failed with the
+`LiteRtDispatchQueryInterface` undefined-symbol lines quoted under "Tensor runtime pair"; LiteRT
+never reached the vendor stack. That build is what changed to the 0.18.1 + 2.3.2 pair and the
+failure classifier above.
+
+**The 0.18.1 + 2.3.2 build has not been built, installed or measured.** The rebuild started on the
+ThinkPad lost its SSH session; the ThinkPad then dropped off the tailnet and stayed unreachable,
+and the Pixel had already disconnected from its USB. The core-api unit tests for the classifier
+(`TensorDiagnosisTest`) have not been run either. Every row of the comparison below is therefore
+not measured:
+
+| Model | Backend (per runtime log) | Prompt tokens | First token | Prefill | Decode | Load | Peak memory |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Gemma 4 E2B · Tensor G5 | NPU: not measured | not measured | not measured | not measured | not measured | not measured | not measured |
+| Gemma 4 E2B · LiteRT-LM | GPU: not measured | not measured | not measured | not measured | not measured | not measured | not measured |
+| Gemma 4 E2B · LiteRT-LM | CPU: not measured | not measured | not measured | not measured | not measured | not measured | not measured |
+| Qwen3 0.6B Q8 · llama.cpp | CPU: not measured | not measured | not measured | not measured | not measured | not measured | not measured |
 
 ## Current capability boundary
 
