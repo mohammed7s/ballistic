@@ -605,6 +605,37 @@ side effects. No benchmark checker or private app data supplies evidence. Native
 no APK permissions or observation mechanism were added. Rust/Kotlin JSON mirrors change together;
 the UniFFI ABI remains unchanged.
 
+**Typed postconditions (9 Nov 2026, `postcondition.rs`; implemented and tested offline on screens
+recorded in the Haiku 2 suite, not yet run live).** In Haiku 2 four tasks reached their goal state
+(checker passed) but did not count: core rejected the done claims or the budget ran out after the
+effect. A few full-string request forms now have a result core checks in code on a fresh
+observation, with no model:
+
+| Goal | Request form (whole request) | Evidence on the fresh screen |
+|---|---|---|
+| Launch | the launch form above, optionally followed by exactly the sentence "Clear any pop-ups that may appear by granting all permissions that are required." | the launch readback above; with the sentence also no permission-controller node, no platform alert-dialog id and no other app's window over the target (status bar and keyboard excepted) |
+| Brightness | `[please] turn/set/change… [the] [screen/display] brightness to [the] max/maximum/min/minimum [value/level]` | Settings > Display, proven by its complete page signature (§5), shows the Brightness level row's summary exactly `100%` / `0%`; the slider shows no value and never counts |
+| MessageSent | `send a text message [using <SMS app>] to <number> with message: <body>` and `reply to the most recent text message [using <SMS app>] with message: <body>` | the latest owner-confirmed tap on the thread's Send control in this run read back `changed (field_emptied)`, the composer it was planned on held exactly `<body>`, and the fresh thread shows one more outgoing row (no sender photo) with exactly `<body>` than before, under the same title. For a number the title equals it (digits compared); for "most recent" the thread was opened in this run from the top row of the unscrolled conversation list, in its recorded three-child shape, whose address equals the title |
+| Photo | `take one/a photo/picture [with the camera]` | exactly one shutter press in this run, and a last-photo thumbnail that was not on the screen the press was planned on |
+
+Structural identities are the recorded ones (Simple SMS Messenger thread layout, AOSP camera, AOSP
+Settings); anything else is not recognized and keeps the ordinary verifier. Core runs the check
+itself after **every acknowledged input** on the next observation (the readback's, or one taken
+then; the next step plans on it either way), so a run ends as done without a planner `done` claim
+or extra model call; the step event carries `typed_postcondition: "verified"` and
+`verification.evidence_basis` names the evidence (`code_validated_host_foreground`,
+`code_validated_settings_value`, `code_validated_sent_row`, `code_validated_new_photo_thumbnail`).
+On a planner `done` the same check runs on the done branch's fresh readback. When it does not pass,
+a plain launch still stops pending; launch-with-pop-up and brightness give fixed feedback and no
+model is asked (a verifier citing the labeled slider was a false-done path); message and photo
+goals fall back to the verifier as before. A pass is screen evidence for the requested
+postcondition, not a delivery receipt; it does not establish the absence of other side effects,
+and "most recent" relies on the app listing conversations newest first. Tests:
+`tests/typed_postconditions.rs` (recorded screens, one-field derived variants for 100%, other
+numbers, bodies, incoming rows, unconfirmed or unchanged sends, a second row, a scrolled list, a
+pin marker, two shutter presses, a permission prompt, an unproven Settings page and a contradicting
+foreground readback).
+
 After an ambiguous send or other side effect (timeout, lost acknowledgment), inspect state before
 retrying. Retry only when reliable readback proves no effect or the route offers a valid
 idempotency guarantee for that exact operation. Otherwise stop and report the uncertainty;

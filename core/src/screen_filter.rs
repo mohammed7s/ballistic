@@ -105,6 +105,13 @@ impl FilteredScreen {
     }
 }
 
+/// Static Settings labels proven by the complete page signatures in `settings.rs`, keyed by raw
+/// node id. Empty for any screen whose whole envelope is not recognized. For code-side typed
+/// postconditions (`postcondition.rs`); never a source of planner text by itself.
+pub fn proven_settings_labels(screen: &ScreenState) -> std::collections::HashMap<NodeId, &'static str> {
+    settings::labels(screen)
+}
+
 /// The planner's view as text: one line per element.
 pub fn render(screen: &FilteredScreen) -> String {
     screen.lines.join("\n")

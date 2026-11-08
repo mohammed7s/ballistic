@@ -4,7 +4,7 @@
 use std::io::{BufRead, Write};
 use std::time::Instant;
 use serde_json::{json, Value};
-use crate::{capabilities, context::{self, Room, Sent, Trim}, verification, launch_completion, actions, bridge::Bridge, ports::*, run::{Host, Options},
+use crate::{capabilities, context::{self, Room, Sent, Trim}, verification, postcondition::{self, Effect}, actions, bridge::Bridge, ports::*, run::{Host, Options},
     readback::{self, Readback}, reader::{self, summary, ElementAnswer, ReaderPick}, judge::{self, Verdict}, values, skills,
     screen_filter::{self, FilterContext, FilteredScreen}, types::*};
 
@@ -131,6 +131,9 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, optio
     let mut next_screen: Option<ScreenState> = None;
     let mut pending_line: Option<(String, ScreenState, Option<NodeId>)> = None;
     let mut foreground_high_water = 0;
+    // Every input Hands acknowledged, with the screen it was planned on: evidence for the typed
+    // postconditions (postcondition.rs), read in code only.
+    let mut effects: Vec<Effect> = Vec::new();
     // Per step: what the context guard checked and the usage the host reported for every call.
     let mut guard_log: Vec<context::Check> = Vec::new();
     let mut step_usage = Usage::default();
@@ -271,32 +274,42 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, optio
         let mut owner_output: Option<summary::Output> = None;
         let mut answer_out: Option<Value> = None;
         let mut judge_event: Option<&str> = None;
+        // Set when core's own typed check after this step's effect established completion.
+        let mut self_checked = false;
         match &action {
             Action::Done{..}=> {
                 stop_if_cancelled!(step-1);
                 let fresh=host.observe()?;
                 stop_if_cancelled!(step-1);
-                let launch_goal=launch_completion::recognize(request,&apps);
-                let assessment=if let Some(goal)=launch_goal.as_ref() {
-                    // One fresh readback, then stop even if unavailable. Neither repeated
-                    // guesses nor a model verdict can substitute for this typed postcondition.
-                    launch_completion::assess(goal,&screen,&fresh,foreground_high_water,request,&apps)
-                } else {
-                    let filtered=screen_filter::filter(&fresh,&FilterContext{request,typed:&typed});
-                    stop_if_cancelled!(step-1);
-                    let rendered=screen_filter::render(&filtered);
-                    let check=guarded!(step,ModelRole::Verifier,400,Room::default(),|_:&Trim| vec![
-                        message("system",include_str!("../prompts/verifier.txt").into()),
-                        message("user",format!("Request: {request}\nScreen {}:\n{rendered}",fresh.package))])?;
-                    stop_if_cancelled!(step-1);
-                    verification::assess_with_feedback(&check.text,&filtered)
+                let goal=postcondition::recognize(request,&apps);
+                // A recognized request is checked in code on this one fresh readback. A plain
+                // launch then stops even if unavailable: neither repeated guesses nor a model
+                // verdict can substitute for the host's foreground readback. Other typed goals
+                // that do not pass yet fall back to the ordinary verifier.
+                let typed_check=goal.as_ref().map(|g| postcondition::assess(g,&effects,&screen,&fresh,foreground_high_water,&apps));
+                let assessment=match (goal.as_ref(),typed_check) {
+                    (Some(_),Some(a)) if a.verification.status==VerificationStatus::Verified => a,
+                    (Some(g),Some(a)) if !g.verifier_fallback() => a,
+                    (_,typed_check) => {
+                        let filtered=screen_filter::filter(&fresh,&FilterContext{request,typed:&typed});
+                        stop_if_cancelled!(step-1);
+                        let rendered=screen_filter::render(&filtered);
+                        let check=guarded!(step,ModelRole::Verifier,400,Room::default(),|_:&Trim| vec![
+                            message("system",include_str!("../prompts/verifier.txt").into()),
+                            message("user",format!("Request: {request}\nScreen {}:\n{rendered}",fresh.package))])?;
+                        stop_if_cancelled!(step-1);
+                        let model=verification::assess_with_feedback(&check.text,&filtered);
+                        // The code check's fixed feedback says what is missing more precisely.
+                        match typed_check { Some(t) if model.verification.status!=VerificationStatus::Verified => verification::Assessment{verification:model.verification,feedback:t.feedback}, _ => model }
+                    },
                 };
                 stop_if_cancelled!(step-1);
                 verification=assessment.verification;
                 done=verification.status == VerificationStatus::Verified;
-                terminal=done || launch_goal.is_some();
+                let stops=goal.as_ref().is_some_and(postcondition::Goal::stops_on_failed_done);
+                terminal=done || stops;
                 if done {task_status="completed";}
-                else if launch_goal.is_some() {task_status="pending";}
+                else if stops {task_status="pending";}
                 outcome=assessment.feedback.into();
                 if !done {
                     failure_category=Some("verification");
@@ -512,6 +525,27 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, optio
                                     failure_category=Some("verification");terminal=true;
                                 }
                             }
+                            effects.push(Effect{action:action.clone(),before:screen.clone(),target:target_node(&action,&view),
+                                confirmed:confirmation_required,readback:readback_event.clone()});
+                            // Core checks a recognized request itself after every effect, on a new
+                            // observation (the readback's, or one taken now; the next step plans
+                            // on it either way). No model call; a pass ends the run as done.
+                            if !terminal {
+                                if let Some(goal)=postcondition::recognize(request,&apps) {
+                                    stop_if_cancelled!(step);
+                                    let fresh=match next_screen.take() { Some(s)=>Some(s), None=>host.observe().ok() };
+                                    if let Some(fresh)=fresh {
+                                        let check=postcondition::assess(&goal,&effects,&screen,&fresh,foreground_high_water,&apps);
+                                        if check.verification.status==VerificationStatus::Verified {
+                                            verification=check.verification;
+                                            done=true; terminal=true; task_status="completed"; failure_category=None;
+                                            outcome=format!("{outcome}; core checked the result: {}",check.feedback);
+                                            self_checked=true;
+                                        }
+                                        next_screen=Some(fresh);
+                                    }
+                                }
+                            }
                         },
                         Ok(HandsResult::NotExecuted{..})=> {outcome="host did not execute action".into();failure_category=Some("execution");},
                         Ok(HandsResult::Error{..})|Err(_)=> {
@@ -534,6 +568,7 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, optio
         if usage.prompt_tokens>0 { event["prompt_tokens"]=json!(usage.prompt_tokens); }
         if usage.completion_tokens>0 { event["completion_tokens"]=json!(usage.completion_tokens); }
         if !checks.is_empty() { event["context_guard"]=json!(checks); }
+        if self_checked { event["typed_postcondition"]=json!("verified"); }
         host.log(&event)?;
         if let Some(output)=owner_output {
             let reason=if output.is_available() {output.display()} else {outcome};
