@@ -659,24 +659,32 @@ internal interface UniffiCallbackInterfaceHostPortsMethod2 : com.sun.jna.Callbac
     fun callback(`uniffiHandle`: Long,`role`: RustBuffer.ByValue,`messagesJson`: RustBuffer.ByValue,`maxTokens`: Int,`uniffiOutReturn`: RustBuffer,uniffiCallStatus: UniffiRustCallStatus,)
 }
 internal interface UniffiCallbackInterfaceHostPortsMethod3 : com.sun.jna.Callback {
-    fun callback(`uniffiHandle`: Long,`requestJson`: RustBuffer.ByValue,`uniffiOutReturn`: RustBuffer,uniffiCallStatus: UniffiRustCallStatus,)
+    fun callback(`uniffiHandle`: Long,`role`: RustBuffer.ByValue,`uniffiOutReturn`: RustBuffer,uniffiCallStatus: UniffiRustCallStatus,)
 }
 internal interface UniffiCallbackInterfaceHostPortsMethod4 : com.sun.jna.Callback {
-    fun callback(`uniffiHandle`: Long,`eventJson`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,)
+    fun callback(`uniffiHandle`: Long,`role`: RustBuffer.ByValue,`messagesJson`: RustBuffer.ByValue,`uniffiOutReturn`: RustBuffer,uniffiCallStatus: UniffiRustCallStatus,)
 }
 internal interface UniffiCallbackInterfaceHostPortsMethod5 : com.sun.jna.Callback {
+    fun callback(`uniffiHandle`: Long,`requestJson`: RustBuffer.ByValue,`uniffiOutReturn`: RustBuffer,uniffiCallStatus: UniffiRustCallStatus,)
+}
+internal interface UniffiCallbackInterfaceHostPortsMethod6 : com.sun.jna.Callback {
+    fun callback(`uniffiHandle`: Long,`eventJson`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,)
+}
+internal interface UniffiCallbackInterfaceHostPortsMethod7 : com.sun.jna.Callback {
     fun callback(`uniffiHandle`: Long,`uniffiOutReturn`: ByteByReference,uniffiCallStatus: UniffiRustCallStatus,)
 }
-@Structure.FieldOrder("uniffiFree", "uniffiClone", "observe", "act", "complete", "confirm", "log", "isCancelled")
+@Structure.FieldOrder("uniffiFree", "uniffiClone", "observe", "act", "complete", "modelLimits", "countTokens", "confirm", "log", "isCancelled")
 internal open class UniffiVTableCallbackInterfaceHostPorts(
     @JvmField internal var `uniffiFree`: UniffiCallbackInterfaceFree? = null,
     @JvmField internal var `uniffiClone`: UniffiCallbackInterfaceClone? = null,
     @JvmField internal var `observe`: UniffiCallbackInterfaceHostPortsMethod0? = null,
     @JvmField internal var `act`: UniffiCallbackInterfaceHostPortsMethod1? = null,
     @JvmField internal var `complete`: UniffiCallbackInterfaceHostPortsMethod2? = null,
-    @JvmField internal var `confirm`: UniffiCallbackInterfaceHostPortsMethod3? = null,
-    @JvmField internal var `log`: UniffiCallbackInterfaceHostPortsMethod4? = null,
-    @JvmField internal var `isCancelled`: UniffiCallbackInterfaceHostPortsMethod5? = null,
+    @JvmField internal var `modelLimits`: UniffiCallbackInterfaceHostPortsMethod3? = null,
+    @JvmField internal var `countTokens`: UniffiCallbackInterfaceHostPortsMethod4? = null,
+    @JvmField internal var `confirm`: UniffiCallbackInterfaceHostPortsMethod5? = null,
+    @JvmField internal var `log`: UniffiCallbackInterfaceHostPortsMethod6? = null,
+    @JvmField internal var `isCancelled`: UniffiCallbackInterfaceHostPortsMethod7? = null,
 ) : Structure() {
     class UniffiByValue(
         `uniffiFree`: UniffiCallbackInterfaceFree? = null,
@@ -684,10 +692,12 @@ internal open class UniffiVTableCallbackInterfaceHostPorts(
         `observe`: UniffiCallbackInterfaceHostPortsMethod0? = null,
         `act`: UniffiCallbackInterfaceHostPortsMethod1? = null,
         `complete`: UniffiCallbackInterfaceHostPortsMethod2? = null,
-        `confirm`: UniffiCallbackInterfaceHostPortsMethod3? = null,
-        `log`: UniffiCallbackInterfaceHostPortsMethod4? = null,
-        `isCancelled`: UniffiCallbackInterfaceHostPortsMethod5? = null,
-    ): UniffiVTableCallbackInterfaceHostPorts(`uniffiFree`,`uniffiClone`,`observe`,`act`,`complete`,`confirm`,`log`,`isCancelled`,), Structure.ByValue
+        `modelLimits`: UniffiCallbackInterfaceHostPortsMethod3? = null,
+        `countTokens`: UniffiCallbackInterfaceHostPortsMethod4? = null,
+        `confirm`: UniffiCallbackInterfaceHostPortsMethod5? = null,
+        `log`: UniffiCallbackInterfaceHostPortsMethod6? = null,
+        `isCancelled`: UniffiCallbackInterfaceHostPortsMethod7? = null,
+    ): UniffiVTableCallbackInterfaceHostPorts(`uniffiFree`,`uniffiClone`,`observe`,`act`,`complete`,`modelLimits`,`countTokens`,`confirm`,`log`,`isCancelled`,), Structure.ByValue
 
    internal fun uniffiSetValue(other: UniffiVTableCallbackInterfaceHostPorts) {
         `uniffiFree` = other.`uniffiFree`
@@ -695,6 +705,8 @@ internal open class UniffiVTableCallbackInterfaceHostPorts(
         `observe` = other.`observe`
         `act` = other.`act`
         `complete` = other.`complete`
+        `modelLimits` = other.`modelLimits`
+        `countTokens` = other.`countTokens`
         `confirm` = other.`confirm`
         `log` = other.`log`
         `isCancelled` = other.`isCancelled`
@@ -739,6 +751,10 @@ internal object IntegrityCheckingUniffiLib {
     external fun uniffi_ballistic_core_checksum_method_hostports_act(
     ): Int
     external fun uniffi_ballistic_core_checksum_method_hostports_complete(
+    ): Int
+    external fun uniffi_ballistic_core_checksum_method_hostports_model_limits(
+    ): Int
+    external fun uniffi_ballistic_core_checksum_method_hostports_count_tokens(
     ): Int
     external fun uniffi_ballistic_core_checksum_method_hostports_confirm(
     ): Int
@@ -912,13 +928,19 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if ((lib.uniffi_ballistic_core_checksum_method_hostports_complete() and 0xFFFF) != 11186) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if ((lib.uniffi_ballistic_core_checksum_method_hostports_confirm() and 0xFFFF) != 35032) {
+    if ((lib.uniffi_ballistic_core_checksum_method_hostports_model_limits() and 0xFFFF) != 29807) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if ((lib.uniffi_ballistic_core_checksum_method_hostports_log() and 0xFFFF) != 41223) {
+    if ((lib.uniffi_ballistic_core_checksum_method_hostports_count_tokens() and 0xFFFF) != 26094) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if ((lib.uniffi_ballistic_core_checksum_method_hostports_is_cancelled() and 0xFFFF) != 27084) {
+    if ((lib.uniffi_ballistic_core_checksum_method_hostports_confirm() and 0xFFFF) != 4721) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_ballistic_core_checksum_method_hostports_log() and 0xFFFF) != 8192) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_ballistic_core_checksum_method_hostports_is_cancelled() and 0xFFFF) != 62115) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
 }
@@ -1267,7 +1289,12 @@ public object FfiConverterTypeHostError : FfiConverterRustBuffer<HostException> 
  * - `observe() -> ScreenState`
  * - `act(HandsOp) -> HandsResult`
  * - `complete(role, [ChatMessage], max_tokens) -> Completion`; `role` is the bare name
- * (`planner`, `reader`, `judge`, `verifier`)
+ * (`planner`, `reader`, `judge`, `verifier`, `chat`)
+ * - `model_limits(role) -> ModelLimits` (`{"context_tokens":4096}`, or `{"context_tokens":null}`
+ * when the routed model's context is not known); asked before every model call by the
+ * context guard (`context.rs`)
+ * - `count_tokens(role, [ChatMessage])`: the exact prompt size from the routed model's
+ * tokenizer, or null to let core use its conservative estimate
  * - `confirm(ConfirmRequest) -> ConfirmResult` (`"approved"` or `"denied"`, a JSON string)
  * - `log(step event)`: the object the harness receives as `{"ask":"log","event":...}`
  * - `is_cancelled()`: the owner pressed Stop
@@ -1279,6 +1306,10 @@ public interface HostPorts {
     fun `act`(`opJson`: kotlin.String): kotlin.String
     
     fun `complete`(`role`: kotlin.String, `messagesJson`: kotlin.String, `maxTokens`: kotlin.UInt): kotlin.String
+    
+    fun `modelLimits`(`role`: kotlin.String): kotlin.String
+    
+    fun `countTokens`(`role`: kotlin.String, `messagesJson`: kotlin.String): kotlin.UInt?
     
     fun `confirm`(`requestJson`: kotlin.String): kotlin.String
     
@@ -1345,7 +1376,42 @@ internal object uniffiCallbackInterfaceHostPorts {
             )
         }
     }
-    internal object `confirm`: UniffiCallbackInterfaceHostPortsMethod3 {
+    internal object `modelLimits`: UniffiCallbackInterfaceHostPortsMethod3 {
+        override fun callback(`uniffiHandle`: Long,`role`: RustBuffer.ByValue,`uniffiOutReturn`: RustBuffer,uniffiCallStatus: UniffiRustCallStatus,) {
+            val uniffiObj = FfiConverterTypeHostPorts.handleMap.get(uniffiHandle)
+            val makeCall = { ->
+                uniffiObj.`modelLimits`(
+                    FfiConverterString.lift(`role`),
+                )
+            }
+            val writeReturn = { value: kotlin.String -> uniffiOutReturn.setValue(FfiConverterString.lower(value)) }
+            uniffiTraitInterfaceCallWithError(
+                uniffiCallStatus,
+                makeCall,
+                writeReturn,
+                { e: HostException -> FfiConverterTypeHostError.lower(e) }
+            )
+        }
+    }
+    internal object `countTokens`: UniffiCallbackInterfaceHostPortsMethod4 {
+        override fun callback(`uniffiHandle`: Long,`role`: RustBuffer.ByValue,`messagesJson`: RustBuffer.ByValue,`uniffiOutReturn`: RustBuffer,uniffiCallStatus: UniffiRustCallStatus,) {
+            val uniffiObj = FfiConverterTypeHostPorts.handleMap.get(uniffiHandle)
+            val makeCall = { ->
+                uniffiObj.`countTokens`(
+                    FfiConverterString.lift(`role`),
+                    FfiConverterString.lift(`messagesJson`),
+                )
+            }
+            val writeReturn = { value: kotlin.UInt? -> uniffiOutReturn.setValue(FfiConverterOptionalUInt.lower(value)) }
+            uniffiTraitInterfaceCallWithError(
+                uniffiCallStatus,
+                makeCall,
+                writeReturn,
+                { e: HostException -> FfiConverterTypeHostError.lower(e) }
+            )
+        }
+    }
+    internal object `confirm`: UniffiCallbackInterfaceHostPortsMethod5 {
         override fun callback(`uniffiHandle`: Long,`requestJson`: RustBuffer.ByValue,`uniffiOutReturn`: RustBuffer,uniffiCallStatus: UniffiRustCallStatus,) {
             val uniffiObj = FfiConverterTypeHostPorts.handleMap.get(uniffiHandle)
             val makeCall = { ->
@@ -1362,7 +1428,7 @@ internal object uniffiCallbackInterfaceHostPorts {
             )
         }
     }
-    internal object `log`: UniffiCallbackInterfaceHostPortsMethod4 {
+    internal object `log`: UniffiCallbackInterfaceHostPortsMethod6 {
         override fun callback(`uniffiHandle`: Long,`eventJson`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,) {
             val uniffiObj = FfiConverterTypeHostPorts.handleMap.get(uniffiHandle)
             val makeCall = { ->
@@ -1374,7 +1440,7 @@ internal object uniffiCallbackInterfaceHostPorts {
             uniffiTraitInterfaceCall(uniffiCallStatus, makeCall, writeReturn)
         }
     }
-    internal object `isCancelled`: UniffiCallbackInterfaceHostPortsMethod5 {
+    internal object `isCancelled`: UniffiCallbackInterfaceHostPortsMethod7 {
         override fun callback(`uniffiHandle`: Long,`uniffiOutReturn`: ByteByReference,uniffiCallStatus: UniffiRustCallStatus,) {
             val uniffiObj = FfiConverterTypeHostPorts.handleMap.get(uniffiHandle)
             val makeCall = { ->
@@ -1404,6 +1470,8 @@ internal object uniffiCallbackInterfaceHostPorts {
         `observe`,
         `act`,
         `complete`,
+        `modelLimits`,
+        `countTokens`,
         `confirm`,
         `log`,
         `isCancelled`,
@@ -1422,6 +1490,38 @@ internal object uniffiCallbackInterfaceHostPorts {
  * @suppress
  */
 public object FfiConverterTypeHostPorts: FfiConverterCallbackInterface<HostPorts>()
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterOptionalUInt: FfiConverterRustBuffer<kotlin.UInt?> {
+    override fun read(buf: ByteBuffer): kotlin.UInt? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterUInt.read(buf)
+    }
+
+    override fun allocationSize(value: kotlin.UInt?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterUInt.allocationSize(value)
+        }
+    }
+
+    override fun write(value: kotlin.UInt?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterUInt.write(value, buf)
+        }
+    }
+}
         /**
          * One conversation turn (`chat.rs`). `history_json` is the array of turns the shell keeps
          * (`[{"source":"owner"|"assistant"|"task_result","text":"...","values":[Tagged]}]`), exactly

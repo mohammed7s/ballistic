@@ -46,7 +46,12 @@ impl From<HostError> for PortError {
 /// - `observe() -> ScreenState`
 /// - `act(HandsOp) -> HandsResult`
 /// - `complete(role, [ChatMessage], max_tokens) -> Completion`; `role` is the bare name
-///   (`planner`, `reader`, `judge`, `verifier`)
+///   (`planner`, `reader`, `judge`, `verifier`, `chat`)
+/// - `model_limits(role) -> ModelLimits` (`{"context_tokens":4096}`, or `{"context_tokens":null}`
+///   when the routed model's context is not known); asked before every model call by the
+///   context guard (`context.rs`)
+/// - `count_tokens(role, [ChatMessage])`: the exact prompt size from the routed model's
+///   tokenizer, or null to let core use its conservative estimate
 /// - `confirm(ConfirmRequest) -> ConfirmResult` (`"approved"` or `"denied"`, a JSON string)
 /// - `log(step event)`: the object the harness receives as `{"ask":"log","event":...}`
 /// - `is_cancelled()`: the owner pressed Stop
@@ -55,6 +60,8 @@ pub trait HostPorts: Send + Sync {
     fn observe(&self) -> Result<String, HostError>;
     fn act(&self, op_json: String) -> Result<String, HostError>;
     fn complete(&self, role: String, messages_json: String, max_tokens: u32) -> Result<String, HostError>;
+    fn model_limits(&self, role: String) -> Result<String, HostError>;
+    fn count_tokens(&self, role: String, messages_json: String) -> Result<Option<u32>, HostError>;
     fn confirm(&self, request_json: String) -> Result<String, HostError>;
     fn log(&self, event_json: String);
     fn is_cancelled(&self) -> bool;
@@ -157,16 +164,26 @@ impl Hands for Json<'_> {
     }
 }
 
+fn role_name(role: ModelRole) -> String {
+    match role {
+        ModelRole::Planner => "planner",
+        ModelRole::Reader => "reader",
+        ModelRole::Judge => "judge",
+        ModelRole::Verifier => "verifier",
+        ModelRole::Chat => "chat",
+    }
+    .into()
+}
+
 impl Models for Json<'_> {
     fn complete(&mut self, role: ModelRole, messages: &[ChatMessage], max_tokens: u32) -> PortResult<Completion> {
-        let role = match role {
-            ModelRole::Planner => "planner",
-            ModelRole::Reader => "reader",
-            ModelRole::Judge => "judge",
-            ModelRole::Verifier => "verifier",
-            ModelRole::Chat => "chat",
-        };
-        decode(self.0.complete(role.into(), encode(messages)?, max_tokens))
+        decode(self.0.complete(role_name(role), encode(messages)?, max_tokens))
+    }
+    fn limits(&mut self, role: ModelRole) -> PortResult<ModelLimits> {
+        decode(self.0.model_limits(role_name(role)))
+    }
+    fn count_tokens(&mut self, role: ModelRole, messages: &[ChatMessage]) -> PortResult<Option<u32>> {
+        Ok(self.0.count_tokens(role_name(role), encode(messages)?)?)
     }
 }
 
@@ -186,6 +203,7 @@ mod tests {
         calls: Mutex<Vec<String>>,
         events: Mutex<Vec<String>>,
         hands: &'static str,
+        limits: &'static str,
     }
 
     impl HostPorts for Shell {
@@ -212,6 +230,12 @@ mod tests {
                 _ => Ok(r#"{"text":"{\"action\":\"open_app\",\"app\":\"Clock\",\"why\":\"asked\"}","usage":{"prompt_tokens":10,"completion_tokens":5}}"#.into()),
             }
         }
+        fn model_limits(&self, _role: String) -> Result<String, HostError> {
+            Ok(self.limits.into())
+        }
+        fn count_tokens(&self, _role: String, _messages_json: String) -> Result<Option<u32>, HostError> {
+            Ok(None)
+        }
         fn confirm(&self, _: String) -> Result<String, HostError> {
             Ok(r#""denied""#.into())
         }
@@ -224,7 +248,7 @@ mod tests {
     }
 
     fn shell(hands: &'static str) -> Shell {
-        Shell { calls: Mutex::new(vec![]), events: Mutex::new(vec![]), hands }
+        Shell { calls: Mutex::new(vec![]), events: Mutex::new(vec![]), hands, limits: r#"{"context_tokens":null}"# }
     }
 
     #[test]
@@ -273,6 +297,27 @@ mod tests {
         }
         let out: Value = serde_json::from_str(&run_with_options("open".into(), 1, "{".into(), Box::new(shell("ok")))).unwrap();
         assert!(out["error"].as_str().unwrap().starts_with("options:"));
+    }
+
+    #[test]
+    fn model_limits_cross_as_json_and_guard_the_call() {
+        // No limit: the call is unchanged (see calls_and_events_cross_as_serde_json).
+        let mut host = shell("ok");
+        host.limits = r#"{"context_tokens":4096}"#;
+        let mut m = Json(&host);
+        assert_eq!(m.limits(ModelRole::Planner).unwrap(), ModelLimits { context_tokens: Some(4096) });
+        assert_eq!(m.count_tokens(ModelRole::Planner, &[]).unwrap(), None);
+        let out: Value = serde_json::from_str(&run("open the Clock app".into(), 1, Box::new(host))).unwrap();
+        assert_eq!(out["report"]["task_status"], "opened_ui");
+        // A limit too small for the planner's rules is refused before any model call.
+        let mut host = shell("ok");
+        host.limits = r#"{"context_tokens":1024}"#;
+        let out: Value = serde_json::from_str(&run("open the Clock app".into(), 1, Box::new(host))).unwrap();
+        assert_eq!(out["report"]["failure_category"], "model_context");
+        assert!(out["report"]["reason"].as_str().unwrap().starts_with("prompt does not fit this model's 1,024-token context"));
+        let host = shell("ok");
+        let bad = Shell { limits: r#"{"context":4096}"#, ..host };
+        assert!(matches!(Json(&bad).limits(ModelRole::Planner), Err(PortError::Malformed(_))));
     }
 
     #[test]

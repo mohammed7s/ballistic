@@ -87,6 +87,12 @@ impl Models for Ports<'_> {
     fn complete(&mut self, role: ModelRole, messages: &[ChatMessage], max_tokens: u32) -> PortResult<Completion> {
         self.models.complete(role, messages, max_tokens)
     }
+    fn limits(&mut self, role: ModelRole) -> PortResult<ModelLimits> {
+        self.models.limits(role)
+    }
+    fn count_tokens(&mut self, role: ModelRole, messages: &[ChatMessage]) -> PortResult<Option<u32>> {
+        self.models.count_tokens(role, messages)
+    }
 }
 
 impl Confirm for Ports<'_> {

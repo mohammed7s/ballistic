@@ -24,10 +24,20 @@ fun interface Hands {
     fun act(op: HandsOp): HandsResult
 }
 
-/** One completion per call. The host routes [role] to a backend. */
+/**
+ * One completion per call. The host routes [role] to a backend. Before every call core asks
+ * [limits] for that role's context (core/src/context.rs); the default advertises none.
+ */
 fun interface Models {
     @Throws(PortException::class)
     fun complete(role: ModelRole, messages: List<ChatMessage>, maxTokens: Int): Completion
+
+    @Throws(PortException::class)
+    fun limits(role: ModelRole): ModelLimits = ModelLimits()
+
+    /** The exact prompt size from the routed model's tokenizer; null lets core estimate. */
+    @Throws(PortException::class)
+    fun countTokens(role: ModelRole, messages: List<ChatMessage>): Int? = null
 }
 
 /** Asks the owner. The app shows the confirmation window (SPEC.md §7.1). */
