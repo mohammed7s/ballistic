@@ -8,7 +8,9 @@ import android.app.Activity
 import android.app.NotificationManager
 import android.content.Intent
 import android.provider.Settings
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -22,7 +24,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -34,6 +35,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.style.TextOverflow
@@ -47,7 +52,8 @@ import app.ballistic.assistant.session.PromptSession
 import kotlinx.coroutines.delay
 import app.ballistic.assistant.session.actionLabel
 import app.ballistic.assistant.session.evidenceLabel
-import app.ballistic.assistant.session.resultLabel
+import app.ballistic.assistant.session.runStatusLine
+import app.ballistic.assistant.confirm.ConfirmActivity
 import app.ballistic.assistant.storage.SecretStore
 
 @Composable
@@ -112,7 +118,12 @@ fun PromptScreen(graph: AppGraph, activity: Activity, onOpenLocalAi: () -> Unit 
                     }
                 }
             }
-            items(state.runs, key = { it.id }) { RunCard(it, graph.session, state.canStop && it.id == state.runs.lastOrNull()?.id) }
+            items(state.runs, key = { it.id }) {
+                val active = state.canStop && it.id == state.runs.lastOrNull()?.id
+                RunCard(it, graph.session, active, awaitingApproval = active && state.phase == Phase.AwaitingApproval) {
+                    activity.startActivity(Intent(activity, ConfirmActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP))
+                }
+            }
         }
 
         if (state.canStop) {
@@ -143,9 +154,14 @@ fun PromptScreen(graph: AppGraph, activity: Activity, onOpenLocalAi: () -> Unit 
     }
 }
 
+/**
+ * Collapsed by default: the active run shows the request and elapsed time, then one plain line of
+ * current progress; a finished run shows one line (result and duration). The header row toggles
+ * the full feed. Expansion is per run and never changes on its own when new events arrive.
+ */
 @Composable
-private fun RunCard(run: RunView, session: PromptSession, active: Boolean) {
-    var expanded by rememberSaveable(run.id, active) { mutableStateOf(false) }
+private fun RunCard(run: RunView, session: PromptSession, active: Boolean, awaitingApproval: Boolean, onReviewApproval: () -> Unit) {
+    var expanded by rememberSaveable(run.id) { mutableStateOf(false) }
     var elapsed by remember(run.id) { mutableStateOf(session.elapsedMillis(run)) }
     LaunchedEffect(run.id, run.finishedElapsedMs) {
         do {
@@ -154,36 +170,56 @@ private fun RunCard(run: RunView, session: PromptSession, active: Boolean) {
             delay(250)
         } while (true)
     }
+    val status = runStatusLine(run, awaitingApproval)
+    val failed = run.error != null && !run.stopRequested
+    val toggleLabel = if (expanded) "Hide details" else "Show details"
     Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(run.request, fontWeight = FontWeight.Bold)
-            val seconds = elapsed / 1000
-            Text("Elapsed: ${seconds / 60}:${(seconds % 60).toString().padStart(2, '0')}", style = MaterialTheme.typography.bodySmall)
-            if (active) {
-                Text("Progress", style = MaterialTheme.typography.labelMedium)
-                for (line in run.progress.takeLast(6)) {
-                    Text("${elapsedLabel(line.elapsedMs)}  ${line.text}", style = MaterialTheme.typography.bodySmall,
-                        maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Column(Modifier.padding(horizontal = 12.dp, vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(
+                Modifier.fillMaxWidth().heightIn(min = 48.dp)
+                    .clickable(onClickLabel = toggleLabel, role = Role.Button) { expanded = !expanded }
+                    .semantics(mergeDescendants = true) { stateDescription = if (expanded) "Details shown" else "Details hidden" },
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Column(Modifier.weight(1f).padding(vertical = 6.dp)) {
+                    if (active) {
+                        Text(run.request, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(status, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                            color = if (awaitingApproval) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
+                    } else {
+                        Text(status, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                            color = if (failed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface)
+                    }
                 }
-                run.progress.lastOrNull()?.let {
-                    Text("Current update: ${elapsedLabel((elapsed - it.elapsedMs).coerceAtLeast(0))} ago",
-                        style = MaterialTheme.typography.labelSmall)
-                }
+                Text(elapsedLabel(elapsed), style = MaterialTheme.typography.labelMedium)
+                Text(if (expanded) "▴" else "▾", style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.semantics { contentDescription = toggleLabel })
             }
-            TextButton(onClick = { expanded = !expanded }) {
-                Text(if (expanded) "Hide details" else "Show details · ${run.steps.size} steps")
+            if (awaitingApproval) {
+                OutlinedButton(onClick = onReviewApproval) { Text("Review approval") }
             }
             if (expanded) {
-                for (line in run.progress) Text("${elapsedLabel(line.elapsedMs)}  ${line.text}", style = MaterialTheme.typography.bodySmall)
-                for (step in run.steps) StepLine(step)
-            }
-            run.result?.let { r ->
-                Text(resultLabel(r), fontWeight = FontWeight.Bold)
-                if (expanded) Text("Evidence: ${evidenceLabel(r)} · ${r.reason}", style = MaterialTheme.typography.bodySmall)
-            }
-            run.error?.let {
-                if (run.stopRequested) Text("Stopped. Any earlier actions remain.")
-                else Text("Error: $it", color = MaterialTheme.colorScheme.error)
+                Column(Modifier.padding(bottom = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(run.request, style = MaterialTheme.typography.bodyMedium)
+                    val feed = if (active) run.progress.takeLast(6) else run.progress
+                    for (line in feed) {
+                        Text("${elapsedLabel(line.elapsedMs)}  ${line.text}", style = MaterialTheme.typography.bodySmall,
+                            maxLines = if (active) 1 else Int.MAX_VALUE, overflow = TextOverflow.Ellipsis)
+                    }
+                    if (active) run.progress.lastOrNull()?.let {
+                        Text("Current update: ${elapsedLabel((elapsed - it.elapsedMs).coerceAtLeast(0))} ago",
+                            style = MaterialTheme.typography.labelSmall)
+                    }
+                    for (step in run.steps) StepLine(step)
+                    run.result?.let { r ->
+                        Text("Evidence: ${evidenceLabel(r)} · ${r.reason}", style = MaterialTheme.typography.bodySmall)
+                    }
+                    run.error?.let {
+                        if (run.stopRequested) Text("Stopped. Any earlier actions remain.", style = MaterialTheme.typography.bodySmall)
+                        else Text("Error: $it", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                    }
+                }
             }
         }
     }
