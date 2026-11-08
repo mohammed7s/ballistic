@@ -59,6 +59,9 @@ fn target_node(action: &Action, view: &FilteredScreen) -> Option<NodeId> {
 }
 
 
+/// Upper bound on `Options::planner_corrections`, whatever a host asks for.
+pub const MAX_PLANNER_CORRECTIONS: u32 = 4;
+
 /// Scrolls one `scroll … until` may make, the planner's own included.
 pub const SCROLL_UNTIL_MAX: u32 = 5;
 
@@ -246,11 +249,11 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, optio
             match r.next(&view,&screen) {
                 skills::Next::Act(a) if actions::resolve(&a,&view,&screen,&apps).is_ok() => {
                     replayed_steps+=1;
-                    replayed=Some(actions::PlannerReply{action:a,why:"skill replay".into()});
+                    replayed=Some(actions::PlannerReply{action:a,why:"skill replay".into(),notes:vec![]});
                 },
                 skills::Next::Done => {
                     replay=None;
-                    replayed=Some(actions::PlannerReply{action:Action::Done{evidence:"skill replay finished".into()},why:"skill replay".into()});
+                    replayed=Some(actions::PlannerReply{action:Action::Done{evidence:"skill replay finished".into()},why:"skill replay".into(),notes:vec![]});
                 },
                 _ => {
                     let n=replayed_steps+1;
@@ -280,7 +283,9 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, optio
         let planner_room=Room{history_lines:history.len().saturating_sub(context::HISTORY_FLOOR),old_facts:fact_lines.iter().any(|(old,_)|*old),chat_turns:0};
         let mut corrections:Vec<ChatMessage>=Vec::new();
         let mut parsed=replayed;
-        for attempt in 0..2 {
+        // Corrections per step (Options, default 2): each rejected reply gets one more call.
+        let last_attempt=options.planner_corrections.min(MAX_PLANNER_CORRECTIONS);
+        for attempt in 0..=last_attempt {
             if parsed.is_some() { break; }
             stop_if_cancelled!(step-1);
             let completion=guarded!(step,ModelRole::Planner,actions::PLANNER_TOKENS,planner_room,|t:&Trim|{ let mut m=planner_prompt(t); m.extend(corrections.iter().cloned()); m })?;
@@ -290,7 +295,7 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, optio
                 Ok(r)
             }) {
                 Ok(reply)=> {
-                    if attempt==0 {
+                    if attempt==0 && attempt<last_attempt {
                         if let Action::Read{targets,question,shape:ReadShape::Element}=&reply.action {
                             let (_,query)=element_request(&view,targets,question);
                             if read_exhausted(&read_queries,&query) {
@@ -306,7 +311,7 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, optio
                     parsed=Some(reply);break;
                 },
                 Err(e)=> {
-                    if attempt==1 {
+                    if attempt==last_attempt {
                         let category=match &e {
                             actions::ActionError::NoSuchElement(_)|actions::ActionError::UnknownApp(_)|actions::ActionError::Disabled(_)|actions::ActionError::NotActionable(_)|actions::ActionError::Unidentified(_)|actions::ActionError::ReaderTapOnly(_)|actions::ActionError::NotEditable(_)|actions::ActionError::NotScrollable(_)=>"target_resolution",
                             _=>"planning",
@@ -319,6 +324,7 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, optio
             }
         }
         let reply=parsed.expect("validated reply");
+        let parse_notes=reply.notes;
         let action=reply.action;
         if !matches!(&action, Action::Read{..}) { read_queries.clear(); }
         // A run that used content to choose or type cannot become a skill.
@@ -672,6 +678,7 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, optio
         if usage.completion_tokens>0 { event["completion_tokens"]=json!(usage.completion_tokens); }
         if !checks.is_empty() { event["context_guard"]=json!(checks); }
         if self_checked { event["typed_postcondition"]=json!("verified"); }
+        if !parse_notes.is_empty() { event["parse_notes"]=json!(parse_notes); }
         host.log(&event)?;
         if let Some(output)=owner_output {
             let reason=if output.is_available() {output.display()} else {outcome};

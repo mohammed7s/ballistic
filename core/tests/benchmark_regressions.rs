@@ -52,7 +52,7 @@ fn recorded_quick_settings_guesses_never_resolve_to_hands() {
     let flash = format!("e{}", element_id(&view, 6));
     let dnd = format!("e{}", element_id(&view, 7));
     let (result, calls) = run(vec![json!(s), completion(json!({"action":"tap","target":flash})),
-        completion(json!({"action":"tap","target":dnd}))], "Turn on Wi-Fi");
+        completion(json!({"action":"tap","target":dnd})), completion(json!({"action":"long_press","target":flash}))], "Turn on Wi-Fi");
     assert_eq!(result["failure_category"], "target_resolution");
     assert!(!calls.iter().any(|c| c["ask"] == "act" || c["ask"] == "confirm"));
 }

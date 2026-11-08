@@ -14,7 +14,9 @@ fn host_grants_cannot_enable_unsupported_planner_tools() {
         .map(|(i, data)| json!({"id":i+1,"ok":true,"data":data}).to_string()+"\n")
         .collect::<String>();
     let mut output = Vec::new();
-    let result = agent::run(&mut Bridge::new(Cursor::new(input), &mut output), "look up the item", 2).unwrap();
+    // Written for the one-correction policy (the default is now two, tests/planner_output.rs).
+    let one = ballistic_core::run::Options { planner_corrections: 1, ..ballistic_core::run::Options::harness() };
+    let result = agent::run_with(&mut Bridge::new(Cursor::new(input), &mut output), "look up the item", 2, &one).unwrap();
     assert_eq!(result["done"], false);
     assert_eq!(result["failure_category"], "planning");
     assert_eq!(result["execution_status"], "not_executed");

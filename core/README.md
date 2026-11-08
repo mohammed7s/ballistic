@@ -269,7 +269,24 @@ Also report it live per step in the run JSON, as today.
 ## 6. Actions (the planner's only output)
 
 One JSON object per step, validated against `core/schema/actions.json`. Anything that fails
-validation is rejected and counted; the model gets one retry with the error.
+validation is rejected and counted; the model gets up to `Options::planner_corrections` retries
+with the error (default 2, at most 4; one before 9 Nov 2026).
+
+**Forgiving parsing for small models (9 Nov 2026; from the owner's phone with Gemma 4 E2B).**
+Extra fields on `back`, `home` and `wait` are ignored, since they cannot change what those do, and
+noted in the step event's `parse_notes`; every other action still rejects unknown fields. A few key
+aliases are read as the schema key only when the action's schema lacks the alias, the key itself
+is absent and exactly one alias is present (`element`/`element_id`/`target_id` → `target`,
+`value`/`input` → `text` for type, `app_name`/`package`/`name` → `app`, `dir` → `direction`, a
+single `target` → `targets` for read, `answer` → `text` for answer, `reasoning` and, except for
+give_up, `reason` → `why`); ids and values are validated as before. App names also match ignoring
+case, spaces and punctuation (`simple_sms_messenger`), with a trailing "app" dropped and
+`system_settings`/`SystemSettings`/`android settings` read as `settings`, and only ever to an app
+in the advertised list (exactly one). An object with no `action` is never guessed from its fields:
+the correction names the actions those fields would fit. Output-shape corrections include one
+correct object of the action the model attempted (from its `action`, an obvious synonym such as
+`click` → tap, or the single action its fields fit); `actions::example` has one per action and a
+test parses each.
 
 **Overlong replies (9 Nov 2026).** A planner reply whose text is longer than the planner's 800-token
 cap (counted with the context guard's conservative estimate, §12) is invalid output even if it
@@ -787,8 +804,10 @@ max_steps = 15
 Switching the backend is one line. Keys stay in the environment, never in the file or the repo.
 
 The file is design; what exists today is `run::Options` (8 Nov 2026), passed per call:
-`{"max_steps":15,"judge":true,"chat_history_turns":12,"skills":[]}`. Missing fields take the app
-defaults; unknown fields are rejected. `Options::harness()` differs only in `judge: false`.
+`{"max_steps":15,"judge":true,"chat_history_turns":12,"skills":[],"planner_corrections":2}`.
+Missing fields take the app defaults; unknown fields are rejected; `planner_corrections` is written
+only when it is not the default, so the JSON hosts mirror is unchanged. `Options::harness()` differs
+only in `judge: false`.
 
 ### Context guard (`src/context.rs`, 8 Nov 2026)
 

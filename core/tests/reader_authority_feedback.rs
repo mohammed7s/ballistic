@@ -144,7 +144,9 @@ fn tap()->Value {action(json!({"action":"tap","target":"e2"}))}
 fn run_bridge(replies:Vec<Value>,steps:u32)->(Value,Vec<Value>) {
     let input=replies.into_iter().enumerate().map(|(i,d)|json!({"id":i+1,"ok":true,"data":d}).to_string()+"\n").collect::<String>();
     let mut out=vec![];
-    let r=agent::run(&mut Bridge::new(Cursor::new(input),&mut out),"Find the requested entry",steps).unwrap();
+    // Written for the one-correction policy (the default is now two, tests/planner_output.rs).
+    let one=ballistic_core::run::Options{planner_corrections:1,..ballistic_core::run::Options::harness()};
+    let r=agent::run_with(&mut Bridge::new(Cursor::new(input),&mut out),"Find the requested entry",steps,&one).unwrap();
     let c:Vec<Value>=String::from_utf8(out).unwrap().lines().map(|l|serde_json::from_str(l).unwrap()).collect();
     assert_eq!(r["done"],false);
     for call in &c {

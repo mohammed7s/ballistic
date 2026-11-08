@@ -27,11 +27,20 @@ pub struct Options {
     /// matches one exactly replays it; every check still applies.
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub skills: Vec<crate::skills::Skill>,
+    /// Corrections a step gives a rejected planner reply before the run ends (default 2, at most
+    /// `agent::MAX_PLANNER_CORRECTIONS`). Each is one more planner call with the error and one
+    /// correct example of the action attempted. Written only when not the default, so the JSON
+    /// hosts mirror (apps/assistant JsonCompatibilityTest) is unchanged.
+    #[serde(skip_serializing_if = "default_corrections")]
+    pub planner_corrections: u32,
 }
+
+pub const DEFAULT_PLANNER_CORRECTIONS: u32 = 2;
+fn default_corrections(n: &u32) -> bool { *n == DEFAULT_PLANNER_CORRECTIONS }
 
 impl Options {
     pub fn app() -> Self {
-        Options { max_steps: 15, judge: true, chat_history_turns: crate::chat::DEFAULT_HISTORY_TURNS, skills: vec![] }
+        Options { max_steps: 15, judge: true, chat_history_turns: crate::chat::DEFAULT_HISTORY_TURNS, skills: vec![], planner_corrections: DEFAULT_PLANNER_CORRECTIONS }
     }
     pub fn harness() -> Self {
         Options { judge: false, ..Options::app() }

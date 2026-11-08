@@ -35,8 +35,8 @@ pub const WAIT_MILLIS: u32 = 1500;
 pub enum ActionError {
     #[error("no JSON object found in the reply")]
     NoJson,
-    #[error("the JSON object has no \"action\" field")]
-    NoAction,
+    #[error("the JSON object has no \"action\" field{}", fits_hint(.fits))]
+    NoAction { fits: Vec<&'static str> },
     #[error("unknown action {0:?}; allowed: {list}", list = ACTION_NAMES.join(", "))]
     UnknownAction(String),
     #[error("bad arguments for {action}: {detail}")]
@@ -79,14 +79,25 @@ pub fn check_length(text: &str, cap: u32) -> Result<(), ActionError> {
     if tokens > cap { Err(ActionError::Overlong { tokens, cap }) } else { Ok(()) }
 }
 
+fn fits_hint(fits: &[&str]) -> String {
+    match fits {
+        [] => String::new(),
+        [one] => format!("; its fields fit {one:?}, but core does not guess the action: name it"),
+        many => format!("; its fields fit {}, but core does not guess the action: name it",
+            many.iter().map(|a| format!("{a:?}")).collect::<Vec<_>>().join(" or ")),
+    }
+}
+
 /// The correction message for a rejected reply. Output-shape errors (no JSON, too long, unknown
-/// action, bad arguments) remind the model to return exactly one JSON object; target and value
-/// errors keep their fixed wording.
-pub fn correction(error: &ActionError, _reply: &str) -> String {
+/// action, bad arguments) remind the model to return exactly one JSON object and show one correct
+/// object of the action it attempted; target and value errors keep their fixed wording.
+pub fn correction(error: &ActionError, reply: &str) -> String {
     match error {
-        ActionError::NoJson | ActionError::NoAction | ActionError::UnknownAction(_) | ActionError::BadArguments { .. }
-        | ActionError::Overlong { .. } =>
-            format!("Invalid action: {error}. Return exactly one corrected JSON object and nothing else: no prose, tags or code fences."),
+        ActionError::NoJson | ActionError::NoAction { .. } | ActionError::UnknownAction(_) | ActionError::BadArguments { .. }
+        | ActionError::Overlong { .. } => {
+            let shown = attempted(reply, error).and_then(|a| example(a).map(|e| format!("A correct {a} action: {e}. "))).unwrap_or_default();
+            format!("Invalid action: {error}. {shown}Return exactly one corrected JSON object and nothing else: no prose, tags or code fences.")
+        }
         _ => format!("Invalid action: {error}. Return a corrected JSON action."),
     }
 }
@@ -101,11 +112,13 @@ pub fn echo_rejected(text: &str) -> String {
 /// Longest planner answer core accepts.
 pub const MAX_ANSWER_CHARS: usize = 600;
 
-/// A parsed reply: the action and the planner's short reason (logged, not executed).
+/// A parsed reply: the action and the planner's short reason (logged, not executed), plus what
+/// the parser forgave (`read "element" as "target"`, `ignored field "x" on back`), for the log.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PlannerReply {
     pub action: Action,
     pub why: String,
+    pub notes: Vec<String>,
 }
 
 /// Every top-level `{...}` in `text`, in order, respecting JSON strings and escapes.
@@ -149,6 +162,47 @@ fn id_value(v: &Value, prefix: char) -> Option<Value> {
     s.parse::<u32>().ok().filter(|id| *id > 0).map(Value::from)
 }
 
+fn schema() -> &'static Value {
+    static PARSED: std::sync::OnceLock<Value> = std::sync::OnceLock::new();
+    PARSED.get_or_init(|| serde_json::from_str(ACTIONS_SCHEMA).expect("compiled action schema"))
+}
+
+fn variants() -> &'static [Value] { schema()["oneOf"].as_array().unwrap() }
+
+/// Actions whose required fields (besides `action`) are all present in `obj` and whose schema
+/// has every field `obj` carries: what an object without `action` could have meant. Reported in
+/// the correction; core never picks one.
+fn fitting_actions(obj: &serde_json::Map<String, Value>) -> Vec<&'static str> {
+    variants().iter().filter(|v| {
+        let required = v["required"].as_array().unwrap();
+        required.iter().filter_map(Value::as_str).filter(|r| *r != "action").all(|r| obj.contains_key(r))
+            && obj.keys().all(|k| v["properties"].get(k).is_some())
+            && required.len() > 1
+    }).filter_map(|v| v["properties"]["action"]["const"].as_str()).collect()
+}
+
+/// Key aliases small models use, applied only when the action's schema lacks the alias, the
+/// canonical key is absent, and exactly one alias is present: `(actions, alias, canonical)`.
+const KEY_ALIASES: &[(&[&str], &str, &str)] = &[
+    (&["tap", "long_press", "type", "swipe", "scroll"], "element", "target"),
+    (&["tap", "long_press", "type", "swipe", "scroll"], "element_id", "target"),
+    (&["tap", "long_press", "type", "swipe", "scroll"], "target_id", "target"),
+    (&["type"], "value", "text"),
+    (&["type"], "input", "text"),
+    (&["open_app"], "app_name", "app"),
+    (&["open_app"], "package", "app"),
+    (&["open_app"], "name", "app"),
+    (&["scroll", "swipe"], "dir", "direction"),
+    (&["read"], "target", "targets"),
+    (&["answer"], "answer", "text"),
+    (&["open_app", "tap", "long_press", "type", "scroll", "swipe", "back", "home", "wait", "read", "answer", "done", "give_up"], "reasoning", "why"),
+    (&["open_app", "tap", "long_press", "type", "scroll", "swipe", "back", "home", "wait", "read", "answer", "done"], "reason", "why"),
+];
+
+/// Actions with no argument: an extra field cannot change what they do, so it is ignored (and
+/// noted) instead of rejecting the reply.
+const ARGUMENTLESS: &[&str] = &["back", "home", "wait"];
+
 /// Parse the planner's reply. Takes the last JSON object that has an `action` field.
 pub fn parse_reply(text: &str) -> Result<PlannerReply, ActionError> {
     let objects: Vec<serde_json::Map<String, Value>> = json_objects(text)
@@ -161,27 +215,44 @@ pub fn parse_reply(text: &str) -> Result<PlannerReply, ActionError> {
     if objects.is_empty() {
         return Err(ActionError::NoJson);
     }
-    let mut obj = objects
-        .into_iter()
-        .rev()
-        .find(|m| m.contains_key("action"))
-        .ok_or(ActionError::NoAction)?;
+    let Some(mut obj) = objects.iter().rev().find(|m| m.contains_key("action")).cloned() else {
+        // Do not guess the action from the fields: say which ones they would fit.
+        return Err(ActionError::NoAction { fits: fitting_actions(objects.last().unwrap()) });
+    };
     let name = obj
         .get("action")
         .and_then(Value::as_str)
         .map(str::to_string)
-        .ok_or(ActionError::NoAction)?;
+        .ok_or(ActionError::NoAction { fits: vec![] })?;
     if !ACTION_NAMES.contains(&name.as_str()) {
         return Err(ActionError::UnknownAction(name));
     }
     obj.insert("action".into(), Value::from(name.clone()));
     let bad = |detail: String| ActionError::BadArguments { action: name.clone(), detail };
-    let schema: Value = serde_json::from_str(ACTIONS_SCHEMA).expect("compiled action schema");
-    let variant = schema["oneOf"].as_array().unwrap().iter()
-        .find(|v| v["properties"]["action"]["const"] == name).unwrap();
-    for field in obj.keys() {
-        if variant["properties"].get(field).is_none() {
+    let variant = variants().iter().find(|v| v["properties"]["action"]["const"] == name).unwrap();
+    let mut notes = Vec::new();
+    for canonical in ["target", "text", "app", "direction", "targets", "why"] {
+        let aliases: Vec<&str> = KEY_ALIASES.iter()
+            .filter(|(names, alias, c)| *c == canonical && names.contains(&name.as_str()) && variant["properties"].get(*alias).is_none()
+                && obj.contains_key(*alias))
+            .map(|(_, alias, _)| *alias).collect();
+        if let [alias] = aliases[..] {
+            if !obj.contains_key(canonical) && variant["properties"].get(canonical).is_some() {
+                let mut value = obj.remove(alias).unwrap();
+                if canonical == "targets" && value.is_string() { value = Value::Array(vec![value]); }
+                obj.insert(canonical.into(), value);
+                notes.push(format!("read {alias:?} as {canonical:?}"));
+            }
+        }
+    }
+    let unknown: Vec<String> = obj.keys().filter(|f| variant["properties"].get(f.as_str()).is_none()).cloned().collect();
+    if let Some(field) = unknown.first() {
+        if !ARGUMENTLESS.contains(&name.as_str()) {
             return Err(bad(format!("unknown field {field:?}")));
+        }
+        for f in &unknown {
+            obj.remove(f);
+            notes.push(format!("ignored field {f:?} on {name}"));
         }
     }
     let why = match obj.remove("why") {
@@ -203,7 +274,46 @@ pub fn parse_reply(text: &str) -> Result<PlannerReply, ActionError> {
         obj.insert("targets".into(), Value::Array(ids));
     }
     let action: Action = serde_json::from_value(Value::Object(obj)).map_err(|e| bad(e.to_string()))?;
-    Ok(PlannerReply { action, why })
+    Ok(PlannerReply { action, why, notes })
+}
+
+/// The action a rejected reply tried, for the correction's example: its `action` name, an
+/// obvious synonym of one, or the single action its fields fit.
+pub fn attempted(text: &str, error: &ActionError) -> Option<&'static str> {
+    let named = |n: &str| ACTION_NAMES.iter().copied().find(|a| *a == n).or(match n {
+        "click" | "press" | "tap_element" => Some("tap"),
+        "input" | "type_text" | "enter_text" | "input_text" | "fill" => Some("type"),
+        "open" | "launch" | "launch_app" | "start_app" => Some("open_app"),
+        "finish" | "complete" | "finished" => Some("done"),
+        "go_back" | "navigate_back" => Some("back"),
+        _ => None,
+    });
+    match error {
+        ActionError::BadArguments { action, .. } | ActionError::UnknownAction(action) => named(action),
+        ActionError::NoAction { fits } => fits.first().copied(),
+        _ => json_objects(text).into_iter().rev().filter_map(|s| serde_json::from_str::<Value>(s).ok())
+            .find_map(|v| v.get("action").and_then(Value::as_str).and_then(named)),
+    }
+}
+
+/// One correct object for each action, for corrections. A test parses every one.
+pub fn example(action: &str) -> Option<&'static str> {
+    Some(match action {
+        "open_app" => r#"{"action":"open_app","app":"Clock","why":"the owner asked for the clock"}"#,
+        "tap" => r#"{"action":"tap","target":"e3","why":"open the menu"}"#,
+        "long_press" => r#"{"action":"long_press","target":"e3","why":"select the row"}"#,
+        "type" => r#"{"action":"type","target":"e2","text":"Hello","submit":false,"why":"fill the message field"}"#,
+        "scroll" => r#"{"action":"scroll","target":"e5","direction":"down","why":"show more rows"}"#,
+        "swipe" => r#"{"action":"swipe","target":"e1","direction":"right","why":"raise the slider"}"#,
+        "back" => r#"{"action":"back","why":"return to the list"}"#,
+        "home" => r#"{"action":"home","why":"go to the home screen"}"#,
+        "wait" => r#"{"action":"wait","why":"the screen is loading"}"#,
+        "read" => r#"{"action":"read","targets":["c4"],"question":"what is the new number?","shape":"facts","why":"the number is hidden"}"#,
+        "answer" => r#"{"action":"answer","text":"You have two events today.","why":"the owner asked"}"#,
+        "done" => r#"{"action":"done","evidence":"the saved event shows the requested title","why":"finished"}"#,
+        "give_up" => r#"{"action":"give_up","reason":"this app has no such setting","why":"unsupported"}"#,
+        _ => return None,
+    })
 }
 
 /// Check an action against the screen the planner saw.
@@ -401,6 +511,19 @@ pub fn match_app<'a>(name: &str, apps: &'a [AppEntry]) -> Option<&'a AppEntry> {
     }
     let lower = name.to_lowercase();
     if let Some(a) = apps.iter().find(|a| a.label.to_lowercase() == lower || a.package.to_lowercase() == lower) {
+        return Some(a);
+    }
+    // Case, spaces, underscores and other punctuation ignored ("simple_sms_messenger",
+    // "SimpleSMSMessenger"), and a few names small models use for Settings. Only an app in the
+    // advertised list can match; exactly one must.
+    let squash = |s: &str| s.chars().filter(|c| c.is_alphanumeric()).flat_map(char::to_lowercase).collect::<String>();
+    let mut wanted = squash(name);
+    if let Some(stem) = wanted.strip_suffix("app").filter(|s| !s.is_empty()) { wanted = stem.to_string(); }
+    if matches!(wanted.as_str(), "systemsettings" | "androidsettings" | "phonesettings" | "devicesettings") {
+        wanted = "settings".into();
+    }
+    let same: Vec<&AppEntry> = apps.iter().filter(|a| squash(&a.label) == wanted || squash(&a.package) == wanted).collect();
+    if let [a] = same[..] {
         return Some(a);
     }
     let want = app_words(name);
