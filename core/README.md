@@ -224,6 +224,20 @@ identity; SSIDs and device names stay content. Every entry was seen in a recorde
 no substring or caption heuristic. Keyboard text other than exact `key_pos_*` keys (the
 suggestion strip shows the clipboard) is content.
 
+Added 9 Nov 2026 from the Haiku 2 screens (`tests/recorded_labels.rs`): the **Settings homepage**
+tiles are named by their titles only inside the complete recorded envelope (homepage_container >
+recycler_view, every row an id-less clickable LinearLayout with exactly one `android:id/title` from a
+fixed list of 21 AOSP/GMS titles and at most one summary; any unknown, duplicate or reshaped row
+names no row; summaries stay content). The **DocumentsUI** toolbar ("Show roots", Search, More
+options) is named when package, class, id or its absence, the parent chain (a ScrollView directly in
+`drawer_layout`) and the OS description agree; the whole page sits in one scrolling view, which made
+them look like list rows. The **Pro Expense delete sheet** title, warning and close control get
+exact-id labels so the planner can tell what CONFIRM confirms. A recognized **Material time picker**
+(library ids `material_hour_tv`/`material_minute_tv`) adds one `note:` line after the elements,
+built from the toggles' own labels (`note: time picker shows 13:15; editing hours …`). A scrollable
+node whose visible children share one row renders `[scrollable horizontally]` (geometry only); the
+Expense category list was scrolled up and down in Haiku 2.
+
 **Dedicated typed values** (7 Nov 2026, `typed_value.rs`): exact calendar form controls and
 explicit event-list items can carry bounded numeric date/time observations. These are untrusted
 app data, separate from labels, matched titles and typed history; raw strings remain with the
