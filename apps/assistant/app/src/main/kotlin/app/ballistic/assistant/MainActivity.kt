@@ -27,7 +27,7 @@ import androidx.compose.ui.Modifier
 import app.ballistic.assistant.ui.AppShell
 import app.ballistic.assistant.ui.BallisticTheme
 import app.ballistic.assistant.ui.LocalAiScreen
-import app.ballistic.assistant.ui.LogScreen
+import app.ballistic.assistant.ui.ActivityScreen
 import app.ballistic.assistant.ui.PromptScreen
 import app.ballistic.assistant.ui.Screen
 import app.ballistic.assistant.ui.SettingsScreen
@@ -66,7 +66,7 @@ class MainActivity : ComponentActivity() {
                         AppShell(appGraph, this@MainActivity, screen, onOpen = ::open, onBack = ::back) {
                             when (screen) {
                                 Screen.Ask -> PromptScreen(appGraph, activity = this@MainActivity, onOpen = ::open)
-                                Screen.Activity -> LogScreen(appGraph)
+                                Screen.Activity -> ActivityScreen(appGraph)
                                 Screen.LocalAi -> LocalAiScreen(appGraph, activity = this@MainActivity, onOpenAsk = { open(Screen.Ask) }, onOpenSettings = { open(Screen.Settings) })
                                 Screen.Settings, Screen.Capabilities -> SettingsScreen(appGraph, activity = this@MainActivity)
                             }
