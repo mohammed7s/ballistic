@@ -14,8 +14,11 @@ Flags:
   --base_url   OpenAI-compatible endpoint (default http://127.0.0.1:11434/v1, Ollama)
   --model      model name at that endpoint (default gemma3:4b). Cloud example (Gemini):
                --base_url https://generativelanguage.googleapis.com/v1beta/openai/ --model gemini-3.8-flash
-  --api_key    override only; the key normally comes from $BALLISTIC_API_KEY so it never sits on a
-               command line
+  --api_key    override only; the key normally comes from $BALLISTIC_API_KEY (provider openai) or
+               $ANTHROPIC_API_KEY (provider anthropic) so it never sits on a command line
+  --provider   core only: openai (default; the OpenAI-compatible --base_url) or anthropic (Messages
+               API through the official SDK; --base_url is ignored, --model e.g. claude-haiku-5-5)
+  --effort     provider anthropic only: output_config.effort low|medium|high (default low)
   --agent      t3a (text: UI tree only), m3a (multimodal: screenshot + UI tree) or core (Ballistic's
                agent, ballistic-core over JSON lines; --confirm approve|deny, --reader_model,
                --judge_model, --verifier_model)
@@ -66,6 +69,8 @@ flags.DEFINE_string("reader_model", None, "core: model for the reader role, same
 flags.DEFINE_string("judge_model", None, "core: model for the judge role, same base_url (default --model)")
 flags.DEFINE_string("verifier_model", None, "core: model for the verifier role, same base_url (default --model)")
 flags.DEFINE_float("core_model_min_interval", 0.0, "core: minimum seconds between HTTP attempts across roles (0 disables pacing)")
+flags.DEFINE_enum("provider", "openai", ["openai", "anthropic"], "core: openai = OpenAI-compatible --base_url; anthropic = Messages API via the official SDK (key from $ANTHROPIC_API_KEY, --base_url ignored)")
+flags.DEFINE_enum("effort", "low", ["low", "medium", "high"], "core, provider anthropic: output_config.effort")
 flags.DEFINE_bool("core_disable_native_tools", False, "core: opt in to tool_choice=none for every model role; endpoint must support it without tools")
 flags.DEFINE_integer("seed", None, "Seed for task generation; original baseline was unseeded")
 flags.DEFINE_string("task", None, "AndroidWorld task name; random if omitted")
@@ -83,8 +88,26 @@ flags.DEFINE_bool("no_think", True, "Prefix prompts with /no_think (disables Qwe
 
 
 def api_key() -> str:
-    """--api_key if given, else $BALLISTIC_API_KEY. Never printed or written to a run file."""
+    """--api_key if given, else $BALLISTIC_API_KEY ($ANTHROPIC_API_KEY for --provider anthropic).
+    Never printed or written to a run file."""
+    if FLAGS.provider == "anthropic":
+        key = FLAGS.api_key or os.environ.get("ANTHROPIC_API_KEY", "")
+        if not key:
+            raise SystemExit("--provider anthropic needs ANTHROPIC_API_KEY in the environment")
+        return key
     return FLAGS.api_key or os.environ.get("BALLISTIC_API_KEY", "ollama")
+
+
+def t3a_api_key() -> str:
+    """T3A/M3A always call the OpenAI-compatible --base_url; never hand them an Anthropic key."""
+    if FLAGS.provider != "openai":
+        raise SystemExit("--provider anthropic applies to --agent core only")
+    return api_key()
+
+
+def model_endpoint() -> str:
+    """Where model calls go, for printing and run records (never includes a key)."""
+    return "anthropic (SDK default endpoint)" if FLAGS.provider == "anthropic" else FLAGS.base_url
 
 
 class OpenAICompatWrapper(infer.LlmWrapper, infer.MultimodalLlmWrapper):
@@ -173,13 +196,13 @@ def _main() -> None:
         task.initialize_task(env)
         name, goal, budget = task_type.__name__, task.goal, int(task.complexity * 10)
 
-    print(f"\nTask:  {name}\nGoal:  {goal}\nAgent: {FLAGS.agent}  Model: {FLAGS.model} @ {FLAGS.base_url}\nStep budget: {budget}\n")
+    print(f"\nTask:  {name}\nGoal:  {goal}\nAgent: {FLAGS.agent}  Model: {FLAGS.model} @ {model_endpoint()}\nStep budget: {budget}\n")
     if FLAGS.agent == "core":
         _run_core(env, task, name, goal, budget)
         env.close()
         return
 
-    llm = OpenAICompatWrapper(FLAGS.base_url, FLAGS.model, api_key(), FLAGS.temperature, FLAGS.max_tokens, FLAGS.timeout, FLAGS.no_think)
+    llm = OpenAICompatWrapper(FLAGS.base_url, FLAGS.model, t3a_api_key(), FLAGS.temperature, FLAGS.max_tokens, FLAGS.timeout, FLAGS.no_think)
     agent = m3a.M3A(env, llm) if FLAGS.agent == "m3a" else t3a.T3A(env, llm)
 
     steps: list[dict[str, Any]] = []
@@ -234,21 +257,27 @@ def _run_core(env, task, name: str, goal: str, budget: int) -> None:
     print(f"\n{verdict}  {name}  steps={len(steps)}  time={run['total_seconds']}s  exit={run['exit_code']}  model_calls={len(host.models.calls)} benchmark={outcome['benchmark_status']} agent_done={str(run['done']).lower()}")
     if run["stderr"].strip():
         print("core stderr:", run["stderr"].strip()[:2000])
+    if any(c.get("error_category") == "billing" for c in host.models.calls):
+        print("model provider billing error: the account cannot pay for requests "
+              "(e.g. credit balance too low); add credit before running again")
     print(f"written {write_core_record(name, goal, FLAGS.core_mode, args, host, run, success)}")
 
 
 # ---- core runs, shared with chat.py ---------------------------------------------------------
 
 def core_models() -> core_bridge.ModelClient:
-    """Every role on --base_url; --reader_model / --judge_model / --verifier_model override the
-    model name for that role, otherwise it is --model."""
+    """Every role on --base_url (provider anthropic: the SDK's default endpoint);
+    --reader_model / --judge_model / --verifier_model override the model name for that role,
+    otherwise it is --model."""
     key = api_key()
-    routes = {"planner": (FLAGS.base_url, FLAGS.model, key)}
+    base_url = None if FLAGS.provider == "anthropic" else FLAGS.base_url
+    routes = {"planner": (base_url, FLAGS.model, key)}
     for role, model in (("reader", FLAGS.reader_model), ("judge", FLAGS.judge_model), ("verifier", FLAGS.verifier_model)):
-        routes[role] = (FLAGS.base_url, model or FLAGS.model, key)
+        routes[role] = (base_url, model or FLAGS.model, key)
     return core_bridge.ModelClient(routes, FLAGS.temperature, FLAGS.timeout,
                                    min_interval_seconds=FLAGS.core_model_min_interval,
-                                   disable_native_tools=FLAGS.core_disable_native_tools)
+                                   disable_native_tools=FLAGS.core_disable_native_tools,
+                                   provider=FLAGS.provider, effort=FLAGS.effort)
 
 
 def serve_core(host: core_bridge.CoreHost, args: list[str]) -> dict[str, Any]:
@@ -293,10 +322,13 @@ def write_core_record(name: str, goal: str, core_mode: str, args: list[str], hos
     with open(out, "w") as f:
         json.dump({
             "task": name, "goal": goal, "seed": FLAGS.seed, "agent": "core", "core_mode": core_mode, "core_args": args,
-            "model": FLAGS.model, "roles": {r: m for r, (_, m, _) in host.models.routes.items()},
+            "model": FLAGS.model, "roles": host.models.role_models(),
             "core_model_min_interval": host.models.min_interval_seconds,
             "core_disable_native_tools": host.models.disable_native_tools,
-            "base_url": FLAGS.base_url, "confirm": host.confirm_policy, "success": success, "done": run["done"],
+            "provider": host.models.provider,
+            **({"effort": host.models.effort} if host.models.provider == "anthropic" else {}),
+            "base_url": None if host.models.provider == "anthropic" else FLAGS.base_url,
+            "confirm": host.confirm_policy, "success": success, "done": run["done"],
             "steps": [e for e in host.events if "step" in e], "finished": run["finished"],
             "model_calls": host.models.calls, "confirmations": host.confirmations,
             "total_seconds": run["total_seconds"], "exit_code": run["exit_code"], "stderr": run["stderr"][-4000:],

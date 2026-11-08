@@ -4,7 +4,8 @@ Core asks, this file answers, and nothing here decides anything (core/README.md 
 Five kinds of ask:
   observe   -> ScreenState built from AndroidWorld's accessibility forest (parents kept)
   act       -> one HandsOp executed through AndroidWorld's adb helpers, in screen coordinates
-  complete  -> one chat completion at the OpenAI-compatible endpoint configured for the role
+  complete  -> one chat completion for the role: an OpenAI-compatible endpoint (default) or the
+               Anthropic Messages API through the official SDK (`provider="anthropic"`)
   confirm   -> approve or deny from a fixed policy (benchmark: approve; injection tests: deny)
   tool      -> reserved optional read-only Tools port; core currently supports no requests
 plus `log`, which this file appends to the run record. A `converse` turn (`--chat` in chat.py)
@@ -477,12 +478,54 @@ class ModelResponseError(RuntimeError):
     """A malformed model response, described by a code-owned reason only."""
 
 
-class ModelClient:
-    """One OpenAI-compatible endpoint per role.
+class ModelProviderError(RuntimeError):
+    """A failed provider request, described by a code-owned category only (never the provider's
+    message, which can echo request content)."""
 
-    Transient transport/502/503/504 failures and at most one empty textual
+    def __init__(self, category: str, http_status: Optional[int] = None):
+        super().__init__(category if http_status is None else f"{category} (HTTP {http_status})")
+        self.category = category
+        self.http_status = http_status
+
+
+PROVIDERS = ("openai", "anthropic")
+EFFORTS = ("low", "medium", "high")
+
+
+def _anthropic_sdk() -> Any:
+    """The official Anthropic SDK, imported only when an anthropic route is used."""
+    import anthropic  # pylint: disable=import-outside-toplevel
+    return anthropic
+
+
+def anthropic_messages(messages: list[dict[str, str]]) -> tuple[str, list[dict[str, str]]]:
+    """Core's ChatMessage list as Messages API fields: the leading system message(s) become
+    `system`; the rest are user/assistant turns with consecutive same-role messages merged.
+    Core sends no later system message today; one would be sent as user text."""
+    system: list[str] = []
+    i = 0
+    while i < len(messages) and messages[i].get("role") == "system":
+        system.append(messages[i].get("content") or "")
+        i += 1
+    turns: list[dict[str, str]] = []
+    for m in messages[i:]:
+        role = "assistant" if m.get("role") == "assistant" else "user"
+        content = m.get("content") or ""
+        if turns and turns[-1]["role"] == role:
+            turns[-1]["content"] += "\n\n" + content
+        else:
+            turns.append({"role": role, "content": content})
+    return "\n\n".join(system), turns
+
+
+class ModelClient:
+    """One model route per role: (base_url, model, key).
+
+    `provider` is "openai" (default: an OpenAI-compatible /chat/completions endpoint over
+    requests) or "anthropic" (the Messages API through the official SDK; base_url None means
+    the SDK default). Transient transport/5xx failures and at most one empty textual
     generation are retried within the same total attempt budget. Telemetry
-    records safe response metadata, never raw error bodies or discarded output.
+    records safe response metadata, never raw error bodies, keys, prompts or discarded output.
     """
 
     RETRY_STATUSES = (502, 503, 504)
@@ -498,13 +541,32 @@ class ModelClient:
         "MALFORMED_RESPONSE", "ESCALATION",
     }
 
-    def __init__(self, routes: dict[str, tuple[str, str, str]], temperature: float = 0.0, timeout: int = 120,
+    # Anthropic: code-owned names only; anything else is recorded as "other".
+    ANTHROPIC_STOP_REASONS = {"end_turn", "max_tokens", "stop_sequence", "tool_use", "pause_turn",
+                              "refusal", "model_context_window_exceeded"}
+    REFUSAL_CATEGORIES = {"cyber", "bio", "reasoning_extraction", "frontier_llm", "general_harms"}
+    # A 429 is retried (Anthropic only) when the provider says when, and no later than this.
+    RATE_LIMIT_RETRY_MAX_SECONDS = 60.0
+    _CREDIT_MESSAGE = re.compile(r"credit balance is too low", re.I)
+    _BILLING_CODE = re.compile(r"credit|billing|spend_limit|on_hold", re.I)
+
+    def __init__(self, routes: dict[str, tuple[Optional[str], str, str]], temperature: float = 0.0, timeout: int = 120,
                  retries: int = 3, backoff_seconds: float = 2.0, min_interval_seconds: float = 0.0,
-                 disable_native_tools: bool = False):
+                 disable_native_tools: bool = False, provider: str = "openai", effort: str = "low"):
         if not 0 <= min_interval_seconds <= 60:
             raise ValueError("model minimum interval must be between 0 and 60 seconds")
         if type(disable_native_tools) is not bool:
             raise ValueError("disable_native_tools must be a boolean")
+        if provider not in PROVIDERS:
+            raise ValueError(f"provider must be one of {PROVIDERS}")
+        if effort not in EFFORTS:
+            raise ValueError(f"effort must be one of {EFFORTS}")
+        if provider == "anthropic" and disable_native_tools:
+            raise ValueError("disable_native_tools applies to the openai provider only")
+        self.provider = provider
+        # Anthropic only: output_config.effort. Thinking is left to the model's default.
+        self.effort = effort
+        self._anthropic_clients: dict[tuple[Optional[str], str], Any] = {}
         self.routes = routes
         self.temperature = temperature
         self.timeout = timeout
@@ -650,10 +712,15 @@ class ModelClient:
         message = body["choices"][0]["message"]
         return not any(message.get(field) for field in ("refusal", "tool_calls", "function_call"))
 
+    def role_models(self) -> dict[str, str]:
+        return {role: model for role, (_, model, _) in self.routes.items()}
+
     def complete(self, role: str, messages: list[dict[str, str]], max_tokens: int) -> dict[str, Any]:
+        base_url, model, api_key = self.routes.get(role) or self.routes["planner"]
+        if self.provider == "anthropic":
+            return self._complete_anthropic(role, base_url, model, api_key, messages, max_tokens)
         import requests  # here, so replay_core.py runs without it
 
-        base_url, model, api_key = self.routes.get(role) or self.routes["planner"]
         body = {"model": model, "messages": messages, "temperature": self.temperature, "max_tokens": max_tokens}
         if self.disable_native_tools:
             body["tool_choice"] = "none"
@@ -718,6 +785,182 @@ class ModelClient:
                 raise
             except Exception as exc:
                 self._failed(role, model, t0, exc, r, retried, diagnostics, pacing_seconds)
+                raise
+        raise AssertionError("unreachable: the last attempt returns or raises")
+
+    # ---- anthropic -------------------------------------------------------------------------
+    def _anthropic_client(self, sdk: Any, base_url: Optional[str], api_key: str) -> Any:
+        # max_retries=0: this client's attempt budget, pacing and telemetry govern every retry.
+        key = (base_url, hashlib.sha256(api_key.encode()).hexdigest())
+        if key not in self._anthropic_clients:
+            self._anthropic_clients[key] = sdk.Anthropic(api_key=api_key, base_url=base_url,
+                                                         max_retries=0, timeout=self.timeout)
+        return self._anthropic_clients[key]
+
+    @staticmethod
+    def _count(obj: Any, name: str) -> Optional[int]:
+        value = getattr(obj, name, None)
+        return value if type(value) is int and value >= 0 else None
+
+    @classmethod
+    def _anthropic_usage(cls, usage: Any) -> dict[str, int]:
+        """prompt_tokens = input + cache read + cache creation; completion_tokens = output
+        (thinking included; thinking_tokens recorded separately when the API reports it)."""
+        if usage is None:
+            return {}
+        out: dict[str, int] = {}
+        cache = {name: cls._count(usage, name) for name in ("cache_read_input_tokens", "cache_creation_input_tokens")}
+        out.update({name: value for name, value in cache.items() if value is not None})
+        if (inp := cls._count(usage, "input_tokens")) is not None:
+            out["input_tokens"] = inp
+            out["prompt_tokens"] = inp + sum(v for v in cache.values() if v is not None)
+        if (output := cls._count(usage, "output_tokens")) is not None:
+            out["completion_tokens"] = output
+        thinking = cls._count(getattr(usage, "output_tokens_details", None), "thinking_tokens")
+        if thinking is not None:
+            out["thinking_tokens"] = thinking
+        return out
+
+    @classmethod
+    def _anthropic_metadata(cls, message: Any) -> dict[str, Any]:
+        """Safe diagnostics of a Messages API reply: counts, allowlisted names, usage. Only
+        `text` blocks carry the answer; thinking blocks are counted, never read."""
+        content = getattr(message, "content", None)
+        blocks = content if isinstance(content, list) else []
+        kinds = [getattr(b, "type", None) for b in blocks]
+        texts = [b.text for b, kind in zip(blocks, kinds) if kind == "text" and isinstance(getattr(b, "text", None), str)]
+        stop = getattr(message, "stop_reason", None)
+        meta: dict[str, Any] = {
+            "stop_reason": stop if stop in cls.ANTHROPIC_STOP_REASONS else ("missing" if stop is None else "other"),
+            "text_blocks": len(texts),
+            "thinking_blocks": sum(kind in ("thinking", "redacted_thinking") for kind in kinds),
+            "tool_use_present": any(kind in ("tool_use", "server_tool_use") for kind in kinds),
+        }
+        if not isinstance(content, list):
+            meta["response_shape"] = "missing_or_invalid_content"
+        elif not texts:
+            meta["response_shape"] = "missing_content"
+        elif not "".join(texts).strip():
+            meta["response_shape"] = "empty_content"
+        else:
+            meta["response_shape"] = "text_content"
+        if stop == "refusal":
+            category = getattr(getattr(message, "stop_details", None), "category", None)
+            meta["refusal_category"] = category if category in cls.REFUSAL_CATEGORIES else (
+                "missing" if category is None else "other")
+        return {**meta, **cls._anthropic_usage(getattr(message, "usage", None))}
+
+    def _anthropic_status(self, sdk: Any, exc: Any) -> dict[str, Any]:
+        """A typed SDK status error as a code-owned category. The provider message is matched
+        against one fixed phrase (low credit) and never kept."""
+        status = getattr(exc, "status_code", None)
+        code = getattr(exc, "error_code", None)
+        message = getattr(exc, "api_message", None) or getattr(exc, "message", None) or ""
+        spend_limit = getattr(sdk, "EnforcedSpendLimitReachedError", None)
+        if (status == 402 or getattr(exc, "type", None) == "billing_error"
+                or (isinstance(code, str) and self._BILLING_CODE.search(code))
+                or (spend_limit is not None and isinstance(exc, spend_limit))
+                or (isinstance(exc, sdk.BadRequestError) and isinstance(message, str)
+                    and self._CREDIT_MESSAGE.search(message))):
+            category = "billing"
+        elif isinstance(exc, sdk.RateLimitError):
+            category = "rate_limit"
+        elif status == 529 or isinstance(exc, getattr(sdk, "OverloadedError", ())):
+            category = "overloaded"
+        elif isinstance(exc, sdk.InternalServerError) or (type(status) is int and status >= 500):
+            category = "server"
+        elif isinstance(exc, sdk.AuthenticationError):
+            category = "authentication"
+        elif isinstance(exc, sdk.PermissionDeniedError):
+            category = "permission"
+        elif isinstance(exc, sdk.NotFoundError):
+            category = "not_found"
+        elif isinstance(exc, sdk.BadRequestError):
+            category = "bad_request"
+        else:
+            category = "http_error"
+        meta: dict[str, Any] = {"http_status": status if type(status) is int else None,
+                                "error_category": category}
+        if category == "rate_limit":
+            meta.update(self._quota_metadata(getattr(exc, "response", None)))
+        return meta
+
+    def _complete_anthropic(self, role: str, base_url: Optional[str], model: str, api_key: str,
+                            messages: list[dict[str, str]], max_tokens: int) -> dict[str, Any]:
+        """messages.create with the role's max_tokens and the configured effort. No sampling
+        parameters (current models reject them) and no `thinking` field (model default)."""
+        sdk = _anthropic_sdk()
+        system, turns = anthropic_messages(messages)
+        request: dict[str, Any] = {"model": model, "max_tokens": max_tokens, "messages": turns,
+                                   "output_config": {"effort": self.effort}}
+        if system:
+            request["system"] = system
+        client = self._anthropic_client(sdk, base_url, api_key)
+        t0 = time.time()
+        retried: list[dict[str, Any]] = []
+        retried_empty = False
+        pacing_seconds = 0.0
+        base = {"provider": "anthropic", "effort": self.effort}
+        for attempt in range(self.retries + 1):
+            diagnostics: dict[str, Any] = {}
+            last = attempt >= self.retries
+            try:
+                pacing_seconds += self._pace()
+                try:
+                    message = client.messages.create(**request)
+                except sdk.APITimeoutError:
+                    diagnostics = {"error_category": "timeout"}
+                    raise ModelProviderError("timeout") from None
+                except sdk.APIConnectionError:
+                    diagnostics = {"error_category": "connection"}
+                    if not last:
+                        retried.append({"error_type": "APIConnectionError", **diagnostics})
+                        time.sleep(self.backoff_seconds * 2 ** attempt)
+                        continue
+                    raise ModelProviderError("connection") from None
+                except sdk.APIStatusError as exc:
+                    diagnostics = self._anthropic_status(sdk, exc)
+                    category, status = diagnostics["error_category"], diagnostics["http_status"]
+                    if category in ("overloaded", "server") and not last:
+                        retried.append({"error_type": type(exc).__name__, **diagnostics})
+                        time.sleep(self.backoff_seconds * 2 ** attempt)
+                        continue
+                    wait = diagnostics.get("retry_after_seconds")
+                    if (category == "rate_limit" and not last and wait is not None
+                            and wait <= self.RATE_LIMIT_RETRY_MAX_SECONDS):
+                        retried.append({"error_type": type(exc).__name__, **diagnostics})
+                        time.sleep(max(wait, self.backoff_seconds * 2 ** attempt))
+                        continue
+                    raise ModelProviderError(category, status) from None
+                diagnostics = {"http_status": 200, **self._anthropic_metadata(message)}
+                stop = diagnostics["stop_reason"]
+                if stop == "refusal":
+                    diagnostics["error_category"] = "refusal"
+                    raise ModelResponseError("refusal")
+                if diagnostics["tool_use_present"] or stop in ("tool_use", "pause_turn"):
+                    raise ModelResponseError("non_text_completion")
+                if diagnostics["response_shape"] != "text_content":
+                    # Same rule as the OpenAI path: one regeneration for an empty reply that
+                    # ended normally; an exhausted max_tokens (thinking used it) is terminal.
+                    if not retried_empty and not last and stop == "end_turn":
+                        retried_empty = True
+                        retried.append({"error_type": "ModelResponseError", **diagnostics})
+                        time.sleep(self.backoff_seconds * 2 ** attempt)
+                        continue
+                    raise ModelResponseError(diagnostics["response_shape"])
+                text = "".join(b.text for b in message.content
+                               if getattr(b, "type", None) == "text" and isinstance(getattr(b, "text", None), str))
+                out = {"text": text, "usage": {"prompt_tokens": diagnostics.get("prompt_tokens", 0),
+                                               "completion_tokens": diagnostics.get("completion_tokens", 0)}}
+                entry = {"role": role, "model": model, **base, "seconds": round(time.time() - t0, 2), **diagnostics}
+                if self.min_interval_seconds:
+                    entry["pacing_seconds"] = round(pacing_seconds, 3)
+                if retried:
+                    entry["retried"] = retried
+                self.calls.append(entry)
+                return out
+            except Exception as exc:
+                self._failed(role, model, t0, exc, None, retried, {**base, **diagnostics}, pacing_seconds)
                 raise
         raise AssertionError("unreachable: the last attempt returns or raises")
 
@@ -806,6 +1049,6 @@ class ChatHistory:
 def start_core(core_bin: str, args: list[str]) -> subprocess.Popen:
     """Core gets its own session, so Ctrl+C reaches only the harness, which then kills core; and
     no API key in its environment, since model calls are made here, not in core."""
-    env = {k: v for k, v in os.environ.items() if not k.startswith("BALLISTIC_API_KEY")}
+    env = {k: v for k, v in os.environ.items() if not k.startswith(("BALLISTIC_API_KEY", "ANTHROPIC_"))}
     return subprocess.Popen([core_bin, *args], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                             stderr=subprocess.PIPE, bufsize=0, env=env, start_new_session=True)

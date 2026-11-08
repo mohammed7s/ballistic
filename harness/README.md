@@ -91,10 +91,58 @@ Core asks and the harness answers, one JSON line each way (`core/src/bridge.rs`)
 | `--core_mode observe` | observe once and report counts (pipe smoke test) |
 | `--core_model_min_interval N` | minimum seconds between core HTTP attempts across roles/retries, 0–60; default 0 disables pacing |
 | `--core_disable_native_tools` | opt in to `tool_choice: "none"` for all core model roles; default false; endpoint must accept it without `tools` |
+| `--provider openai\|anthropic` | `openai` (default): every role on the OpenAI-compatible `--base_url`, unchanged. `anthropic`: the Anthropic Messages API through the official `anthropic` SDK; `--base_url` is ignored; core only |
+| `--effort low\|medium\|high` | provider `anthropic` only: `output_config.effort`; default `low` |
 
 A core run's JSON has the same fields as before plus `core_args`, `roles`, `confirm`,
-`finished` (core's last event), `confirmations`, `exit_code`, `stderr`, and `lines`: every bridge
-line in both directions, in order.
+`finished` (core's last event), `confirmations`, `exit_code`, `stderr`, `provider` (and `effort`
+for anthropic), and `lines`: every bridge line in both directions, in order.
+
+### Anthropic provider (`--provider anthropic`)
+
+Needs the SDK in the AndroidWorld venv (`~/android_world/.venv/bin/pip install anthropic`; 2.6.0
+on the ThinkPad, 8 November 2026) and `ANTHROPIC_API_KEY` in the environment. `run_suite.sh`
+reads only that variable from `~/.ballistic_env` when it is not already set; `chat.sh` sources the
+file. The key is never on a command line, never logged and never in a run file, and core is
+started without any `ANTHROPIC_*` variable.
+
+```bash
+bash harness/run_suite.sh --agent core --provider anthropic --model claude-haiku-5-5 --effort low
+~/android_world/.venv/bin/python harness/run_task.py --agent core --provider anthropic \
+    --model claude-haiku-5-5 --effort low --task ContactsAddContact
+```
+
+Model IDs exactly as published, no date suffix: `claude-haiku-5-5`, `claude-sonnet-5-5`,
+`claude-opus-5-5`. Each call is `messages.create(model, max_tokens=<core's role cap>, system,
+messages, output_config={"effort": ...})`: core's leading system message becomes `system`, the
+rest are user/assistant turns with consecutive same-role messages merged. No `temperature`,
+`top_p`, `top_k` or `thinking` is sent (current models reject sampling parameters; thinking is
+left to the model's default, which effort controls). Only `text` blocks are returned to core;
+thinking blocks are counted, never read. Thinking counts toward `max_tokens`, so a small role
+cap (the reader's 64) can end with `stop_reason: max_tokens` and no text.
+
+Outcomes, all recorded with code-owned names only (no provider message, body, prompt or key):
+
+| Reply or error | Handling |
+|---|---|
+| `stop_reason: refusal` | terminal `ModelResponseError: refusal`; `error_category: refusal`, `refusal_category` (allowlisted, else `other`) |
+| `tool_use` block, `tool_use` or `pause_turn` | terminal `non_text_completion` |
+| no text, `end_turn` | one regeneration within the attempt budget, as on the OpenAI path |
+| no text, `max_tokens` | terminal (same as an empty reply with `finish_reason: length`) |
+| `OverloadedError` (529), other 5xx, `APIConnectionError` | transient: retried within the same budget (waits 2, 4, 8 s) |
+| `APITimeoutError` | terminal (read timeouts are not retried on either path) |
+| `RateLimitError` (429) with `retry-after` ≤ 60 s | retried after that delay within the budget; the retry keeps `http_status: 429`, `quota_category`, `retry_after_seconds` |
+| `RateLimitError` without a usable delay | terminal; the suite stops (exit 75) as for any call that ends on 429 |
+| credit balance too low (400), 402 `billing_error`, spend limit reached | terminal `error_category: billing`; `run_task.py` prints a billing line and `run_suite.sh` stops (exit 76) |
+| any other 4xx | terminal, category `bad_request`, `authentication`, `permission`, `not_found` or `http_error` |
+
+The SDK's own retries are off (`max_retries=0`), so pacing, the attempt budget and telemetry are
+this client's. Usage: `prompt_tokens` = `input_tokens` + cache read + cache creation tokens,
+`completion_tokens` = `output_tokens` (thinking included); `thinking_tokens`, `text_blocks`,
+`thinking_blocks` and `stop_reason` are recorded per call. `suite_row.py` now stops the suite
+only for a call that *ended* on 429; on the OpenAI path a 429 is never retried, so its behaviour
+is unchanged. Offline coverage: `test_model_anthropic.py` (fake SDK always; the installed SDK
+over a mocked transport when `anthropic` is importable).
 
 ### Prompt box (`chat.sh`)
 
