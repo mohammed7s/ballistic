@@ -65,7 +65,7 @@ class MainActivity : ComponentActivity() {
                     Box(Modifier.safeDrawingPadding()) {
                         AppShell(appGraph, this@MainActivity, screen, onOpen = ::open, onBack = ::back) {
                             when (screen) {
-                                Screen.Ask -> PromptScreen(appGraph, activity = this@MainActivity, onOpenLocalAi = { open(Screen.LocalAi) })
+                                Screen.Ask -> PromptScreen(appGraph, activity = this@MainActivity, onOpen = ::open)
                                 Screen.Activity -> LogScreen(appGraph)
                                 Screen.LocalAi -> LocalAiScreen(appGraph, activity = this@MainActivity, onOpenAsk = { open(Screen.Ask) }, onOpenSettings = { open(Screen.Settings) })
                                 Screen.Settings, Screen.Capabilities -> SettingsScreen(appGraph, activity = this@MainActivity)
