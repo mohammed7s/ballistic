@@ -4,7 +4,7 @@
 use std::io::{BufRead, Write};
 use std::time::Instant;
 use serde_json::{json, Value};
-use crate::{capabilities, verification, launch_completion, actions, bridge::Bridge, ports::*, run::Host,
+use crate::{capabilities, verification, launch_completion, actions, bridge::Bridge, ports::*, run::{Host, Options},
     readback::{self, Readback}, reader::{self, summary, ElementAnswer, ReaderPick},
     screen_filter::{self, FilterContext, FilteredScreen}, types::*};
 
@@ -63,6 +63,25 @@ pub fn run<R: BufRead,W:Write>(host: &mut Bridge<R,W>, request:&str, max_steps:u
     drive(host, request, max_steps)
 }
 
+/// [`run`] with explicit options (the judge), for the harness binary.
+pub fn run_with<R: BufRead,W:Write>(host: &mut Bridge<R,W>, request:&str, max_steps:u32, options:&Options) -> PortResult<Value> {
+    drive_task(host, &Task::owner(request), max_steps, options)
+}
+
+/// One request for the loop. `request` is treated as the owner's words; `tainted` lists values
+/// in it that the owner did not say (a request resolved by the chat model can repeat a value
+/// from an earlier task result), each with its source. The taint rule applies to them.
+pub struct Task<'a> {
+    pub request: &'a str,
+    pub tainted: &'a [Tagged],
+}
+
+impl<'a> Task<'a> {
+    pub fn owner(request: &'a str) -> Self {
+        Task { request, tainted: &[] }
+    }
+}
+
 /// What a run returns when the owner pressed Stop: nothing further was asked of a model or
 /// dispatched. Effects already executed stay reported in `execution_status`.
 fn stopped(steps: u32, task_status: &str, execution_status: ExecutionStatus, verification: &Verification) -> Value {
@@ -70,6 +89,13 @@ fn stopped(steps: u32, task_status: &str, execution_status: ExecutionStatus, ver
 }
 
 pub(crate) fn drive<H: Host>(host: &mut H, request:&str, max_steps:u32) -> PortResult<Value> {
+    drive_task(host, &Task::owner(request), max_steps, &Options::harness())
+}
+
+pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, _options:&Options) -> PortResult<Value> {
+    let request=task.request;
+    // Typed reader-fact values seen in this run, each with its source (reader facts, §7).
+    let facts_values: Vec<Tagged> = Vec::new();
     let mut typed = Vec::new();
     let mut history = Vec::<String>::new();
     let mut apps = Vec::new();
@@ -115,7 +141,11 @@ pub(crate) fn drive<H: Host>(host: &mut H, request:&str, max_steps:u32) -> PortR
         }
         let app_names:Vec<_>=apps.iter().map(|a|a.label.as_str()).collect();
         let facts_block=if facts.is_empty() {String::new()} else {format!("Reader facts:\n{}\n",facts.join("\n"))};
-        let state=format!("Owner request: {request}\nApps: {}\nHistory: {}\n{facts_block}Screen {} / {}:\n{}",json!(app_names),history.join("\n"),screen.package,screen.activity,screen_filter::render(&view));
+        let request_values=if task.tainted.is_empty() {String::new()} else {
+            let named:Vec<String>=task.tainted.iter().map(|v|format!("{:?} (source {})",v.value,reader::source_tag(&v.source))).collect();
+            format!("Request values not from the owner: {}\n",named.join(", "))
+        };
+        let state=format!("Owner request: {request}\n{request_values}Apps: {}\nHistory: {}\n{facts_block}Screen {} / {}:\n{}",json!(app_names),history.join("\n"),screen.package,screen.activity,screen_filter::render(&view));
         let mut messages=vec![message("system",format!("{RULES}\nAction schema: {}",actions::ACTIONS_SCHEMA)),message("user",state)];
         messages[0].content.push_str(&format!("\n{}", capabilities::planner_instructions(screen.capabilities.as_ref())));
         let mut parsed=None;
@@ -279,6 +309,13 @@ pub(crate) fn drive<H: Host>(host: &mut H, request:&str, max_steps:u32) -> PortR
                 let op=actions::resolve(&action,&view,&screen,&apps).map_err(|e|PortError::Malformed(e.to_string()))?.ok_or_else(||PortError::Malformed("no hands operation".into()))?;
                 let app=capabilities::app_scope(&op,&screen.package);
                 let mut reason=actions::confirmation_reason(&action,&view);
+                // Taint rule: a value the owner did not give needs a hard confirmation naming
+                // the value and its source, whatever the target.
+                let taint=actions::tainted_values(&action,&view,request,task.tainted,&facts_values);
+                if !taint.is_empty() {
+                    let named=actions::taint_reason(&taint);
+                    reason=Some(match reason { Some(r)=>format!("{r}; {named}"), None=>named });
+                }
                 let confirmation_required=reason.is_some();
                 let key=reason.as_ref().and_then(|_|guard_key(&action,&view));
                 let prior=key.as_ref().and_then(|k|acknowledged.iter().find(|(a,_)|a==k)).map_or(0,|(_,n)|*n);
@@ -300,7 +337,7 @@ pub(crate) fn drive<H: Host>(host: &mut H, request:&str, max_steps:u32) -> PortR
                     }
                     if let Some(reason)=reason {
                         stop_if_cancelled!(step-1);
-                        let confirm=ConfirmRequest{operation:op.clone(),app:app.into(),verb:actions::describe(&action),target:serde_json::to_string(&op).unwrap(),values:vec![],hard:true,reason};
+                        let confirm=ConfirmRequest{operation:op.clone(),app:app.into(),verb:actions::describe(&action),target:serde_json::to_string(&op).unwrap(),values:taint.clone(),hard:true,reason};
                         authorization=capabilities::authorize(host,&confirm)?;
                         if authorization.is_none() { outcome="owner denied confirmation".into();failure_category=Some("policy_denial");task_status="failed";terminal=true; }
                     }

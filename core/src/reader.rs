@@ -111,7 +111,32 @@ pub fn source_tag(source: &Source) -> String {
         Source::Note(n) => format!("note:{n}"),
         Source::Web(h) => format!("web:{h}"),
         Source::Rpc { source, transport } => format!("rpc:{source} via {transport}"),
+        Source::Model(role) => format!("model:{role}"),
     }
+}
+
+/// The inverse of [`source_tag`] for the tags core writes into chat history. Details are limited
+/// to package-like characters, so a tag read back from a host cannot carry prose.
+pub fn parse_source_tag(tag: &str) -> Option<Source> {
+    let detail_ok = |d: &str| !d.is_empty() && d.len() <= 100
+        && d.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-' | ':' | '+'));
+    match tag {
+        "owner:request" => return Some(Source::OwnerRequest),
+        "owner:data" => return Some(Source::OwnerData),
+        "screen:label" => return Some(Source::ScreenLabel),
+        _ => {}
+    }
+    let (kind, detail) = tag.split_once(':')?;
+    if !detail_ok(detail) { return None; }
+    let detail = detail.to_string();
+    Some(match kind {
+        "app" => Source::App(detail),
+        "sms" => Source::Sms(detail),
+        "note" => Source::Note(detail),
+        "web" => Source::Web(detail),
+        "model" => Source::Model(detail),
+        _ => return None,
+    })
 }
 
 #[cfg(test)]

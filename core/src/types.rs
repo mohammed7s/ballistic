@@ -195,6 +195,9 @@ pub enum Source {
     Web(String),
     /// A JSON-RPC endpoint's report, via the Tools port: endpoint host and transport.
     Rpc { source: String, transport: String },
+    /// Written by a model with no other source: the role whose output it is (`planner`,
+    /// `chat`). Core sets this when a value matches nothing the owner said or a port supplied.
+    Model(String),
 }
 
 impl Source {
@@ -257,6 +260,8 @@ pub enum ModelRole {
     Reader,
     Judge,
     Verifier,
+    /// One conversation turn (`chat.rs`). Hosts route it like the planner.
+    Chat,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

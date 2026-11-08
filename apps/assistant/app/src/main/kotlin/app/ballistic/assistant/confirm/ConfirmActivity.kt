@@ -267,4 +267,5 @@ private fun sourceText(source: Source): String = when (source) {
     is Source.Sms -> "an SMS: ${source.detail} (not you)"
     is Source.Note -> "a note: ${source.detail} (not you)"
     is Source.Web -> "a web page: ${source.detail} (not you)"
+    is Source.Model -> "the ${source.detail} model's own text (not you, not checked)"
 }

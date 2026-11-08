@@ -726,9 +726,13 @@ internal object IntegrityCheckingUniffiLib {
     }
 
     internal fun ensureInitialized() = Unit
+    external fun uniffi_ballistic_core_checksum_func_converse(
+    ): Int
     external fun uniffi_ballistic_core_checksum_func_core_version(
     ): Int
     external fun uniffi_ballistic_core_checksum_func_run(
+    ): Int
+    external fun uniffi_ballistic_core_checksum_func_run_with_options(
     ): Int
     external fun uniffi_ballistic_core_checksum_method_hostports_observe(
     ): Int
@@ -760,9 +764,13 @@ internal object UniffiLib {
     internal fun ensureInitialized() = Unit
     external fun uniffi_ballistic_core_fn_init_callback_vtable_hostports(`vtable`: UniffiVTableCallbackInterfaceHostPorts,
     ): Unit
+    external fun uniffi_ballistic_core_fn_func_converse(`historyJson`: RustBuffer.ByValue,`message`: RustBuffer.ByValue,`optionsJson`: RustBuffer.ByValue,`host`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
     external fun uniffi_ballistic_core_fn_func_core_version(uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     external fun uniffi_ballistic_core_fn_func_run(`request`: RustBuffer.ByValue,`maxSteps`: Int,`host`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_ballistic_core_fn_func_run_with_options(`request`: RustBuffer.ByValue,`maxSteps`: Int,`optionsJson`: RustBuffer.ByValue,`host`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     external fun ffi_ballistic_core_rustbuffer_alloc(`size`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
@@ -883,10 +891,16 @@ private fun uniffiCheckContractApiVersion(lib: IntegrityCheckingUniffiLib) {
 }
 @Suppress("UNUSED_PARAMETER")
 private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
+    if ((lib.uniffi_ballistic_core_checksum_func_converse() and 0xFFFF) != 62750) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if ((lib.uniffi_ballistic_core_checksum_func_core_version() and 0xFFFF) != 63597) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if ((lib.uniffi_ballistic_core_checksum_func_run() and 0xFFFF) != 25848) {
+    if ((lib.uniffi_ballistic_core_checksum_func_run() and 0xFFFF) != 65317) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if ((lib.uniffi_ballistic_core_checksum_func_run_with_options() and 0xFFFF) != 51656) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if ((lib.uniffi_ballistic_core_checksum_method_hostports_observe() and 0xFFFF) != 64120) {
@@ -1409,6 +1423,27 @@ internal object uniffiCallbackInterfaceHostPorts {
  */
 public object FfiConverterTypeHostPorts: FfiConverterCallbackInterface<HostPorts>()
         /**
+         * One conversation turn (`chat.rs`). `history_json` is the array of turns the shell keeps
+         * (`[{"source":"owner"|"assistant"|"task_result","text":"...","values":[Tagged]}]`), exactly
+         * as earlier turns returned them; `options_json` as for [`run_with_options`]. Returns
+         * `{"finished":true,"turn":{TurnResult}}` or `{"finished":true,"error":"..."}`. A `task` turn
+         * runs the agent loop on `host` and logs its step events as `run` does.
+         */ fun `converse`(`historyJson`: kotlin.String, `message`: kotlin.String, `optionsJson`: kotlin.String, `host`: HostPorts): kotlin.String {
+            return FfiConverterString.lift(
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_ballistic_core_fn_func_converse(
+    
+        
+        FfiConverterString.lower(`historyJson`),
+        FfiConverterString.lower(`message`),
+        FfiConverterString.lower(`optionsJson`),
+        FfiConverterTypeHostPorts.lower(`host`),_status)
+}
+    )
+    }
+    
+
+        /**
          * The crate version, so a shell can show which core it loaded.
          */ fun `coreVersion`(): kotlin.String {
             return FfiConverterString.lift(
@@ -1425,7 +1460,7 @@ public object FfiConverterTypeHostPorts: FfiConverterCallbackInterface<HostPorts
          * Runs `request` to the end and returns the final line the harness also receives:
          * `{"finished":true,"report":{...}}`, or `{"finished":true,"error":"..."}` if a port failed in
          * a way the loop does not handle itself (the run stopped; effects already reported in step
-         * events stand).
+         * events stand). Uses the app's default [`Options`](crate::run::Options) (judge on).
          */ fun `run`(`request`: kotlin.String, `maxSteps`: kotlin.UInt, `host`: HostPorts): kotlin.String {
             return FfiConverterString.lift(
     uniffiRustCall() { _status ->
@@ -1434,6 +1469,26 @@ public object FfiConverterTypeHostPorts: FfiConverterCallbackInterface<HostPorts
         
         FfiConverterString.lower(`request`),
         FfiConverterUInt.lower(`maxSteps`),
+        FfiConverterTypeHostPorts.lower(`host`),_status)
+}
+    )
+    }
+    
+
+        /**
+         * [`run`] with options as JSON (`{"judge":true,"chat_history_turns":12,"max_steps":15}`,
+         * every field optional, missing fields take the app defaults; `max_steps` here is ignored in
+         * favour of the argument). Unknown fields or a malformed object end with an `error` line and
+         * no port call.
+         */ fun `runWithOptions`(`request`: kotlin.String, `maxSteps`: kotlin.UInt, `optionsJson`: kotlin.String, `host`: HostPorts): kotlin.String {
+            return FfiConverterString.lift(
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_ballistic_core_fn_func_run_with_options(
+    
+        
+        FfiConverterString.lower(`request`),
+        FfiConverterUInt.lower(`maxSteps`),
+        FfiConverterString.lower(`optionsJson`),
         FfiConverterTypeHostPorts.lower(`host`),_status)
 }
     )

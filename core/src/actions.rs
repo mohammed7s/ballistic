@@ -402,6 +402,29 @@ pub fn confirmation_reason(action: &Action, view: &FilteredScreen) -> Option<Str
     }
 }
 
+/// The taint rule (core/README.md §7 rule 2) for typed text: every number, phone number, amount
+/// or link in it that is not in the owner's request or a control label on this screen, with
+/// its source. `carried` values (in the request, but not the owner's: see `agent::Task`) keep
+/// their tags even though the request contains them; reader `facts` keep theirs unless the
+/// owner or a label also has the value; anything else is the planner's own text
+/// (`model:planner`). Non-empty means a hard confirmation that names each value and source.
+pub fn tainted_values(action: &Action, view: &FilteredScreen, request: &str, carried: &[Tagged], facts: &[Tagged]) -> Vec<Tagged> {
+    let Action::Type { text, .. } = action else { return vec![] };
+    let labels: Vec<&str> = view.elements.iter().filter_map(|e| e.label.as_deref()).collect();
+    let provenance = crate::values::Provenance::new(&[request], &labels, facts);
+    provenance.tag_with(text, carried, &Source::Model("planner".into())).into_iter()
+        .filter(|(_, source)| !source.is_owner())
+        .map(|(found, source)| Tagged { value: found.raw, source })
+        .collect()
+}
+
+/// The confirmation wording for [`tainted_values`].
+pub fn taint_reason(values: &[Tagged]) -> String {
+    let named: Vec<String> = values.iter()
+        .map(|v| format!("{:?} from {}", v.value, crate::reader::source_tag(&v.source))).collect();
+    format!("type a value that is not in your request: {}", named.join(", "))
+}
+
 /// Short form for the history and logs: `tap e7`, `type e4 "Nora" submit`.
 pub fn describe(action: &Action) -> String {
     let dir = |d: &Direction| format!("{d:?}").to_lowercase();

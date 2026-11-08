@@ -110,7 +110,7 @@ class ModelsHttpTest {
         val models = ModelsHttp({ cfg }, { null })
         for (role in ModelRole.entries) {
             models.complete(role, emptyList(), 137)
-            assertEquals(role in listOf(ModelRole.Planner, ModelRole.Verifier),
+            assertEquals(role in listOf(ModelRole.Planner, ModelRole.Verifier, ModelRole.Chat),
                 "tool_choice" in Json.parseToJsonElement(lastBody).jsonObject)
         }
         for (value in listOf("1", "null", "\"none\"")) {

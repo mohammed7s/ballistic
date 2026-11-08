@@ -169,6 +169,8 @@ sealed interface Source {
     data class Sms(val detail: String) : Source
     data class Note(val detail: String) : Source
     data class Web(val detail: String) : Source
+    /** Written by a model with no other source; [detail] is the role (`planner`, `chat`). */
+    data class Model(val detail: String) : Source
 
     /** Trusted sources may become action arguments without the taint rule firing. */
     val isOwner: Boolean get() = this is OwnerRequest || this is OwnerData || this is ScreenLabel
@@ -187,6 +189,7 @@ object SourceSerializer : KSerializer<Source> {
             is Source.Sms -> "sms" to value.detail
             is Source.Note -> "note" to value.detail
             is Source.Web -> "web" to value.detail
+            is Source.Model -> "model" to value.detail
         }
         json.encodeJsonElement(buildJsonObject {
             put("kind", JsonPrimitive(kind))
@@ -210,6 +213,7 @@ object SourceSerializer : KSerializer<Source> {
             "sms" -> Source.Sms(detail())
             "note" -> Source.Note(detail())
             "web" -> Source.Web(detail())
+            "model" -> Source.Model(detail())
             else -> throw SerializationException("unknown Source kind $kind")
         }
     }
@@ -273,6 +277,8 @@ enum class ModelRole {
     @SerialName("reader") Reader,
     @SerialName("judge") Judge,
     @SerialName("verifier") Verifier,
+    /** One conversation turn (core/src/chat.rs). Route it like [Planner]. */
+    @SerialName("chat") Chat,
 }
 
 @Serializable

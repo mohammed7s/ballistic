@@ -16,6 +16,9 @@ pub mod run;
 pub mod reader;
 pub mod readback;
 
+pub mod values;
+pub mod chat;
+
 pub mod capabilities;
 pub mod tools;
 pub mod verification;

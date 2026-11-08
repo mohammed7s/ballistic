@@ -7,7 +7,9 @@ Five kinds of ask:
   complete  -> one chat completion at the OpenAI-compatible endpoint configured for the role
   confirm   -> approve or deny from a fixed policy (benchmark: approve; injection tests: deny)
   tool      -> reserved optional read-only Tools port; core currently supports no requests
-plus `log`, which this file appends to the run record. Every line in both directions is kept in
+plus `log`, which this file appends to the run record. A `converse` turn (`--chat` in chat.py)
+uses the same asks; its chat model call arrives as `complete` with role `chat`, which
+ModelClient routes like the planner unless a `chat` route is configured. Every line in both directions is kept in
 `CoreHost.lines` so a run can be replayed later with no emulator.
 
 Protocol: core/src/bridge.rs.
@@ -766,6 +768,39 @@ def default_core_bin() -> str:
             if os.path.exists(p):
                 return p
     return "ballistic-core"
+
+
+CHAT_HISTORY_TURNS = 12
+
+
+def converse_args(message: str, history: list[dict[str, Any]], max_steps: int,
+                  history_turns: int = CHAT_HISTORY_TURNS, judge: bool = False) -> list[str]:
+    """Arguments for one `ballistic-core converse` turn (core/src/chat.rs)."""
+    args = ["converse", "--message", message, "--history", json.dumps(history),
+            "--max-steps", str(max_steps), "--history-turns", str(history_turns)]
+    if judge:
+        args.append("--judge")
+    return args
+
+
+class ChatHistory:
+    """The conversation a terminal chat keeps between `converse` turns.
+
+    Core caps and checks the history it is given and returns the turns to append; this class
+    appends exactly those and keeps the last `max_turns`. It reads none of them to decide.
+    """
+
+    def __init__(self, max_turns: int = CHAT_HISTORY_TURNS):
+        self.max_turns = max_turns
+        self.turns: list[dict[str, Any]] = []
+
+    def append(self, turn: Optional[dict[str, Any]]) -> None:
+        if isinstance(turn, dict) and isinstance(turn.get("history"), list):
+            self.turns.extend(t for t in turn["history"] if isinstance(t, dict))
+            self.turns = self.turns[-self.max_turns:]
+
+    def clear(self) -> None:
+        self.turns = []
 
 
 def start_core(core_bin: str, args: list[str]) -> subprocess.Popen:

@@ -15,6 +15,7 @@ import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import app.ballistic.assistant.core.ffi.HostPorts as FfiHostPorts
+import app.ballistic.assistant.core.ffi.converse as ffiConverse
 import app.ballistic.assistant.core.ffi.coreVersion as ffiCoreVersion
 import app.ballistic.assistant.core.ffi.run as ffiRun
 
@@ -30,6 +31,20 @@ class UniffiCoreEngine private constructor(val version: String) : CoreEngine {
             ?: throw CoreRunException("core returned something that is not a JSON object")
         final["report"]?.let { return RecordJson.decodeFromJsonElement(RunResult.serializer(), it) }
         throw CoreRunException((final["error"] as? JsonPrimitive)?.content ?: "core returned neither a report nor an error")
+    }
+
+    override fun converse(
+        history: List<ChatTurn>, message: String, options: CoreOptions,
+        ports: HostPorts, listener: RunListener, cancel: CancelToken,
+    ): TurnResult {
+        val out = ffiConverse(
+            CoreJson.encodeToString(ListSerializer(ChatTurn.serializer()), history), message,
+            CoreJson.encodeToString(CoreOptions.serializer(), options), Callbacks(ports, listener, cancel),
+        )
+        val final = RecordJson.parseToJsonElement(out) as? JsonObject
+            ?: throw CoreRunException("core returned something that is not a JSON object")
+        final["turn"]?.let { return RecordJson.decodeFromJsonElement(TurnResult.serializer(), it) }
+        throw CoreRunException((final["error"] as? JsonPrimitive)?.content ?: "core returned neither a turn nor an error")
     }
 
     /**
@@ -137,4 +152,9 @@ class EngineChoice(
 
     override fun run(request: String, maxSteps: Int, ports: HostPorts, listener: RunListener, cancel: CancelToken): RunResult =
         current.run(request, maxSteps, ports, listener, cancel)
+
+    override fun converse(
+        history: List<ChatTurn>, message: String, options: CoreOptions,
+        ports: HostPorts, listener: RunListener, cancel: CancelToken,
+    ): TurnResult = current.converse(history, message, options, ports, listener, cancel)
 }
