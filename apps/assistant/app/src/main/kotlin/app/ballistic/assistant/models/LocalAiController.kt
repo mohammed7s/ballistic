@@ -114,14 +114,20 @@ class LocalAiController(
         save(selection.value.copy(contextTokens = profile.contextTokens, threads = profile.threads))
         mutableNotice.value = "Suggested settings applied. Load the model to use them."
     }
-    private fun job(block: suspend () -> Unit) {
-        if (!mayChange() || busy.value || engine.state.value.busy) return
+    /**
+     * Runs [block] off the UI thread as the one Local AI job. Returns false, starting nothing, when
+     * a task is active, requests are locked or another job runs. [after] runs on the UI scope once
+     * the job has ended and [busy] is false, with whether [block] succeeded.
+     */
+    private fun job(after: ((Boolean) -> Unit)? = null, block: suspend () -> Unit): Boolean {
+        if (!mayChange() || busy.value || engine.state.value.busy) return false
         mutableBusy.value = true
         mutableNotice.value = null
         cancelled.set(false)
         mutableDownload.value = null
         scope.launch {
-            try { withContext(Dispatchers.IO) { block() } }
+            var ok = false
+            try { withContext(Dispatchers.IO) { block() }; ok = true }
             catch (e: Exception) {
                 mutableNotice.value = if (cancelled.get()) "Stopped" else when(e) {
                     is LocalFailure -> e.message
@@ -134,7 +140,9 @@ class LocalAiController(
                 refresh()
                 mutableBusy.value = false
             }
+            after?.invoke(ok)
         }
+        return true
     }
 
     /** Copies a document into the imported-GGUF slot (any GGUF) or a catalogue slot (digest-checked). */
@@ -191,6 +199,8 @@ class LocalAiController(
         mutableNotice.value = "Using ${engine.state.value.target?.modelName} on ${engine.state.value.target?.backend?.name}."
     }
     fun load() = job { loadActive() }
+    /** Load the active model, then [onEnd] on the UI scope with whether it loaded. */
+    fun loadThen(onEnd: (Boolean) -> Unit): Boolean = job(after = onEnd) { loadActive() }
     private fun loadActive() {
         val id = activeId
         val entry = library.entry(id)

@@ -199,6 +199,29 @@ class AppGraph(val app: Application) {
         }
     }
 
+    /** An Ask message waiting for the on-phone model to finish loading (see [loadThenSend]). */
+    val queuedSend = MutableStateFlow<String?>(null)
+    /** A queued message whose load failed, handed back to the composer once. */
+    val returnedDraft = MutableStateFlow<String?>(null)
+
+    /**
+     * Send with the on-phone model installed but not loaded (the state after every app start):
+     * load it with the same job as Local AI's Load, then submit. A failed load sends nothing and
+     * returns the text to the composer. False if the load could not start.
+     */
+    fun loadThenSend(text: String): Boolean {
+        if (queuedSend.value != null) return false
+        queuedSend.value = text
+        val started = localAi.loadThen { loaded ->
+            val message = queuedSend.value
+            queuedSend.value = null
+            if (message == null) return@loadThen
+            if (loaded && localModels.state.value.metadata != null) session.submit(message) else returnedDraft.value = message
+        }
+        if (!started) queuedSend.value = null
+        return started
+    }
+
     /** Stop: no new model calls or dispatches, and any approval not yet given is denied. */
     fun stop() {
         session.stop()
