@@ -221,8 +221,9 @@ class LiteRtLmDriver(private val context: Context) : LocalDriver {
             )
             Log.i(TAG, "LiteRT-LM call backend=$backend prompt_tokens=$promptTokens last_prefill_tokens=$lastPrefill " +
                 "last_prefill_tps=${info?.lastPrefillTokensPerSecond?.toInt()} decode_tokens=$decodeTokens decode_tps=${decodeRate?.toInt()} " +
-                "ttft_ms=${firstTokenMs?.toInt()} wall_first_ms=${wallFirst?.toInt()} kv_tokens=$cached max_tokens=${info?.maxNumTokens} " +
-                "marks=${info?.markDurationsInSecond?.entries?.joinToString(",") { "${it.key}:${"%.3f".format(it.value)}" }}")
+                "ttft_ms=${firstTokenMs?.toInt()} wall_first_ms=${wallFirst?.toInt()} kv_tokens=$cached " +
+                // LiteRT-LM 0.18.1's BenchmarkInfo has no maxNumTokens or mark durations (0.19 added them).
+                "init_s=${info?.initTimeInSecond?.let { "%.3f".format(it) }}")
             return LocalReply(text.toString(), metrics)
         } finally {
             conversation = null
