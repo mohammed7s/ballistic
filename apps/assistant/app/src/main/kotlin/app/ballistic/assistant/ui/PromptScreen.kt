@@ -57,7 +57,10 @@ import app.ballistic.assistant.core.StepEvent
 import app.ballistic.assistant.core.UniffiCoreEngine
 import app.ballistic.assistant.models.ModelBackend
 import app.ballistic.assistant.models.leavesDevice
+import app.ballistic.assistant.session.ComposerAction
+import app.ballistic.assistant.session.ComposerInputs
 import app.ballistic.assistant.session.ExchangeKind
+import app.ballistic.assistant.session.composerView
 import app.ballistic.assistant.session.LabelStyle
 import app.ballistic.assistant.session.Phase
 import app.ballistic.assistant.session.PromptSession
@@ -86,23 +89,46 @@ fun PromptScreen(graph: AppGraph, activity: Activity, onOpen: (Screen) -> Unit =
     var gateMessage by remember { mutableStateOf<String?>(null) }
     var menu by remember { mutableStateOf(false) }
     val list = rememberLazyListState()
+    val queued by graph.queuedSend.collectAsState()
+    val returnedDraft by graph.returnedDraft.collectAsState()
     val localSelected = selection.backend == ModelBackend.Local
     val realEngine = graph.engine.current is UniffiCoreEngine
     val modelLoaded = localState.metadata != null
-    val modelReady = !localSelected || (modelLoaded && realEngine)
     val shown = recentForAsk(state.runs)
     val older = state.runs.size - shown.size
     val suggestions = remember(state.runs.isEmpty()) { suggestions(graph, activity) }
+    val composer = composerView(ComposerInputs(
+        phase = state.phase, unlocked = unlocked, localSelected = localSelected, realEngine = realEngine,
+        modelInstalled = installedModel != null, modelLoaded = modelLoaded, engineBusy = localState.busy,
+        localJobBusy = localBusy, textBlank = text.isBlank(), sendQueued = queued != null,
+        loadError = localState.error?.takeIf { !modelLoaded },
+    ))
 
-    fun unlock() {
+    fun unlock(then: (() -> Unit)? = null) {
         graph.gate.authenticate(activity) { failure ->
             gateMessage = failure
             if (failure == null) graph.session.onUnlocked() else graph.session.onUnlockCancelled()
+            if (failure == null) then?.invoke()
         }
     }
-    fun send() {
-        if (text.isBlank() || !state.canSubmit || localBusy || localState.busy || !modelReady) return
-        graph.session.submit(text); text = ""
+    fun loadThenSend() {
+        val message = text
+        if (graph.loadThenSend(message)) { text = ""; gateMessage = null }
+    }
+    // One handler for the button and the keyboard's Send key, so they always agree.
+    fun act() {
+        when (composer.action) {
+            ComposerAction.Send -> { graph.session.submit(text); text = "" }
+            // Loading needs requests enabled; ask first, then load and send.
+            ComposerAction.LoadThenSend -> if (graph.gate.canAcceptCommands()) loadThenSend() else unlock { loadThenSend() }
+            ComposerAction.Unlock -> unlock()
+            ComposerAction.SetUpAi -> onOpen(Screen.LocalAi)
+            ComposerAction.None -> {}
+        }
+    }
+    // A queued message whose load failed comes back to the field.
+    LaunchedEffect(returnedDraft) {
+        returnedDraft?.let { if (text.isBlank()) text = it; graph.returnedDraft.value = null }
     }
 
     // Which engine takes the next turn depends on Settings (model configured, library present).
@@ -137,18 +163,13 @@ fun PromptScreen(graph: AppGraph, activity: Activity, onOpen: (Screen) -> Unit =
             }
             gateMessage?.let { m -> item { WarnBlock("Requests locked", m) } }
             backgroundNotice?.let { m -> item { WarnBlock("Interrupted", m) } }
-            if (localSelected && !modelReady) item {
+            // Not loaded is shown beside the composer (always visible), not here.
+            if (localSelected && (installedModel == null || !realEngine)) item {
                 if (installedModel == null) StateBox("Set up AI first", LabelStyle.Outlined, "No model on this phone",
                     "Download the starter (${graph.localAi.starter.name}) or pick another model in Local AI.") {
                     BButton("Set up AI", { onOpen(Screen.LocalAi) }, emphasis = true)
-                } else if (!realEngine) StateBox("Not available", LabelStyle.Inverted, "Ballistic's core isn't in this build",
+                } else StateBox("Not available", LabelStyle.Inverted, "Ballistic's core isn't in this build",
                     "This build can only replay a demo script.") {}
-                else Row(Modifier.fillMaxWidth().ruledBox(c.outlineVariant), verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(Space.s2)) {
-                    StatusLabel(if (localState.busy) "Loading" else "Not loaded")
-                    Text(localState.error?.let { "Model didn't load" } ?: "Model isn't loaded", Modifier.weight(1f))
-                    BButton("Load", { graph.localAi.load() }, enabled = !localBusy && !localState.busy && state.canSubmit)
-                }
             }
             if (state.runs.isEmpty()) item {
                 Column(Modifier.padding(top = Space.s4), verticalArrangement = Arrangement.spacedBy(Space.s1)) {
@@ -188,28 +209,32 @@ fun PromptScreen(graph: AppGraph, activity: Activity, onOpen: (Screen) -> Unit =
             item { Box(Modifier.heightIn(min = Space.s2)) }
         }
 
-        // Composer.
+        // Composer. Whenever the button cannot send, the line above it says why.
         Hairline()
-        Row(Modifier.fillMaxWidth().background(c.surfaceContainer).padding(horizontal = Space.s3, vertical = Space.s2),
-            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Space.s2)) {
-            val placeholder = when {
-                state.canStop -> "Task running. Stop it to send another."
-                !unlocked -> "Requests are locked"
-                localSelected && !modelReady -> "Set up AI to start"
-                else -> "Message Ballistic"
+        Column(Modifier.fillMaxWidth().background(c.surfaceContainer).padding(horizontal = Space.s3, vertical = Space.s2),
+            verticalArrangement = Arrangement.spacedBy(Space.s1)) {
+            composer.reason?.let { reason ->
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Space.s2)) {
+                    if (queued != null || (localBusy && localSelected && !modelLoaded)) LiveMarker()
+                    Text(reason, Modifier.weight(1f).semantics { contentDescription = "Composer status: $reason" },
+                        style = MaterialTheme.typography.bodySmall, color = c.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    if (composer.reason != null && localState.error != null && !modelLoaded) TextLink("Local AI", { onOpen(Screen.LocalAi) })
+                }
             }
-            OutlinedTextField(
-                value = text, onValueChange = { text = it }, modifier = Modifier.weight(1f),
-                enabled = state.canSubmit && !localBusy,
-                placeholder = { Text(placeholder, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                leadingIcon = { Text("›", color = c.onSurfaceVariant) },
-                shape = MaterialTheme.shapes.extraSmall, maxLines = 4,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send), keyboardActions = KeyboardActions(onSend = { send() }),
-                colors = OutlinedTextFieldDefaults.colors(focusedContainerColor = c.surfaceContainerHigh, unfocusedContainerColor = c.surfaceContainerHigh,
-                    disabledContainerColor = c.surfaceContainer, focusedBorderColor = c.onSurface, unfocusedBorderColor = c.outline),
-            )
-            if (!unlocked && state.canSubmit && text.isBlank()) BButton("Enable", { unlock() })
-            else BButton("Send", { send() }, enabled = text.isNotBlank() && state.canSubmit && !localBusy && !localState.busy && modelReady)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Space.s2)) {
+                OutlinedTextField(
+                    value = queued ?: text, onValueChange = { text = it }, modifier = Modifier.weight(1f),
+                    enabled = composer.fieldEnabled,
+                    placeholder = { Text(composer.placeholder, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                    leadingIcon = { Text("›", color = c.onSurfaceVariant) },
+                    shape = MaterialTheme.shapes.extraSmall, maxLines = 4,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send), keyboardActions = KeyboardActions(onSend = { act() }),
+                    colors = OutlinedTextFieldDefaults.colors(focusedContainerColor = c.surfaceContainerHigh, unfocusedContainerColor = c.surfaceContainerHigh,
+                        disabledContainerColor = c.surfaceContainer, focusedBorderColor = c.onSurface, unfocusedBorderColor = c.outline),
+                )
+                BButton(composer.button, { act() }, enabled = composer.buttonEnabled,
+                    emphasis = composer.action == ComposerAction.SetUpAi)
+            }
         }
     }
 }

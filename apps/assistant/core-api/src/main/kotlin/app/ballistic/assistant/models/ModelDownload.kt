@@ -51,9 +51,20 @@ enum class ModelFormat(val fileName: String, val label: String) {
      * context setting, which is advertised instead.
      */
     val contextTokens: Int? = null,
+    /**
+     * Date (YYYY-MM-DD) this file was also downloaded on a computer and its size and SHA-256
+     * matched this entry (apps/assistant/LOCAL_AI.md, "Checking a model yourself"); null if not.
+     */
+    val hashRechecked: String? = null,
 ) {
     val format: ModelFormat get() = if (runtime == ModelRuntime.LiteRtLm) ModelFormat.LiteRtLm else ModelFormat.Gguf
     val publisherFileName: String get() = fileName.ifEmpty { URI(url).path.substringAfterLast('/') }
+    /** The Hugging Face account that publishes the file (first path segment). */
+    val publisher: String get() = URI(url).path.split('/').getOrNull(1) ?: "unknown"
+    /** The repository, e.g. Qwen/Qwen3-0.6B-GGUF. */
+    val repository: String get() = URI(url).path.split('/').drop(1).take(2).joinToString("/")
+    /** The pinned commit the URL resolves at (40 hex characters). */
+    val revision: String get() = Regex("/resolve/([a-f0-9]{40})/").find(URI(url).path)?.groupValues?.get(1) ?: ""
 
     /** Owner-selectable backends, default first. There is no automatic fallback between them. */
     val backends: List<ComputeBackend> get() = when {
@@ -79,6 +90,7 @@ enum class ModelFormat(val fileName: String, val label: String) {
         require(sourcePage.startsWith("https://huggingface.co/"))
         require(note.length <= 400)
         require(contextTokens == null || contextTokens in 256..131072)
+        require(hashRechecked == null || hashRechecked.matches(Regex("\\d{4}-\\d{2}-\\d{2}")))
     }
 
     companion object {

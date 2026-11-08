@@ -11,6 +11,7 @@
     "accelerator": "cpu",
     "fileName": "Qwen3-0.6B-Q8_0.gguf",
     "gated": false,
+    "hashRechecked": "2026-11-09",
     "note": "Small starter. Measured on the Pixel 10 Pro: short check 0.4 s first token, 21.8 tokens/s. Phone-task quality not validated."
   },
   {
@@ -25,6 +26,7 @@
     "accelerator": "cpu",
     "fileName": "Qwen3-1.7B-Q8_0.gguf",
     "gated": false,
+    "hashRechecked": "2026-11-09",
     "note": "Larger official Qwen GGUF on the same CPU engine. Not yet measured on a phone."
   },
   {
@@ -39,6 +41,7 @@
     "accelerator": "cpu",
     "fileName": "gemma-3-1b-it-Q8_0.gguf",
     "gated": false,
+    "hashRechecked": "2026-11-09",
     "note": "Published by ggml-org (the llama.cpp project). Gemma Terms of Use apply. Not yet measured on a phone."
   },
   {
@@ -53,6 +56,7 @@
     "accelerator": "gpu",
     "fileName": "gemma-4-E2B-it.litertlm",
     "gated": false,
+    "hashRechecked": "2026-11-09",
     "note": "Generic bundle for LiteRT-LM GPU or CPU. Text only in Ballistic. Not yet measured on a phone."
   },
   {
@@ -67,6 +71,7 @@
     "accelerator": "tensor_g5_npu",
     "fileName": "gemma-4-E2B-it_Google_Tensor_G5.litertlm",
     "gated": false,
+    "hashRechecked": "2026-11-09",
     "contextTokens": 4096,
     "note": "Precompiled by Google for the Pixel 10 Tensor G5 NPU; runs on the NPU backend only. Compiled context: up to 4,096 tokens (prompt plus output). Measured on a Pixel 10 Pro, 8 Nov 2026: ~3K tokens/s prompt processing, ~0.9 s first token, 21 tokens/s generation."
   },
@@ -97,6 +102,7 @@
     "accelerator": "cpu",
     "fileName": "Qwen3-0.6B.litertlm",
     "gated": false,
+    "hashRechecked": "2026-11-09",
     "note": "The starter's model family on LiteRT-LM CPU or GPU, to compare engines. Published by litert-community. Not yet measured on a phone."
   }
 ]

@@ -6,7 +6,14 @@ import java.io.InterruptedIOException
 import kotlinx.serialization.Serializable
 import app.ballistic.assistant.core.CoreJson
 
-@Serializable data class ManagedModel(val name: String, val bytes: Long, val catalogueId: String? = null, val sha256: String? = null)
+@Serializable data class ManagedModel(
+    val name: String,
+    val bytes: Long,
+    val catalogueId: String? = null,
+    val sha256: String? = null,
+    /** When this phone checked size and SHA-256 against the catalogue (epoch ms); null before this field existed. */
+    val verifiedAt: Long? = null,
+)
 
 /** One managed copy. Commit only after a complete copy; failed imports retain the previous file.
  * The document picker source is never moved or deleted. Native load performs full format validation;
@@ -35,7 +42,7 @@ class ManagedModelStore(val directory: File, val format: ModelFormat = ModelForm
             ModelFormat.LiteRtLm -> if (!header.contentEquals(LITERTLM_MAGIC)) throw LocalFailure("Not a LiteRT-LM bundle")
         }
     }
-    fun import(name: String, input: InputStream, expectedBytes: Long?, cancelled: () -> Boolean, freeBytes: () -> Long = { directory.usableSpace }, expectedSha256: String? = null, catalogueId: String? = null, onProgress: (Long) -> Unit = {}): ManagedModel {
+    fun import(name: String, input: InputStream, expectedBytes: Long?, cancelled: () -> Boolean, freeBytes: () -> Long = { directory.usableSpace }, expectedSha256: String? = null, catalogueId: String? = null, onProgress: (Long) -> Unit = {}, now: () -> Long = System::currentTimeMillis): ManagedModel {
         directory.mkdirs()
         val tmp = directory.resolve("import.partial")
         val reserve = STORAGE_RESERVE
@@ -75,7 +82,8 @@ class ManagedModelStore(val directory: File, val format: ModelFormat = ModelForm
             if (expectedSha256 != null && actualHash != expectedSha256) throw LocalFailure("Model integrity check failed. The previous model was kept; retry the download.")
             onProgress(count)
             if (cancelled()) throw InterruptedIOException("Import stopped")
-            val info = ManagedModel(name.filterNot { it.isISOControl() }.take(160).ifBlank { "Imported ${format.label}" }, count, catalogueId, actualHash)
+            val info = ManagedModel(name.filterNot { it.isISOControl() }.take(160).ifBlank { "Imported ${format.label}" }, count, catalogueId, actualHash,
+                verifiedAt = if (expectedSha256 != null) now() else null)
             // Android's rename in the same directory replaces atomically; no partial model is exposed.
             val infoTmp = directory.resolve("info.partial")
             infoTmp.writeText(CoreJson.encodeToString(ManagedModel.serializer(), info))

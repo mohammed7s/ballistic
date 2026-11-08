@@ -12,7 +12,8 @@ internal class LlamaNative {
     external fun cancel()
     external fun load(path: ByteArray, context: Int, threads: Int): ByteArray
     external fun unload()
-    external fun generate(messages: ByteArray, cap: Int): ByteArray
+    /** [schema]: UTF-8 JSON Schema constraining the output (grammar sampling), or null. */
+    external fun generate(messages: ByteArray, cap: Int, schema: ByteArray?): ByteArray
 }
 class LlamaDriver : LocalDriver {
     private val library = runCatching { System.loadLibrary("ballistic_llama") }
@@ -33,9 +34,12 @@ class LlamaDriver : LocalDriver {
         requireLibrary()
         return CoreJson.decodeFromString(LocalMetadata.serializer(), response(native.load(path.toByteArray(Charsets.UTF_8), context, threads)))
     }
-    override fun generate(messages: List<ChatMessage>, maxTokens: Int): LocalReply {
+    override fun generate(messages: List<ChatMessage>, maxTokens: Int): LocalReply = generate(messages, maxTokens, null)
+    override val supportsJsonSchema: Boolean get() = true
+    override fun generate(messages: List<ChatMessage>, maxTokens: Int, jsonSchema: String?): LocalReply {
         requireLibrary()
         val json = CoreJson.encodeToString(ListSerializer(ChatMessage.serializer()), messages)
-        return CoreJson.decodeFromString(LocalReply.serializer(), response(native.generate(json.toByteArray(Charsets.UTF_8), maxTokens)))
+        val schema = jsonSchema?.toByteArray(Charsets.UTF_8)
+        return CoreJson.decodeFromString(LocalReply.serializer(), response(native.generate(json.toByteArray(Charsets.UTF_8), maxTokens, schema)))
     }
 }

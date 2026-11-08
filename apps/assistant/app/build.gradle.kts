@@ -56,6 +56,14 @@ android {
     }
 }
 
+// Core's schemas (core/schema: actions.json, chat.json, capabilities.json) ship as assets from
+// their single copy; the planner's action schema drives llama.cpp's optional constrained output.
+androidComponents {
+    onVariants { variant ->
+        variant.sources.assets?.addStaticSourceDirectory(rootDir.resolve("../../core/schema").canonicalPath)
+    }
+}
+
 kotlin {
     compilerOptions {
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)

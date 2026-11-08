@@ -51,6 +51,14 @@ import kotlinx.coroutines.delay
 enum class Screen(val title: String, val isTab: Boolean) {
     Ask("Ask", true), Activity("Activity", true), LocalAi("Local AI", true),
     Settings("Settings", false), Capabilities("What Ballistic can do here", false),
+    Models("Choose a model", false), LocalAiAdvanced("Local AI · Advanced", false);
+
+    /** The screen Back returns to (tabs have none). */
+    fun parent(tab: Screen): Screen = when (this) {
+        Capabilities -> Settings
+        Models, LocalAiAdvanced -> LocalAi
+        else -> tab
+    }
 }
 
 @Composable

@@ -77,8 +77,22 @@ class AppGraph(val app: Application) {
 
     val modelSelection = ModelSelectionStore(app.filesDir.resolve("model-selection.json")) { modelsConfig.load() != null }
     /** One engine per runtime; only one model is loaded at a time (LocalModels unloads both). */
-    val localModels = LocalModels(mapOf(ModelRuntime.LlamaCpp to LlamaDriver(), ModelRuntime.LiteRtLm to LiteRtLmDriver(app)))
+    val localModels = LocalModels(
+        mapOf(ModelRuntime.LlamaCpp to LlamaDriver(), ModelRuntime.LiteRtLm to LiteRtLmDriver(app)),
+        outputSchema = ::outputSchema,
+    )
+    /** Core's action schema (core/schema/actions.json, packaged as an asset). */
+    private val actionsSchema: String? by lazy {
+        runCatching { app.assets.open("actions.json").bufferedReader().use { it.readText() } }.getOrNull()
+    }
+    /** Only the planner, only when the owner turned it on in Advanced; every other role emits free text or its own shape. */
+    private fun outputSchema(role: ModelRole): String? =
+        if (role == ModelRole.Planner && localAi.selection.value.constrainPlanner) actionsSchema else null
     val pendingModelImport = kotlinx.coroutines.flow.MutableStateFlow<android.net.Uri?>(null)
+    /** Which slot [pendingModelImport] goes to: a catalogue id or [DownloadableModel.IMPORTED_MODEL_ID]. */
+    val pendingImportTarget = MutableStateFlow(DownloadableModel.IMPORTED_MODEL_ID)
+    /** Catalogue id whose download confirmation is open, on whichever Local AI page. */
+    val confirmDownload = MutableStateFlow<String?>(null)
     val localAi: LocalAiController = LocalAiController(app, scope, localModels, modelSelection) {
         gate.canAcceptCommands() && session.state.value.canSubmit && session.state.value.pendingRequest == null
     }
@@ -197,6 +211,29 @@ class AppGraph(val app: Application) {
                     }
                 }
         }
+    }
+
+    /** An Ask message waiting for the on-phone model to finish loading (see [loadThenSend]). */
+    val queuedSend = MutableStateFlow<String?>(null)
+    /** A queued message whose load failed, handed back to the composer once. */
+    val returnedDraft = MutableStateFlow<String?>(null)
+
+    /**
+     * Send with the on-phone model installed but not loaded (the state after every app start):
+     * load it with the same job as Local AI's Load, then submit. A failed load sends nothing and
+     * returns the text to the composer. False if the load could not start.
+     */
+    fun loadThenSend(text: String): Boolean {
+        if (queuedSend.value != null) return false
+        queuedSend.value = text
+        val started = localAi.loadThen { loaded ->
+            val message = queuedSend.value
+            queuedSend.value = null
+            if (message == null) return@loadThen
+            if (loaded && localModels.state.value.metadata != null) session.submit(message) else returnedDraft.value = message
+        }
+        if (!started) queuedSend.value = null
+        return started
     }
 
     /** Stop: no new model calls or dispatches, and any approval not yet given is denied. */

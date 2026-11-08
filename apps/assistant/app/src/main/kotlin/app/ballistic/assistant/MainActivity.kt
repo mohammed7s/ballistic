@@ -30,7 +30,9 @@ import app.ballistic.assistant.ui.AppShell
 import app.ballistic.assistant.ui.BallisticTheme
 import app.ballistic.assistant.ui.CapabilityScreen
 import app.ballistic.assistant.ui.FirstRunScreen
+import app.ballistic.assistant.ui.LocalAiAdvancedScreen
 import app.ballistic.assistant.ui.LocalAiScreen
+import app.ballistic.assistant.ui.ModelPickerScreen
 import app.ballistic.assistant.ui.PromptScreen
 import app.ballistic.assistant.ui.Screen
 import app.ballistic.assistant.ui.SettingsScreen
@@ -65,17 +67,19 @@ class MainActivity : ComponentActivity() {
                     var tab by rememberSaveable { mutableStateOf(Screen.Ask) }
                     var setupDone by rememberSaveable { mutableStateOf(appGraph.firstRunDone()) }
                     fun open(s: Screen) { if (s.isTab) tab = s; screen = s }
-                    BackHandler(enabled = !screen.isTab) { screen = if (screen == Screen.Capabilities) Screen.Settings else tab }
+                    BackHandler(enabled = !screen.isTab) { screen = screen.parent(tab) }
                     Box(Modifier.safeDrawingPadding()) {
                         if (!setupDone) {
                             FirstRunScreen(appGraph, this@MainActivity) { appGraph.markFirstRunDone(); setupDone = true }
                         } else AppShell(appGraph, this@MainActivity, screen, onOpen = ::open, onBack = {
-                            screen = if (screen == Screen.Capabilities) Screen.Settings else tab
+                            screen = screen.parent(tab)
                         }) {
                             when (screen) {
                                 Screen.Ask -> PromptScreen(appGraph, activity = this@MainActivity, onOpen = ::open)
                                 Screen.Activity -> ActivityScreen(appGraph)
-                                Screen.LocalAi -> LocalAiScreen(appGraph, activity = this@MainActivity, onOpenAsk = { open(Screen.Ask) }, onOpenSettings = { open(Screen.Settings) })
+                                Screen.LocalAi -> LocalAiScreen(appGraph, activity = this@MainActivity, onOpen = ::open, onOpenSettings = { open(Screen.Settings) })
+                                Screen.Models -> ModelPickerScreen(appGraph, activity = this@MainActivity)
+                                Screen.LocalAiAdvanced -> LocalAiAdvancedScreen(appGraph, activity = this@MainActivity)
                                 Screen.Settings -> SettingsScreen(appGraph, activity = this@MainActivity, onOpen = ::open)
                                 Screen.Capabilities -> CapabilityScreen(appGraph)
                             }

@@ -19,7 +19,15 @@ struct Engine {
     Engine();
     void unload();
     nlohmann::json load(const std::string & path, int context_size, int threads);
-    nlohmann::json generate(const nlohmann::json & messages, int cap);
+    /**
+     * One completion. A non-empty [json_schema] constrains the output to that JSON Schema with
+     * llama.cpp's grammar sampler (GBNF from common/json-schema-to-grammar); greedy otherwise.
+     */
+    nlohmann::json generate(const nlohmann::json & messages, int cap, const std::string & json_schema = "");
     void check_cancel() const;
+    // Last schema compiled to GBNF; conversion is deterministic, so one cached pair suffices.
+    std::string schema_source, schema_grammar;
 };
+/** JSON Schema text → GBNF (root rule "root"). Throws Failure for an unsupported schema. */
+std::string schema_to_grammar(const std::string & json_schema);
 }

@@ -16,6 +16,11 @@ import kotlinx.serialization.Serializable
     val activeModel: String? = null,
     /** Owner's explicit backend for an entry offering more than one; never set by a failure. */
     val backendChoice: ComputeBackend? = null,
+    /**
+     * Owner's opt-in: constrain the planner's output to core's action schema where the engine
+     * supports it (llama.cpp grammar sampling). Off by default; other roles are never constrained.
+     */
+    val constrainPlanner: Boolean = false,
 ) {
     fun validated() = apply {
         require(contextTokens in 512..8192 && threads in 1..8) { "Invalid local engine settings" }
@@ -145,6 +150,11 @@ interface LocalDriver {
     }
     fun unload()
     fun generate(messages: List<ChatMessage>, maxTokens: Int): LocalReply
+    /** True if [generate] with a JSON Schema constrains decoding to it (llama.cpp grammar sampling). */
+    val supportsJsonSchema: Boolean get() = false
+    /** [jsonSchema] null: the plain call. Only engines with [supportsJsonSchema] accept a schema. */
+    fun generate(messages: List<ChatMessage>, maxTokens: Int, jsonSchema: String?): LocalReply =
+        if (jsonSchema == null) generate(messages, maxTokens) else throw LocalFailure("This runtime cannot constrain output to a schema")
 }
 
 /**
@@ -152,7 +162,15 @@ interface LocalDriver {
  * is loaded at a time: loading any target first unloads every engine. A failed load leaves
  * nothing loaded; there is no network, retry, other-backend or previous-model fallback path.
  */
-class LocalModels(private val drivers: Map<ModelRuntime, LocalDriver>, private val nanoTime: () -> Long = System::nanoTime) : Models {
+class LocalModels(
+    private val drivers: Map<ModelRuntime, LocalDriver>,
+    private val nanoTime: () -> Long = System::nanoTime,
+    /**
+     * The JSON Schema a role's output is constrained to, or null (the default for every role).
+     * Applied only by an engine with [LocalDriver.supportsJsonSchema]; others run unconstrained.
+     */
+    private val outputSchema: (ModelRole) -> String? = { null },
+) : Models {
     constructor(driver: LocalDriver, nanoTime: () -> Long = System::nanoTime) : this(mapOf(ModelRuntime.LlamaCpp to driver), nanoTime)
 
     private val ownership = ReentrantLock()
@@ -199,20 +217,28 @@ class LocalModels(private val drivers: Map<ModelRuntime, LocalDriver>, private v
         mutable.value = LocalState()
     }
     override fun complete(role: ModelRole, messages: List<ChatMessage>, maxTokens: Int): Completion =
-        complete(messages, maxTokens) { false }
+        complete(messages, maxTokens, role) { false }
 
     /** The loaded model's context for core's guard: every role shares the one loaded model. */
     override fun limits(role: ModelRole): ModelLimits = ModelLimits(contextLimit())
     fun contextLimit(): Int? = state.value.metadata?.context?.takeIf { it > 0 }
 
-    fun complete(messages: List<ChatMessage>, maxTokens: Int, cancelled: () -> Boolean): Completion = owned {
+    /** True if [role]'s next call on the loaded engine will be schema-constrained. */
+    fun constrains(role: ModelRole): Boolean = active?.supportsJsonSchema == true && outputSchema(role) != null
+
+    fun complete(messages: List<ChatMessage>, maxTokens: Int, cancelled: () -> Boolean): Completion =
+        complete(messages, maxTokens, null, cancelled)
+
+    /** [role] null: a speed check, never constrained. */
+    fun complete(messages: List<ChatMessage>, maxTokens: Int, role: ModelRole?, cancelled: () -> Boolean): Completion = owned {
         val driver = active
         if (mutable.value.metadata == null || driver == null) throw PortException.Host("Local model is not loaded. Open Local AI.")
         require(maxTokens > 0)
         prepare(driver, cancelled)
         mutable.value = mutable.value.copy(phase = LocalPhase.Generating, metrics = null, error = null)
         try {
-            val reply = driver.generate(messages, maxTokens.coerceAtMost(1024))
+            val schema = role?.let(outputSchema)?.takeIf { driver.supportsJsonSchema }
+            val reply = driver.generate(messages, maxTokens.coerceAtMost(1024), schema)
             if (cancelled()) throw PortException.Host("Local inference stopped")
             mutable.value = mutable.value.copy(phase = LocalPhase.Ready, metrics = reply.metrics)
             Completion(reply.text, Usage(reply.metrics.promptTokens, reply.metrics.generatedTokens))
@@ -257,7 +283,7 @@ class RoutedModels(
     override fun complete(role: ModelRole, messages: List<ChatMessage>, maxTokens: Int): Completion {
         if (stopped) throw PortException.Host("Model run stopped")
         return when (active ?: throw PortException.Host("No active model run")) {
-            ModelBackend.Local -> local.complete(messages, maxTokens) { stopped }
+            ModelBackend.Local -> local.complete(messages, maxTokens, role) { stopped }
             ModelBackend.Http -> http.complete(role, messages, maxTokens)
         }
     }
