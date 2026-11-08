@@ -133,6 +133,23 @@ class FakeCoreEngine(
         return RunResult(false, "step budget exhausted", minOf(script.size, maxSteps), task, execution, failureCategory = "planning")
     }
 
+    /**
+     * The scripted stand-in has no chat model: every message replays the script as a task. It
+     * returns no history, so nothing scripted enters the stored conversation.
+     */
+    override fun converse(
+        history: List<ChatTurn>, message: String, options: CoreOptions,
+        ports: HostPorts, listener: RunListener, cancel: CancelToken,
+    ): TurnResult {
+        val result = run(message, options.maxSteps, ports, listener, cancel)
+        return TurnResult(
+            kind = TurnKind.Task,
+            text = "Scripted replay by the demo engine; nothing was planned or verified.",
+            request = message,
+            report = RecordJson.encodeToJsonElement(RunResult.serializer(), result),
+        )
+    }
+
     private fun stopped(steps: Int, task: TaskStatus, execution: ExecutionStatus) =
         RunResult(false, "stopped by owner", steps, task, execution, stopped = true)
 

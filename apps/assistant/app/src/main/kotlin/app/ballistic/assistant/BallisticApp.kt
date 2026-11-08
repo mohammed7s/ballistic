@@ -31,6 +31,7 @@ import app.ballistic.assistant.core.PolicyStore
 import app.ballistic.assistant.core.RustCore
 import app.ballistic.assistant.gate.CommandGate
 import app.ballistic.assistant.models.*
+import app.ballistic.assistant.session.ConversationStore
 import app.ballistic.assistant.session.PromptSession
 import app.ballistic.assistant.storage.ModelsConfigStore
 import app.ballistic.assistant.storage.SecretStore
@@ -132,6 +133,25 @@ class AppGraph(val app: Application) {
         return HostCapabilities(operations = IntentHands.OPERATIONS, appGrants = granted)
     }
 
+    /** Ask's conversation: the turns core returned, last 12, app-private (excluded from backup). */
+    val conversation = ConversationStore(app.filesDir.resolve("conversation.json"))
+
+    /** True when model requests leave the phone (connected route to a non-local host). */
+    fun leavesPhone(): Boolean {
+        if (localAi.selection.value.backend == ModelBackend.Local) return false
+        val cfg = modelsConfig.load() ?: return false
+        return ModelRole.entries.any { cfg.endpoint(it).leavesDevice() }
+    }
+
+    /** Where the next request's model calls go, in words; recorded on each Ask message. */
+    fun routeLabel(): String {
+        if (localAi.selection.value.backend == ModelBackend.Local) return "on this phone"
+        val cfg = modelsConfig.load() ?: return "connected server (not set up)"
+        val hosts = ModelRole.entries.map { cfg.endpoint(it) }.filter { it.leavesDevice() }
+            .mapNotNull { runCatching { java.net.URI(it.baseUrl).host }.getOrNull() }.distinct()
+        return if (hosts.isEmpty()) "connected server on this phone" else "left the phone: ${hosts.joinToString()}"
+    }
+
     val session: PromptSession = PromptSession(
         scope = scope,
         gate = gate,
@@ -139,6 +159,8 @@ class AppGraph(val app: Application) {
         corePorts = { RustCore(engine, it) },
         log = actionLog,
         elapsedClock = android.os.SystemClock::elapsedRealtime,
+        conversation = conversation,
+        route = ::routeLabel,
     )
 
     init {

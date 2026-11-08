@@ -40,7 +40,8 @@ fun LogScreen(graph: AppGraph) {
     val session by graph.session.state.collectAsState()
     val log = remember(reload, session.runs.sumOf { it.steps.size }) { graph.actionLog.read() }
     val groups = remember(log) { log.lines.groupBy { it.run } }
-    val runIds = (session.runs.asReversed().map { it.id } + groups.keys.reversed()).distinct()
+    // Phone tasks only; chat replies stay in Ask (owner decision, UX_SYNTHESIS §8 question 9).
+    val runIds = (session.runs.asReversed().filter { it.isTask && !it.restored }.map { it.id } + groups.keys.reversed()).distinct()
     val time = remember { DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.MEDIUM) }
 
     Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {

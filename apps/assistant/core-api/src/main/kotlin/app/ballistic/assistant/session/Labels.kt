@@ -106,12 +106,58 @@ fun errorLine(error: String): String {
     }
 }
 
-/** The finished-run outcome including runs that ended without a report. */
-fun runOutcome(run: RunView): Outcome = when {
-    run.result != null -> outcome(run.result)
-    run.stopRequested -> Outcome("STOPPED", LabelStyle.Outlined, "Stopped; earlier steps may have taken effect")
-    run.error != null -> Outcome("ERROR", LabelStyle.Inverted, errorLine(run.error))
-    else -> Outcome("ENDED", LabelStyle.Outlined, "Ended")
+/**
+ * The finished-run outcome including runs that ended without a report. A chat task's line is
+ * core's own first-person result line (TurnResult.text; for an answer, the answer with its
+ * sources); the label still comes from the report's code-owned fields.
+ */
+fun runOutcome(run: RunView): Outcome {
+    val base = when {
+        run.result != null -> outcome(run.result)
+        run.stopRequested || run.kind == ExchangeKind.Stopped -> Outcome("STOPPED", LabelStyle.Outlined, "Stopped; earlier steps may have taken effect")
+        run.error != null -> Outcome("ERROR", LabelStyle.Inverted, errorLine(run.error))
+        run.restored -> historyOutcome(run.reply)
+        else -> Outcome("ENDED", LabelStyle.Outlined, "Ended")
+    }
+    return if (run.isTask && run.result != null && run.reply != null) base.copy(line = run.reply) else base
+}
+
+/** A label for a task restored from core's history line (`Task: … → <outcome words>`). */
+fun historyOutcome(words: String?): Outcome {
+    val w = words.orEmpty()
+    val label = when (w.lowercase()) {
+        "done, verified" -> "DONE"
+        "opened, not confirmed" -> "NOT CONFIRMED"
+        "answered, not verified" -> "ANSWER"
+        "excerpts shown to the owner" -> "EXCERPTS"
+        "owner declined a confirmation" -> "NOT DONE"
+        "blocked by the safety check" -> "BLOCKED"
+        "stopped by owner" -> "STOPPED"
+        "stopped by an error" -> "ERROR"
+        "failed" -> "FAILED"
+        "not supported" -> "NOT SUPPORTED"
+        "not finished" -> "NOT FINISHED"
+        else -> "EARLIER"
+    }
+    return Outcome(label, if (label == "ERROR") LabelStyle.Inverted else LabelStyle.Outlined, w.ifEmpty { "Earlier task" })
+}
+
+/**
+ * A past task from the action log only (no report kept): its last step event. An answer's text
+ * is in the step's action and is shown only when the owner reveals typed text.
+ */
+fun logOutcome(last: StepEvent, showContent: Boolean): Outcome {
+    val obj = last.action as? JsonObject
+    val kind = obj?.get("action")?.let { runCatching { it.jsonPrimitive.contentOrNull }.getOrNull() }
+    if (kind == "answer") {
+        val text = obj["text"]?.let { runCatching { it.jsonPrimitive.contentOrNull }.getOrNull() }
+        return Outcome("ANSWER", LabelStyle.Outlined, if (showContent && text != null) text else "I answered (text hidden)")
+    }
+    return outcome(RunResult(
+        done = last.taskStatus == TaskStatus.Completed && last.verification.status == VerificationStatus.Verified,
+        reason = last.outcome, steps = last.step, taskStatus = last.taskStatus,
+        executionStatus = last.executionStatus, verification = last.verification, failureCategory = last.failureCategory,
+    ))
 }
 
 /** One line for an action in core's log form. [redact] hides typed text and questions. */
@@ -143,7 +189,7 @@ fun actionLabel(action: JsonElement, redact: Boolean): String {
  * [awaitingApproval] is the session's phase for the active run.
  */
 fun runStatusLine(run: RunView, awaitingApproval: Boolean = false): String {
-    if (run.finishedElapsedMs != null || run.result != null || run.error != null) return runOutcome(run).line
+    if (run.finished) return runOutcome(run).line
     if (awaitingApproval) return "Waiting for your approval"
     if (run.stopRequested) return "Stopping…"
     val latest = run.progress.lastOrNull()?.text ?: return "Starting…"

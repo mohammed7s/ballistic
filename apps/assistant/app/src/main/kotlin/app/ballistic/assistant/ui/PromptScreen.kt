@@ -25,6 +25,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -54,6 +55,8 @@ import app.ballistic.assistant.session.actionLabel
 import app.ballistic.assistant.session.evidenceLabel
 import app.ballistic.assistant.session.runStatusLine
 import app.ballistic.assistant.session.recentForAsk
+import app.ballistic.assistant.session.ExchangeKind
+import app.ballistic.assistant.session.errorLine
 import app.ballistic.assistant.confirm.ConfirmActivity
 import app.ballistic.assistant.storage.SecretStore
 
@@ -99,6 +102,7 @@ fun PromptScreen(graph: AppGraph, activity: Activity, onOpenLocalAi: () -> Unit 
                 color = if (unlocked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)
             if (unlocked) OutlinedButton(onClick = { graph.gate.lock() }) { Text("Lock requests") }
             else OutlinedButton(onClick = { unlock() }) { Text("Enable requests") }
+            if (state.canSubmit && state.runs.isNotEmpty()) TextButton(onClick = { graph.session.clearConversation() }) { Text("Clear conversation") }
         }
         Text("Your phone unlock authorizes requests. Switching apps keeps access; sleeping or locking the phone blocks new requests. Sensitive actions still need approval.", style = MaterialTheme.typography.bodySmall)
         gateMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
@@ -121,12 +125,20 @@ fun PromptScreen(graph: AppGraph, activity: Activity, onOpenLocalAi: () -> Unit 
             }
             val older = state.runs.size - recentForAsk(state.runs).size
             if (older > 0) item {
-                Text("$older earlier ${if (older == 1) "request is" else "requests are"} in Activity", style = MaterialTheme.typography.bodySmall)
+                Text("$older earlier ${if (older == 1) "message" else "messages"}; tasks are in Activity", style = MaterialTheme.typography.bodySmall)
             }
             items(recentForAsk(state.runs), key = { it.id }) {
                 val active = state.canStop && it.id == state.runs.lastOrNull()?.id
-                RunCard(it, graph.session, active, awaitingApproval = active && state.phase == Phase.AwaitingApproval) {
-                    activity.startActivity(Intent(activity, ConfirmActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP))
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("› ${it.request}", style = MaterialTheme.typography.bodyLarge)
+                    when {
+                        it.isTask -> RunCard(it, graph.session, active, awaitingApproval = active && state.phase == Phase.AwaitingApproval) {
+                            activity.startActivity(Intent(activity, ConfirmActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP))
+                        }
+                        active -> Text(if (it.stopRequested) "Stopping…" else "Thinking…", Modifier.padding(start = 12.dp),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        else -> ReplyLines(it)
+                    }
                 }
             }
         }
@@ -195,7 +207,7 @@ private fun RunCard(run: RunView, session: PromptSession, active: Boolean, await
                         maxLines = if (active) 1 else 8, overflow = TextOverflow.Ellipsis,
                         color = if (failed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                Text(elapsedLabel(elapsed), style = MaterialTheme.typography.labelMedium)
+                if (!run.restored) Text(elapsedLabel(elapsed), style = MaterialTheme.typography.labelMedium)
                 Text(if (expanded) "▴" else "▾", style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.semantics { contentDescription = toggleLabel })
             }
@@ -225,6 +237,21 @@ private fun RunCard(run: RunView, session: PromptSession, active: Boolean, await
                 }
             }
         }
+    }
+}
+
+/** A chat reply, question or fixed turn: plain text, then where the model ran (no phone actions). */
+@Composable
+private fun ReplyLines(run: RunView) {
+    Column(Modifier.padding(start = 12.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        val text = when (run.kind) {
+            ExchangeKind.Error -> errorLine(run.error.orEmpty())
+            else -> run.reply ?: "No reply"
+        }
+        Text(text, style = MaterialTheme.typography.bodyLarge)
+        val meta = listOfNotNull(run.route, if (run.kind == ExchangeKind.Clarify) "question for you" else null, "no phone actions")
+        Text(meta.joinToString(" · "), style = MaterialTheme.typography.labelSmall, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
