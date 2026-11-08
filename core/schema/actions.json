@@ -109,6 +109,9 @@
             "null"
           ],
           "pattern": "^e[1-9][0-9]*$"
+        },
+        "until": {
+          "type": "string"
         }
       },
       "required": [

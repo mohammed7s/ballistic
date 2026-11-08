@@ -302,6 +302,26 @@ labels of the fields core typed into in this task (`Fields typed in this task: T
 labels only, so it keeps them after a scroll moves the fields off the screen. Tests:
 `tests/navigation.rs` on the recorded calendar and recipe screens.
 
+**Keypad entry (9 Nov 2026).** `type` with `submit: false` and digits only (at most 12) into a
+labeled display that is not a text field is accepted when the display's app shows a digit keypad:
+for every digit exactly one enabled, clickable, non-toggle button labeled with exactly that digit.
+Core taps those keys in order (Hands sees ordinary taps; an interrupted entry is unknown and stops
+the run). The typed text still goes through the taint rule, so digits the owner did not write
+literally (`124856` for "12 hours, 48 minutes, and 56 seconds") need the owner's yes naming
+`model:planner`. Recorded in Haiku 2: the timer was entered one digit per step and the 10-step
+budget ran out.
+
+**Scroll until (9 Nov 2026).** `scroll` may carry `until` (a label or request-matched text, at most
+80 characters). After each acknowledged scroll core observes and stops when a control whose label,
+or an item whose request-matched text, contains it (whole words, case-insensitive) is on the
+screen, when the list stopped moving (readback unchanged), or after `SCROLL_UNTIL_MAX` = 5 scrolls;
+the outcome says which. Only what the planner's own view would show is searched, so the search
+reveals no withheld content. Not recorded as a skill step.
+
+The planner prompt carries `schema/actions.json` without whitespace (`actions::schema_for_prompt`,
+the same JSON in about half the bytes, roughly 880 fewer estimated tokens per planner call); the
+file itself stays pretty-printed for hosts.
+
 ## 7. Planner, reader and provenance
 
 **Planner prompt**, assembled by core, never by the model:

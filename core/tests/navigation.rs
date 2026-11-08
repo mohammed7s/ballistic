@@ -1,12 +1,16 @@
 //! Navigation mechanisms on screens recorded in the Haiku 2 suite
 //! (`ballistic_runs/suite_haiku55_20261108-194804/`, 8 Nov 2026): repeated-input detection and the
-//! typed-fields line. Scripted ports only; no model, emulator or benchmark database.
-use ballistic_core::{agent, bridge::Bridge, screen_filter::{self, FilterContext}, types::*};
+//! typed-fields line, keypad entry and scroll until. Scripted ports only; no model, emulator or
+//! benchmark database.
+use ballistic_core::{actions::{self, ActionError}, agent, bridge::Bridge, screen_filter::{self, FilterContext}, types::*};
 use serde_json::{json, Value};
 use std::io::Cursor;
 
 fn fixture(name: &str) -> ScreenState {
     let text = match name {
+        "timer_empty" => include_str!("screens/navigation/timer_empty.json"),
+        "timer_one" => include_str!("screens/navigation/timer_one.json"),
+        "expense_add_form" => include_str!("screens/navigation/expense_add_form.json"),
         "calendar_form" => include_str!("screens/navigation/calendar_form.json"),
         "calendar_picker" => include_str!("screens/navigation/calendar_picker.json"),
         "calendar_form_again" => include_str!("screens/navigation/calendar_form_again.json"),
@@ -131,6 +135,128 @@ fn typed_field_case(with_title: ScreenState, title: String) {
     assert!(users[1].contains("Fields typed in this task: Title\n"), "{}", users[1]);
 }
 
+// ---- keypad entry ------------------------------------------------------------------------------
+
+const TIMER: &str = "Create a timer with 12 hours, 48 minutes, and 56 seconds. Do not start the timer.";
+
+fn node_with_text(s: &ScreenState, text: &str) -> NodeId {
+    s.nodes.iter().find(|n| n.text.as_deref() == Some(text)).unwrap_or_else(|| panic!("{text}")).id
+}
+
+#[test]
+fn recorded_timer_keypad_takes_the_digits_as_one_type_and_taps_them_in_order() {
+    // Recorded: the planner tapped single digits, lost count and ran out of its 10 steps.
+    let s = fixture("timer_empty");
+    let view = screen_filter::filter(&s, &FilterContext { request: TIMER, typed: &[] });
+    let display = format!("e{}", view.elements.iter().find(|e| e.node == node_with_text(&s, "00h 00m 00s")).unwrap().id);
+    let (report, calls) = run(TIMER, vec![json!(s.clone()),
+        completion(json!({"action":"type","target":display,"text":"124856","submit":false})),
+        json!("approved"), ok(), ok(), ok(), ok(), ok(), ok(), json!(fixture("timer_one")),
+        completion(json!({"action":"give_up","reason":"checked"}))], 4);
+    assert_eq!(report["reason"], "planner gave up");
+    // A value the owner did not write literally (the planner's digits) still needs the owner's
+    // yes, naming its source, as any typed text does (taint rule).
+    let asked: Vec<&Value> = calls.iter().filter(|c| c["ask"] == "confirm").collect();
+    assert_eq!(asked.len(), 1);
+    assert!(asked[0]["request"]["reason"].as_str().unwrap().contains("\"124856\" from model:planner"), "{}", asked[0]);
+    let centre = |text: &str| {
+        let b = s.nodes.iter().find(|n| n.id == node_with_text(&s, text)).unwrap().bounds;
+        json!({"op":"tap","x":(b.x1+b.x2)/2,"y":(b.y1+b.y2)/2})
+    };
+    let taps: Vec<Value> = calls.iter().filter(|c| c["ask"] == "act").map(|c| c["op"].clone()).collect();
+    assert_eq!(taps, ["1", "2", "4", "8", "5", "6"].map(centre).to_vec());
+}
+
+#[test]
+fn keypad_entry_needs_digits_a_labeled_display_and_one_key_per_digit() {
+    let s = fixture("timer_empty");
+    let display_node = node_with_text(&s, "00h 00m 00s");
+    let try_type = |s: &ScreenState, text: &str, submit: bool| {
+        let view = screen_filter::filter(s, &FilterContext { request: TIMER, typed: &[] });
+        let target = view.elements.iter().find(|e| e.node == display_node).unwrap().id;
+        actions::validate(&Action::Type { target, text: text.into(), submit }, &view)
+    };
+    assert_eq!(try_type(&s, "124856", false), Ok(()));
+    assert!(matches!(try_type(&s, "12:48", false), Err(ActionError::NotEditable(_))));
+    assert!(matches!(try_type(&s, "124856", true), Err(ActionError::NotEditable(_))));
+    assert!(matches!(try_type(&s, "1234567890123", false), Err(ActionError::NotEditable(_))));
+    // A missing key, or two keys with the same label, is no keypad for that digit.
+    let mut missing = s.clone();
+    missing.nodes.retain(|n| n.text.as_deref() != Some("8"));
+    assert!(matches!(try_type(&missing, "124856", false), Err(ActionError::NotEditable(_))));
+    assert_eq!(try_type(&missing, "1245", false), Ok(()));
+    let mut twice = s.clone();
+    let mut copy = twice.nodes.iter().find(|n| n.text.as_deref() == Some("1")).unwrap().clone();
+    copy.id = 999;
+    copy.bounds = Bounds { x1: 0, y1: 2200, x2: 50, y2: 2250 };
+    twice.nodes.push(copy);
+    assert!(matches!(try_type(&twice, "124856", false), Err(ActionError::NotEditable(_))));
+}
+
+// ---- scroll until ------------------------------------------------------------------------------
+
+const EXPENSE: &str = "Add the following expenses into the pro expense:\nname|amount_dollars|category_name|note\nTaxi Fare|$179.68|Transportation|A need";
+
+/// Derived from the recorded add form: the category chips after scrolling right (only their
+/// names change; layout and ids are the recorded ones).
+fn categories(names: [&str; 5]) -> ScreenState {
+    let mut s = fixture("expense_add_form");
+    for (old, new) in ["Food", "Income", "Housing", "Social", "Entertainment"].iter().zip(names) {
+        s.nodes.iter_mut().find(|n| n.text.as_deref() == Some(*old)).unwrap().text = Some(new.into());
+    }
+    s
+}
+
+fn category_list(s: &ScreenState) -> String {
+    let view = screen_filter::filter(s, &FilterContext { request: EXPENSE, typed: &[] });
+    let node = s.nodes.iter().find(|n| n.resource_id.as_deref() == Some("com.arduia.expense:id/rv_category")).unwrap().id;
+    format!("e{}", view.elements.iter().find(|e| e.node == node).unwrap().id)
+}
+
+#[test]
+fn scroll_until_stops_when_the_requested_category_shows() {
+    let s = fixture("expense_add_form");
+    let list = category_list(&s);
+    let found = categories(["Social", "Entertainment", "Shopping", "Transportation", "Health"]);
+    let (report, calls) = run(EXPENSE, vec![json!(s),
+        completion(json!({"action":"scroll","target":list,"direction":"right","until":"Transportation"})), ok(),
+        json!(categories(["Housing", "Social", "Entertainment", "Shopping", "Health"])), ok(), json!(found.clone()),
+        completion(json!({"action":"give_up","reason":"checked"}))], 4);
+    assert_eq!(report["reason"], "planner gave up");
+    assert_eq!(calls.iter().filter(|c| c["ask"] == "act").count(), 2);
+    let event = calls.iter().find(|c| c["ask"] == "log").unwrap();
+    assert!(event["event"]["outcome"].as_str().unwrap().ends_with("\"Transportation\" is on the screen after 2 scrolls"), "{event}");
+    // The next plan sees the request-matched chip; its other names stay content.
+    let users = planner_users(&calls);
+    assert!(users[1].contains("\"Transportation\" (matches request)"));
+    assert!(!users[1].contains("Shopping"));
+}
+
+#[test]
+fn scroll_until_stops_at_the_end_of_the_list_and_at_its_bound() {
+    let s = fixture("expense_add_form");
+    let list = category_list(&s);
+    let until = || completion(json!({"action":"scroll","target":list,"direction":"right","until":"Transportation"}));
+    // The list does not move: one scroll, then stop.
+    let (_, calls) = run(EXPENSE, vec![json!(s.clone()), until(), ok(), json!(s.clone()),
+        completion(json!({"action":"give_up","reason":"checked"}))], 4);
+    assert_eq!(calls.iter().filter(|c| c["ask"] == "act").count(), 1);
+    let event = calls.iter().find(|c| c["ask"] == "log").unwrap();
+    assert!(event["event"]["outcome"].as_str().unwrap().contains("not found; the list stopped moving after 1 scroll"), "{event}");
+    // Always moving, never showing it: five scrolls at most.
+    let pages = [["A", "B", "C", "D", "E"], ["F", "G", "H", "I", "J"], ["K", "L", "M", "N", "O"], ["P", "Q", "R", "S", "T"], ["U", "V", "W", "X", "Y"]];
+    let mut replies = vec![json!(s.clone()), until()];
+    for page in pages {
+        replies.push(ok());
+        replies.push(json!(categories(page)));
+    }
+    replies.push(completion(json!({"action":"give_up","reason":"checked"})));
+    let (_, calls) = run(EXPENSE, replies, 4);
+    assert_eq!(calls.iter().filter(|c| c["ask"] == "act").count(), agent::SCROLL_UNTIL_MAX as usize);
+    let event = calls.iter().find(|c| c["ask"] == "log").unwrap();
+    assert!(event["event"]["outcome"].as_str().unwrap().contains("not found after 5 scrolls"), "{event}");
+}
+
 #[test]
 fn the_same_input_on_changing_screens_is_progress_not_a_loop() {
     use ballistic_core::postcondition::Effect;
@@ -143,7 +269,7 @@ fn the_same_input_on_changing_screens_is_progress_not_a_loop() {
     let same = vec![effect(fixture("calendar_form"), Action::Back), effect(fixture("calendar_form_again"), Action::Back), effect(fixture("calendar_form"), Action::Back)];
     assert_eq!(agent::repeated_inputs(&same).as_deref(), Some("back was repeated three times"));
     // Scrolling down three times through changing screens is progress.
-    let down = || Action::Scroll { target: Some(4), direction: Direction::Down };
+    let down = || Action::Scroll { target: Some(4), direction: Direction::Down, until: None };
     let scrolls = vec![effect(fixture("recipe_a"), down()), effect(fixture("recipe_b"), down()), effect(fixture("calendar_form"), down())];
     assert_eq!(agent::repeated_inputs(&scrolls), None);
 }

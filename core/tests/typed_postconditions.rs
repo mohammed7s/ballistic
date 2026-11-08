@@ -237,7 +237,7 @@ fn reply_effects(row_rank: usize, scrolled: bool) -> Vec<Effect> {
     let (before, after) = (fixture("reply_before"), fixture("reply_after"));
     let mut effects = vec![];
     if scrolled {
-        effects.push(Effect { action: Action::Scroll { target: None, direction: Direction::Down }, before: list.clone(), target: None, confirmed: false, readback: None });
+        effects.push(Effect { action: Action::Scroll { target: None, direction: Direction::Down, until: None }, before: list.clone(), target: None, confirmed: false, readback: None });
     }
     effects.push(open);
     effects.push(send_effect(&before, &after, true));

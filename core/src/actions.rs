@@ -15,6 +15,13 @@ use crate::types::*;
 /// The action schema, shared with every host.
 pub const ACTIONS_SCHEMA: &str = include_str!("../schema/actions.json");
 
+/// [`ACTIONS_SCHEMA`] without whitespace, as the planner prompt carries it: the same JSON, about
+/// half the bytes (a 4,096-token on-device context holds the prompt plus the reply).
+pub fn schema_for_prompt() -> &'static str {
+    static COMPACT: std::sync::OnceLock<String> = std::sync::OnceLock::new();
+    COMPACT.get_or_init(|| serde_json::from_str::<Value>(ACTIONS_SCHEMA).expect("compiled action schema").to_string())
+}
+
 /// Every action name the planner may emit, in the order of §6.
 pub const ACTION_NAMES: &[&str] = &[
     "open_app", "tap", "long_press", "type", "scroll", "swipe", "back", "home", "wait", "read",
@@ -224,13 +231,14 @@ pub fn validate(action: &Action, view: &FilteredScreen) -> Result<(), ActionErro
             if e.flags.scrollable || e.role == Role::Slider { Ok(()) }
             else { Err(ActionError::NotActionable(*target)) }
         }
-        Action::Type { target, .. } => {
-            if identified(*target)?.flags.editable {
+        Action::Type { target, text, submit } => {
+            if identified(*target)?.flags.editable || (!*submit && keypad_keys(view, *target, text).is_some()) {
                 Ok(())
             } else {
                 Err(ActionError::NotEditable(*target))
             }
         }
+        Action::Scroll { until: Some(u), .. } if u.trim().is_empty() || u.chars().count() > 80 => Err(ActionError::Empty("until")),
         Action::Scroll { target: Some(t), .. } => {
             if element(*t)?.flags.scrollable {
                 Ok(())
@@ -252,6 +260,32 @@ pub fn validate(action: &Action, view: &FilteredScreen) -> Result<(), ActionErro
         }
         _ => Ok(()),
     }
+}
+
+/// Longest digit string keypad entry accepts.
+pub const KEYPAD_MAX_DIGITS: usize = 12;
+
+/// Keypad entry (§6): `type` into a labeled display that is not a text field, with digits only,
+/// on a screen showing a digit keypad in the display's own app. Each needed digit must be
+/// exactly one enabled, clickable, non-toggle button labeled with exactly that digit ("1"), so
+/// the keys are identified by their own labels. Returns the element ids to tap, in order.
+pub fn keypad_keys(view: &FilteredScreen, target: u32, text: &str) -> Option<Vec<u32>> {
+    let display = view.element(target)?;
+    if display.flags.editable || display.label.is_none() || text.is_empty() || text.len() > KEYPAD_MAX_DIGITS
+        || !text.bytes().all(|b| b.is_ascii_digit()) { return None; }
+    text.chars().map(|d| {
+        let keys: Vec<&crate::screen_filter::Element> = view.elements.iter().filter(|e| e.package == display.package
+            && e.role == Role::Button && e.flags.clickable && e.flags.enabled && !e.flags.checkable && !e.flags.editable
+            && e.label.as_deref().is_some_and(|l| l.chars().eq(std::iter::once(d)))).collect();
+        match keys[..] { [k] => Some(k.id), _ => None }
+    }).collect()
+}
+
+/// The taps for a keypad-entry `type` (see [`keypad_keys`]), or `None` for any other action.
+pub fn keypad_taps(action: &Action, view: &FilteredScreen, screen: &ScreenState) -> Option<Vec<HandsOp>> {
+    let Action::Type { target, text, submit: false } = action else { return None };
+    let keys = keypad_keys(view, *target, text)?;
+    keys.iter().map(|k| view.element(*k).map(|e| { let (x, y) = clip(e.bounds, screen).centre(); HandsOp::Tap { x, y } })).collect()
 }
 
 /// `b` clipped to the screen, so the centre of a half-visible element is a point on screen.
@@ -293,11 +327,15 @@ pub fn resolve(
             let (x, y) = bounds(*target)?.centre();
             HandsOp::LongPress { x, y }
         }
-        Action::Type { target, text, submit } => {
-            let (x, y) = bounds(*target)?.centre();
-            HandsOp::Type { x, y, text: text.clone(), submit: *submit }
-        }
-        Action::Scroll { target, direction } => HandsOp::Scroll {
+        Action::Type { target, text, submit } => match keypad_taps(action, view, screen) {
+            // Keypad entry: the first key here; the agent dispatches every key in order.
+            Some(taps) if !view.element(*target).is_some_and(|e| e.flags.editable) => taps[0].clone(),
+            _ => {
+                let (x, y) = bounds(*target)?.centre();
+                HandsOp::Type { x, y, text: text.clone(), submit: *submit }
+            }
+        },
+        Action::Scroll { target, direction, .. } => HandsOp::Scroll {
             area: match target {
                 Some(t) => bounds(*t)?,
                 None => whole_screen,
@@ -459,8 +497,8 @@ pub fn describe(action: &Action) -> String {
         Action::Type { target, text, submit } => {
             format!("type e{target} {text:?}{}", if *submit { " submit" } else { "" })
         }
-        Action::Scroll { target: Some(t), direction } => format!("scroll e{t} {}", dir(direction)),
-        Action::Scroll { target: None, direction } => format!("scroll {}", dir(direction)),
+        Action::Scroll { target: Some(t), direction, until } => format!("scroll e{t} {}{}", dir(direction), until.as_ref().map(|u| format!(" until {u:?}")).unwrap_or_default()),
+        Action::Scroll { target: None, direction, until } => format!("scroll {}{}", dir(direction), until.as_ref().map(|u| format!(" until {u:?}")).unwrap_or_default()),
         Action::Swipe { target, direction } => format!("swipe e{target} {}", dir(direction)),
         Action::Back => "back".into(),
         Action::Home => "home".into(),

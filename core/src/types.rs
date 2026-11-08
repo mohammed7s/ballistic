@@ -154,6 +154,10 @@ pub enum Action {
         #[serde(default)]
         target: Option<u32>,
         direction: Direction,
+        /// Keep scrolling (bounded, `agent::SCROLL_UNTIL_MAX`) until a control with this label,
+        /// or a request-matched item with this text, is on the screen (§6 "Scroll until").
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        until: Option<String>,
     },
     Swipe { target: u32, direction: Direction },
     Back,

@@ -59,6 +59,16 @@ fn target_node(action: &Action, view: &FilteredScreen) -> Option<NodeId> {
 }
 
 
+/// Scrolls one `scroll … until` may make, the planner's own included.
+pub const SCROLL_UNTIL_MAX: u32 = 5;
+
+/// A control labeled with `name`, or an item whose request-matched text contains it, is on the
+/// screen: whole words, case-insensitive. Only what the planner's own view shows is searched.
+fn shows(view: &FilteredScreen, name: &str) -> bool {
+    view.elements.iter().any(|e| e.label.as_deref().is_some_and(|l| screen_filter::matches_request(l, name))
+        || e.shown_content.iter().any(|c| screen_filter::matches_request(c, name)))
+}
+
 /// Inputs that make no progress: the same two inputs alternating (A, B, A, B), or one input three
 /// times (A, A, A), where each repeat was planned on a screen that reads back unchanged from the
 /// previous time it was planned (readback.rs, in code). Scrolling one target down and up (or
@@ -254,7 +264,7 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, optio
             let named:Vec<String>=task.tainted.iter().map(|v|format!("{:?} (source {})",v.value,reader::source_tag(&v.source))).collect();
             format!("Request values not from the owner: {}\n",named.join(", "))
         };
-        let system=format!("{RULES}\nAction schema: {}\n{}",actions::ACTIONS_SCHEMA,capabilities::planner_instructions(screen.capabilities.as_ref()));
+        let system=format!("{RULES}\nAction schema: {}\n{}",actions::schema_for_prompt(),capabilities::planner_instructions(screen.capabilities.as_ref()));
         let (apps_line,rendered)=(json!(app_names).to_string(),screen_filter::render(&view));
         // The planner prompt for a context-guard trim: only history lines and old fact sets can
         // be left out; rules, schema, request, screen and this step's corrections never are.
@@ -546,13 +556,51 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, optio
                 }
                 if !terminal {
                     stop_if_cancelled!(step-1);
-                    match capabilities::dispatch(host,&op,app,screen.capabilities.as_ref(),confirmation_required,authorization) {
+                    let caps=screen.capabilities.as_ref();
+                    let mut result=capabilities::dispatch(host,&op,app,caps,confirmation_required,authorization);
+                    let mut scroll_note: Option<String> = None;
+                    if matches!(result,Ok(HandsResult::Ok)) {
+                        execution_status=ExecutionStatus::Executed;
+                        // Keypad entry: the remaining keys in order. Each is an ordinary digit tap
+                        // (no key needs a confirmation of its own); an interrupted entry is unknown.
+                        if let Some(taps)=actions::keypad_taps(&action,&view,&screen) {
+                            for tap in &taps[1..] {
+                                stop_if_cancelled!(step);
+                                result=match capabilities::dispatch(host,tap,app,caps,false,None) {
+                                    Ok(HandsResult::Ok)=>Ok(HandsResult::Ok),
+                                    _=>Ok(HandsResult::Error{message:"keypad entry interrupted".into()}),
+                                };
+                                if !matches!(result,Ok(HandsResult::Ok)) { break; }
+                            }
+                        }
+                        // Scroll until: observe after each scroll and stop when the named control
+                        // or request-matched item shows, the list stops moving, or the bound.
+                        if let Action::Scroll{until:Some(name),..}=&action {
+                            let (mut before,mut scrolls)=(screen.clone(),1u32);
+                            loop {
+                                stop_if_cancelled!(step);
+                                let Ok(fresh)=host.observe() else { break; };
+                                let shown=shows(&screen_filter::filter(&fresh,&FilterContext{request,typed:&typed}),name);
+                                let moved=readback::compare(&before,&fresh,None).outcome==readback::ReadbackOutcome::Changed;
+                                next_screen=Some(fresh.clone());
+                                let s=if scrolls==1 {""} else {"s"};
+                                if shown { scroll_note=Some(format!("{name:?} is on the screen after {scrolls} scroll{s}")); break; }
+                                if !moved { scroll_note=Some(format!("{name:?} not found; the list stopped moving after {scrolls} scroll{s}")); break; }
+                                if scrolls>=SCROLL_UNTIL_MAX { scroll_note=Some(format!("{name:?} not found after {scrolls} scrolls")); break; }
+                                stop_if_cancelled!(step);
+                                if !matches!(capabilities::dispatch(host,&op,app,caps,false,None),Ok(HandsResult::Ok)) { break; }
+                                scrolls+=1; before=fresh;
+                            }
+                        }
+                    }
+                    match result {
                         Ok(HandsResult::Ok)=> {
                             execution_status=ExecutionStatus::Executed;
                             step_execution_status=ExecutionStatus::Executed;
                             task_status=if matches!(op,HandsOp::OpenApp{..}) {"opened_ui"} else {"pending"};
                             verification=Verification::default();
                             outcome=if matches!(op,HandsOp::OpenApp{..}) {"opened_ui"} else {"host acknowledged input"}.into();
+                            if let Some(note)=scroll_note.take() { outcome=format!("{outcome}; {note}"); }
                             if let Action::Type{text,target,..}=&action {
                                 typed.push(text.clone());
                                 if let Some(label)=view.element(*target).and_then(|e|e.label.clone()) {
