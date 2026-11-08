@@ -1449,3 +1449,13 @@ are recorded in [model/harness diagnosis](log/2026-11-08-model-harness-diagnosis
 The owner selected the existing Gemini API with a Pro model. No new generation or task runs
 were started: two ThinkPad SSH attempts timed out, so exact model access and quota remain
 unverified. No fine-tuning or distillation has occurred.
+
+## Tensor G5 inference route — 8 November 2026
+
+Official Google documentation now provides precompiled Pixel 10/Tensor_G5 LiteRT-LM models
+and an app sample using the Tensor TPU dispatch library. Ballistic still uses CPU llama.cpp;
+this requires a new model backend and compatible compiled weights. Physical GrapheneOS
+compatibility, actual accelerator use, RAM and speed remain untested. Google's documented
+custom fine-tuned SLM compiler path currently targets G6, so G5 support for our own tuned model
+must be established before choosing it as the deployment target. Details and sources are in
+the [model/runtime diagnosis](log/2026-11-08-model-harness-diagnosis.md#tensor-g5-accelerator-research--8-november-2026).

@@ -105,3 +105,30 @@ API request ran. The owner selected **the existing Gemini API with a Pro model**
 attempt also timed out before the model-catalogue request could run; exact Pro model access and
 quota remain unverified. Existing source reads and published documentation support
 the diagnosis above, not a new benchmark result.
+
+## Tensor G5 accelerator research — 8 November 2026
+
+Google's current [Tensor SDK documentation](https://developers.google.com/edge/tensor-sdk/slm-compilation)
+lists precompiled Tensor_G5 (Pixel 10) LiteRT-LM bundles, including Gemma3-1B, Mobile Actions
+and Gemma4 E2B. Its custom fine-tuned SLM compilation instructions explicitly target Tensor_G6;
+they do not establish arbitrary fine-tuned Qwen or Gemma deployment on G5. Compiler access is
+through an approved beta. Check this constraint before selecting a training target.
+
+The [official Pixel 10 sample](https://github.com/google-ai-edge/litert-samples/blob/main/samples/litert/google/sample_app_tpu/README.md)
+uses LiteRT-LM and libLiteRtDispatch_GoogleTensor.so, with NPU/GPU/CPU fallback. This gives an
+app-side integration route, not evidence of successful execution on our GrapheneOS installation.
+The current llama.cpp/GGUF CPU backend cannot gain this support simply by selecting NPU;
+a separate backend and compatible compiled model are needed behind the existing Models port.
+Planning, reader isolation, grants and action dispatch remain in the existing architecture.
+
+The SDK-linked [G5 Gemma4 E2B bundle](https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/blob/main/gemma-4-E2B-it_Google_Tensor_G5.litertlm)
+is listed as 3.21 GB; this is download size, not peak runtime memory or a measured speed.
+[Pixel 10 Pro specifications](https://store.google.com/product/pixel_10_pro_specs)
+list 16 GB RAM, which is not an application memory budget. Accelerator compatibility, available
+RAM including cache/buffers, and acceptable sustained latency are separate acceptance criteria.
+
+Proposed first check: run the official sample with a pinned G5 bundle on the actual phone,
+verify the backend really uses TPU rather than falling back, then measure first-token time,
+prefill/decode, peak RAM and sustained thermal behavior. Only then integrate a LiteRT-LM
+backend and model download into Ballistic. No accelerator sample was installed or benchmarked;
+no model weights were downloaded and no OS/security configuration was changed in this research.
