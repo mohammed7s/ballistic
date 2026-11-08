@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Ballistic" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">#FF111111</item>
+        <item name="android:colorAccent">#FFE6E6E6</item>
+    </style>
+</resources>

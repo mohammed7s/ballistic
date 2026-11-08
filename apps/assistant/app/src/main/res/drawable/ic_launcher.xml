@@ -1,10 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Placeholder mark: a filled circle with an arrow. -->
+<!-- Launcher mark: Ballistic's B redrawn from assets/brand/ballistic-logo-v1.png (an
+     approximation, not final artwork), neutral grey on graphite with the mint chevron kept
+     (docs/UX_SYNTHESIS.md §8 question 18, default a). The in-app mark is fully greyscale. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <path android:fillColor="#FF1B1F24" android:pathData="M54,54m-50,0a50,50 0,1 1,100 0a50,50 0,1 1,-100 0" />
-    <path android:fillColor="#FFFFFFFF" android:pathData="M34,70 L66,38 L66,58 L74,58 L74,30 L46,30 L46,38 L60,38 L28,70 Z" />
+    <path android:fillColor="#FF111111" android:pathData="M0,0 L108,0 L108,108 L0,108 Z" />
+    <path android:fillColor="#FFE6E6E6" android:fillType="evenOdd"
+        android:pathData="M23.6,34.1 L40.1,23.0 L68.0,23.0 L80.8,39.9 L72.1,52.5 L84.4,66.9 L69.1,85.0 L38.5,84.8 L23.6,71.6 Z M33.3,39.9 L40.4,33.4 L62.8,33.4 L68.4,40.0 L62.6,48.0 L33.3,48.0 Z M33.3,58.4 L62.6,58.4 L70.4,66.7 L64.0,74.7 L40.6,74.7 L33.3,68.3 Z" />
+    <path android:fillColor="#FF2EF5A0"
+        android:pathData="M53.5,48.0 L62.8,48.0 L67.3,53.1 L62.8,58.4 L53.5,58.4 L58.2,53.1 Z" />
 </vector>

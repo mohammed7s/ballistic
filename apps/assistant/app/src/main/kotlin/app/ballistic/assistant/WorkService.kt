@@ -62,7 +62,9 @@ class WorkService : Service() {
                         endingNormally = true
                         stopSelfResult(startId)
                     } else {
-                        val label = if (run.canStop) run.activity ?: "Working" else "Local AI setup or inference"
+                        val label = if (run.canStop) run.runs.lastOrNull()?.let {
+                            app.ballistic.assistant.session.runStatusLine(it, run.phase == app.ballistic.assistant.session.Phase.AwaitingApproval)
+                        } ?: "Working" else "Local AI setup or inference"
                         getSystemService(NotificationManager::class.java).notify(ID, notification(label))
                     }
                 }
@@ -86,6 +88,8 @@ class WorkService : Service() {
             .setUsesChronometer(true)
             .setOnlyAlertOnce(true)
             .setOngoing(true)
+            // The live-marker mint: the notification exists only while Ballistic is working.
+            .setColor(0xFF0A8F58.toInt())
             .setVisibility(Notification.VISIBILITY_PRIVATE)
             .addAction(Notification.Action.Builder(null, "Stop", stop).build())
             .build()
