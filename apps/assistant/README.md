@@ -310,3 +310,13 @@ is no automatic fallback to another backend, model or connected model. A ~2K-tok
 check sits beside the short check. The build and emulator checks passed; the Pixel install
 succeeded but the phone stayed locked, so no NPU or phone LiteRT-LM measurement exists yet. See
 [LOCAL_AI.md](LOCAL_AI.md) for the catalogue, gating, backend reporting and measurements.
+
+## Tensor runtime pair — 8 November 2026 update
+
+The owner's Pixel showed the Tensor G5 failure was Ballistic's packaging: LiteRT-LM 0.19.1 looks
+up `LiteRtDispatchQueryInterface`, which no released Google Tensor dispatch library exports.
+LiteRT-LM is now 0.18.1, the newest release whose runtime looks up the `LiteRtDispatchGetApi`
+symbol that dispatch 2.3.2 exports (symbol and source evidence in [LOCAL_AI.md](LOCAL_AI.md)). A
+failed NPU start now names its cause (not a Tensor device, Ballistic's packaging, the vendor NPU
+stack, or a bundle for another chip) and shows the deciding LiteRT log line. This build has not
+been built, installed or measured on the phone yet.
