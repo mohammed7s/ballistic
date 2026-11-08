@@ -85,7 +85,10 @@ dispatch library is in `nativeLibraryDir`, where LiteRT-LM loads it; this makes 
 larger. Before an NPU start Ballistic checks the ABI is arm64-v8a, the SoC manufacturer reports
 Google and the dispatch library is present; otherwise it shows "Tensor accelerator not available on
 this phone/OS" with the reason. A failed NPU start shows the same message. A native crash inside the
-vendor runtime cannot be caught by the app; none has been observed because none has been run.
+vendor runtime cannot be caught by the app; no NPU start has been run on a phone yet. After each
+LiteRT-LM start, the status card adds a summary of LiteRT's own log for that start (whether an NPU
+accelerator registered or could not be loaded, and "N/M nodes on <delegate>" counts), read from the
+app's own process log; that is the runtime's report of where the graph was placed.
 Compatibility of this LiteRT-LM release with this dispatch runtime and with GrapheneOS's vendor
 libraries is established only by running it on the phone.
 
@@ -172,6 +175,52 @@ battery life, peak memory or sustained thermal performance.
 Phone profiles are suggested CPU/context settings and candidate-model guidance. They are not
 validated performance ratings. Downloads require the owner to confirm setup. Pixel results require measurements on a
 Pixel; laptop and emulator results must be labeled separately.
+
+## What was measured where (8 November 2026)
+
+**Build.** ThinkPad, JDK 21, Gradle 9.9.0, NDK 29.0.14206865, CMake 3.31.6: `:core-api:test
+:app:assembleDebug` succeeded. 93 JVM tests, 0 failures/errors, 12 skipped (the optional
+UniFFI/JNI/live-download tests, whose host libraries or models were not supplied), including 9 new
+catalogue/switching tests. The APK packages `liblitertlm_jni.so` (arm64-v8a, x86_64) and
+`libLiteRtDispatch_GoogleTensor.so` (arm64-v8a); its merged manifest declares the five optional
+native libraries. The Rust core libraries were the existing prebuilt `jniLibs` from the Latitude
+checkout (built 7 Nov from the current core), not rebuilt.
+
+**Emulator (`emulator-5554`, x86_64, Android 13 image, no Tensor).** Emulator numbers are not
+phone numbers. The emulator's clock is set to October 2023, so in-app HTTPS download failed with
+the app's secure-connection error; the two Qwen files were downloaded on the ThinkPad (digests
+matched the catalogue), pushed to Downloads and brought in with **Import verified file**, which
+accepted them after its own size and SHA-256 check.
+
+| Model / runtime / backend | Check | Prompt tokens | First token | Prefill | Decode |
+| --- | --- | ---: | ---: | ---: | ---: |
+| Qwen3 0.6B Q8 / llama.cpp / CPU | Short | 25 | 2.7 s | 9.3 tok/s | 7.8 tok/s |
+| Qwen3 0.6B Q8 / llama.cpp / CPU | ~2K | 2,026 | 202.6 s | 10.0 tok/s | 1.2 tok/s (2 tokens) |
+| Qwen3 0.6B / LiteRT-LM / CPU | Short | not measured | 6.5 s | not measured | 2.8 tok/s |
+| Qwen3 0.6B / LiteRT-LM / CPU | ~2K | 2,008 | 88.9 s | 22.6 tok/s | 2.9 tok/s |
+
+- LiteRT-LM GPU on the emulator started (its log: all 1,306 decode and 1,358 prefill nodes on the
+  WebGPU delegate) but generation failed (`Can not find OpenCL library on this device`). The app
+  showed the explicit error and stayed on GPU; nothing fell back.
+- With a sparse placeholder file standing in for the Gemma 4 E2B G5 bundle (no real weights), **Use**
+  showed "Tensor accelerator not available on this phone/OS: this device is x86_64, not ARM64" and
+  did not crash. On every LiteRT start the emulator's LiteRT log reported that its NPU accelerator
+  could not be loaded.
+- LiteRT-LM's "last prefill" counters covered only the final 2-token prefill chunk, so Ballistic
+  reports prompt size from the conversation's KV-cache count and prefill rate as prompt tokens over
+  time to first token. For the short prompt the KV count (23) was below the decode count (32);
+  that prompt size is shown as not measured.
+- The emulator's backend selection was restored to Connected and the test copies were removed.
+
+**Pixel 10 Pro (USB to the ThinkPad, GrapheneOS, Android 17, `ro.soc.model` Tensor G5).** Vendor
+`libedgetpu_litert.so`, `libedgetpu_util.so` and `libedgetpu_client.google.so` exist under
+`/vendor/lib64`; AICore is not installed. `adb install -r` of the ThinkPad-signed APK was refused
+(`INSTALL_FAILED_UPDATE_INCOMPATIBLE`, see README signing note); the same APK re-signed with the
+Latitude debug key installed in place, keeping app data. Native libraries, including the Tensor
+dispatch library, were extracted to the app's library directory. At startup the earlier starter
+download moved to its catalogue slot without re-download, and the saved selection kept it active.
+The phone stayed locked (keyguard showing) for the whole session, so no Local AI action, download,
+NPU load or speed check could be run on it. **No NPU, GPU or phone LiteRT-LM result exists yet.**
 
 ## Current capability boundary
 

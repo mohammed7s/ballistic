@@ -298,3 +298,15 @@ confirmation it downloads, checks the pinned digest and size, installs the manag
 loads it locally. Manual GGUF import remains available. Downloads require the app to stay open;
 interrupted transfers restart. No phone-quality recommendation or fine-tuning result is claimed.
 See [setup guide](LOCAL_AI.md) and [validation record](../../docs/log/2026-11-07-model-download.md).
+
+## Model catalogue and LiteRT-LM — 8 November 2026 update
+
+Local AI has a **Models** dropdown over a pinned catalogue: three llama.cpp GGUF files and four
+LiteRT-LM bundles, including Google's precompiled Tensor G5 bundles for Gemma 4 E2B and (gated,
+import only) Gemma 3 1B. Each entry can be downloaded (confirm, size and SHA-256 check), imported
+as a verified file, used (unload, then load) or deleted. `LiteRtLmDriver` runs bundles on the
+owner-chosen CPU/GPU/NPU backend behind the same Models port, a fresh conversation per call. There
+is no automatic fallback to another backend, model or connected model. A ~2K-token prefill speed
+check sits beside the short check. The build and emulator checks passed; the Pixel install
+succeeded but the phone stayed locked, so no NPU or phone LiteRT-LM measurement exists yet. See
+[LOCAL_AI.md](LOCAL_AI.md) for the catalogue, gating, backend reporting and measurements.
