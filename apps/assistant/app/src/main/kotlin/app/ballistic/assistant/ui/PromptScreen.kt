@@ -89,7 +89,7 @@ fun PromptScreen(graph: AppGraph, activity: Activity, onOpenLocalAi: () -> Unit 
         if(graph.engine.current is app.ballistic.assistant.core.FakeCoreEngine) {
             Text(state.engine, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.error)
         }
-        Text(if (backend.backend == app.ballistic.assistant.models.ModelBackend.Local) "Local · ${graph.localAi.model.value?.name ?: "no model installed"} · ${localState.phase} · model requests stay on device" else connectedModelSummary(graph), style = MaterialTheme.typography.labelMedium)
+        Text(if (backend.backend == app.ballistic.assistant.models.ModelBackend.Local) "Local · ${graph.localAi.model.value?.name ?: "no model installed"} · ${localState.phase}${localState.target?.takeIf { localState.metadata != null }?.let { " · ${it.runtime.label} ${it.backend.name}" } ?: ""} · model requests stay on device" else connectedModelSummary(graph), style = MaterialTheme.typography.labelMedium)
         if(localSelected && !modelReady && state.runs.isNotEmpty()) {
             OutlinedButton(onClick = onOpenLocalAi) { Text("Set up local model") }
         }
