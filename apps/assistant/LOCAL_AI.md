@@ -75,22 +75,67 @@ per the LiteRT-LM 0.19.1 source, the engine builds the executor for the requeste
 fails, so a successful start on NPU is the runtime's own acceptance of that backend, not a
 separate hardware trace. Logcat also carries LiteRT-LM's native log lines.
 
-**Tensor NPU support.** The APK includes `com.google.ai.edge.litertlm:litertlm-android:0.19.1`
+**Tensor NPU support.** The APK includes `com.google.ai.edge.litertlm:litertlm-android:0.18.1`
 (arm64-v8a and x86_64) and the official `com.google.ai.edge.litert:litert-npu-runtime-google-tensor:2.3.2`,
 which packages `libLiteRtDispatch_GoogleTensor.so` (arm64-v8a only) and declares the optional
 vendor `libedgetpu_litert.so`/`libedgetpu_util.so`. The manifest also declares
 `libedgetpu_client.google.so`, `libOpenCL.so` and `libvndksupport.so` as optional, as Google's TPU
 sample and LiteRT-LM guide do. Native libraries are extracted at install (legacy packaging) so the
 dispatch library is in `nativeLibraryDir`, where LiteRT-LM loads it; this makes the installed app
-larger. Before an NPU start Ballistic checks the ABI is arm64-v8a, the SoC manufacturer reports
-Google and the dispatch library is present; otherwise it shows "Tensor accelerator not available on
-this phone/OS" with the reason. A failed NPU start shows the same message. A native crash inside the
-vendor runtime cannot be caught by the app; no NPU start has been run on a phone yet. After each
-LiteRT-LM start, the status card adds a summary of LiteRT's own log for that start (whether an NPU
-accelerator registered or could not be loaded, and "N/M nodes on <delegate>" counts), read from the
+larger. A native crash inside the vendor runtime cannot be caught by the app. After each
+LiteRT-LM start, the status card adds a summary of LiteRT's own log for that start (whether the
+Google Tensor dispatch runtime initialized, and "N/M nodes on <delegate>" counts), read from the
 app's own process log; that is the runtime's report of where the graph was placed.
-Compatibility of this LiteRT-LM release with this dispatch runtime and with GrapheneOS's vendor
-libraries is established only by running it on the phone.
+
+**Why an NPU start failed.** `TensorDiagnostics` (core-api, unit-tested) names one cause and never
+blames the phone for a packaging fault:
+
+| Cause | How it is recognised | What the app says |
+| --- | --- | --- |
+| (a) Not a Tensor device | Before the start: ABI is not arm64-v8a, or the SoC manufacturer is not Google | "This device is x86_64, not ARM64…" / "This phone's SoC reports …, not Google Tensor…" |
+| (b) Our packaging | Dispatch library absent from `nativeLibraryDir`; LiteRT log has `undefined symbol`/`Could not load symbol LiteRt…`, `Dispatch library not found`, a legacy-symbol warning or a failed Dispatch ABI negotiation | "Ballistic's packaged Tensor runtime is incompatible: <symbol> is missing from libLiteRtDispatch_GoogleTensor.so…" |
+| (c) Vendor stack refused | `avc: denied`, `PERMISSION_DENIED`, `Permission denied`, the dispatch library's southbound load/initialise failures, or a failure line naming `libedgetpu*`/`libdarwinn*` | "This phone's Tensor NPU stack refused Ballistic or is not visible to it…" |
+| (d) Bundle not for this chip | The dispatch library's SQ container/bytecode load failures, unsupported compiler/runtime/SoC versions | "This model bundle was not compiled for this phone's Tensor chip or this runtime version." |
+| Unclassified | None of the above | "LiteRT-LM could not start its NPU backend… LiteRT's log does not name a known cause." |
+
+The status card shows the deciding LiteRT line (or the first failure line other than the
+accelerator-plugin line every start logs) as **Details (runtime log)**, without the logcat prefix
+and with every path reduced to its file name. GPU and CPU start failures show the same detail line.
+
+**Tensor runtime pair (8 November 2026).** LiteRT-LM bundles its own LiteRT runtime, which loads
+`libLiteRtDispatch_GoogleTensor.so` and looks up its entry symbol. The two must speak one LiteRT
+Dispatch ABI. On 8 November 2026 the owner's Pixel 10 Pro, with LiteRT-LM 0.19.1 and dispatch 2.3.2,
+logged `Could not load symbol LiteRtDispatchQueryInterface: undefined symbol:
+LiteRtDispatchQueryInterface` and `No usable Dispatch runtime found`; the earlier build reported this
+as "Tensor accelerator not available on this phone/OS", which was wrong: the cause was the APK.
+
+Evidence, from primary sources:
+
+- Google Maven lists `litert-npu-runtime-google-tensor` 2.3.0 and 2.3.2 only (2.3.2 latest) and
+  `litertlm-android` up to 0.19.1.
+- `llvm-nm -D --defined-only` (NDK 29) on the AARs' `libLiteRtDispatch_GoogleTensor.so`: 2.3.0 and
+  2.3.2 each export exactly one dispatch symbol, `LiteRtDispatchGetApi@@VERS_1.0`. The 2.3.2 library
+  (SHA-256 `6d378a84…33f18`) has no undefined `LiteRt*` symbols; it needs only libandroid, libdl,
+  liblog, libc and libm, and opens the vendor `libedgetpu_litert.so` at run time.
+- `liblitertlm_jni.so` (arm64-v8a) resolves the dispatch entry by name (`dlsym`), so the name is a
+  string in the library, not a dynamic import. Its dispatch symbol strings: 0.16.1, 0.17.1, 0.18.0
+  and 0.18.1: `LiteRtDispatchGetApi`; 0.19.0 and 0.19.1: `LiteRtDispatchQueryInterface` (plus
+  `LiteRtDispatchInitialize`, which LiteRT only uses to warn about a legacy library).
+- LiteRT commit `f59b793` (20 Oct 2026, "Migrate the LiteRT Dispatch C ABI to versioned interface
+  tables") introduced `LiteRtDispatchQueryInterface`. LiteRT-LM v0.19.1 pins LiteRT `dcb657e`, 104
+  commits after it; v0.18.1 pins `ca21dc9`, 233 commits before it. LiteRT's v2.3.2 tag is on a
+  release branch without it. At `ca21dc9` and at v2.3.2, `litert/vendors/c/litert_dispatch.h` and
+  `litert_dispatch_api.h` are byte-identical and `LITERT_API_VERSION` is 0.1.0 in both.
+- The LiteRT binaries bucket's moving `nightly` dispatch library (not a release) exports
+  `LiteRtDispatchQueryInterface`; no versioned release does yet.
+- Google's `sample_app_tpu` (litert-samples `958de2e`, 14 Oct 2026, its latest revision) uses
+  LiteRT-LM 0.12.0 with LiteRT 2.3.0; the Tensor skill's `versions.json` pins Maven 2.3.0 for
+  `litert` and `litert-npu-runtime-google-tensor`. Both predate the ABI change.
+
+Chosen pair: **LiteRT-LM 0.18.1 + Google Tensor dispatch 2.3.2**, the newest release pair whose
+runtime looks up the one symbol the dispatch library exports, with matching dispatch headers. Do not
+move LiteRT-LM to 0.19.x until a released dispatch library exports `LiteRtDispatchQueryInterface`
+(check with `llvm-nm -D --defined-only` as above).
 
 **Context.** For llama.cpp and generic LiteRT-LM bundles the Context setting (2K/4K/8K) is passed
 to the engine. A compiled NPU bundle fixes its context; Ballistic does not pass a size. The Gemma 3

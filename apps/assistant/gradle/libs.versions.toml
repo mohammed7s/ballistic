@@ -11,10 +11,14 @@ lifecycle = "2.11.0"
 core-ktx = "1.19.1"
 # JNA: UniFFI's Kotlin bindings call libballistic_core through it.
 jna = "5.19.1"
-# LiteRT-LM Android runtime (Google Maven, checked 8 Nov 2026: 0.19.1 is the latest release) and
-# the official Google Tensor NPU dispatch runtime (2.3.2, latest). Their ABI compatibility on a
-# Tensor G5 phone is established only by running them there; see LOCAL_AI.md.
-litertlm = "0.19.1"
+# LiteRT-LM Android runtime and the official Google Tensor NPU dispatch runtime. These two must
+# share one LiteRT Dispatch ABI, so they move together (LOCAL_AI.md, "Tensor runtime pair").
+# Checked 8 Nov 2026: the newest dispatch release, 2.3.2, exports only LiteRtDispatchGetApi.
+# LiteRT-LM 0.19.0/0.19.1 are built on LiteRT after its versioned-ABI change and look up
+# LiteRtDispatchQueryInterface, so they cannot load it; 0.18.1 (the newest that looks up
+# LiteRtDispatchGetApi, LiteRT pin with dispatch headers identical to LiteRT v2.3.2) can.
+# Do not raise litertlm past 0.18.x until a dispatch release exports LiteRtDispatchQueryInterface.
+litertlm = "0.18.1"
 litert-npu-google-tensor = "2.3.2"
 
 [libraries]

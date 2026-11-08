@@ -102,6 +102,7 @@ fun LocalAiScreen(graph: AppGraph, activity: Activity, onOpenAsk: () -> Unit = {
                     if(selected.backend == ModelBackend.Http) TextButton(onClick = onOpenSettings) { Text("Connection settings") }
                     if(busy || engine.busy) LinearProgressIndicator(Modifier.fillMaxWidth())
                     engine.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+                    engine.errorDetail?.let { Text("Details (runtime log): $it", style = MaterialTheme.typography.bodySmall) }
                     if (download == null) notice?.let { Text(it) }
                     if(busy || engine.busy) Button(onClick = { if(run.canStop) graph.stop() else ai.stop() }) { Text("Stop local operation") }
                 }
@@ -255,7 +256,7 @@ fun LocalAiScreen(graph: AppGraph, activity: Activity, onOpenAsk: () -> Unit = {
                 Metric("Token counts", engine.metrics?.let { "${it.promptTokens} prompt · ${it.generatedTokens} generated" })
                 if(engine.metrics?.capped == true) Text("The generation limit was reached.")
                 Text(modelLine(graph), style = MaterialTheme.typography.bodySmall)
-                Text("Runtimes: embedded llama.cpp CPU · 80d2c0c2c56e, and LiteRT-LM 0.19.1 (CPU/GPU/NPU) with the Google Tensor NPU runtime 2.3.2.\nContext setting: ${selected.contextTokens} · CPU threads: ${selected.threads}\nAll four roles share one loaded model, with a fresh context per call. Generation limit: 1,024 tokens. No prompt truncation or cloud fallback.")
+                Text("Runtimes: embedded llama.cpp CPU · 80d2c0c2c56e, and LiteRT-LM ${app.ballistic.assistant.BuildConfig.LITERTLM_VERSION} (CPU/GPU/NPU) with the Google Tensor NPU runtime ${app.ballistic.assistant.BuildConfig.LITERT_NPU_GOOGLE_TENSOR_VERSION}.\nContext setting: ${selected.contextTokens} · CPU threads: ${selected.threads}\nAll four roles share one loaded model, with a fresh context per call. Generation limit: 1,024 tokens. No prompt truncation or cloud fallback.")
                 Text("Tensor NPU: ${ai.tensorInfo}", style = MaterialTheme.typography.bodySmall)
                 Metric("Model identity", engine.metadata?.description)
                 Metric("Quantization metadata", engine.metadata?.quantization)

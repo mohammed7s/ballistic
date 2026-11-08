@@ -4,13 +4,15 @@
 // Conversation per call (no context carried between calls or roles), cancel an active call, and
 // report LiteRT-LM's own benchmark numbers (time to first token, prefill and decode rates).
 // Cannot: pick or change a backend by itself. A failed start is an explicit error; nothing falls
-// back to another backend, another model or a connected model. Per the LiteRT-LM 0.19.1 source,
-// the engine creates the executor for the requested backend or fails; it does not switch backends.
+// back to another backend, another model or a connected model. Per the LiteRT-LM source, the
+// engine creates the executor for the requested backend or fails; it does not switch backends.
 //
 // NPU (Google Tensor): the official `litert-npu-runtime-google-tensor` AAR packages
 // libLiteRtDispatch_GoogleTensor.so (arm64 only) and declares the vendor libedgetpu libraries.
 // The dispatch library is loaded from nativeLibraryDir, so jniLibs use legacy (extracted)
-// packaging. A G5 bundle is compiled for the Tensor G5 NPU and is not expected to run elsewhere.
+// packaging. Its Dispatch ABI must match the LiteRT runtime inside LiteRT-LM (see
+// gradle/libs.versions.toml and LOCAL_AI.md). A failed start is classified by TensorDiagnostics.
+// A G5 bundle is compiled for the Tensor G5 NPU and is not expected to run elsewhere.
 
 package app.ballistic.assistant.models
 
@@ -35,7 +37,7 @@ import java.util.concurrent.TimeUnit
 
 /** Facts about Tensor NPU support on this device, for the precheck and the technical details. */
 object TensorSupport {
-    const val DISPATCH_LIBRARY = "libLiteRtDispatch_GoogleTensor.so"
+    const val DISPATCH_LIBRARY = TensorDiagnostics.DISPATCH_LIBRARY
     private val VENDOR_LIBRARIES = listOf("/vendor/lib64/libedgetpu_litert.so", "/vendor/lib64/libedgetpu_util.so")
 
     val abi: String get() = Build.SUPPORTED_ABIS.firstOrNull() ?: "unknown"
@@ -44,13 +46,10 @@ object TensorSupport {
     /** Visibility only: SELinux may hide a present file, so absence is reported, not enforced. */
     fun vendorLibrariesVisible(): Boolean = VENDOR_LIBRARIES.any { runCatching { File(it).exists() }.getOrDefault(false) }
 
-    /** Null when an NPU start may be attempted; otherwise the reason it cannot be. */
-    fun unavailableReason(context: Context): String? = when {
-        abi != "arm64-v8a" -> "Tensor accelerator not available on this phone/OS: this device is $abi, not ARM64 (for example an emulator)."
-        !Build.SOC_MANUFACTURER.equals("Google", ignoreCase = true) -> "Tensor accelerator not available on this phone/OS: the SoC reports \"$soc\", not Google Tensor."
-        !dispatchPackaged(context) -> "Tensor accelerator not available on this phone/OS: the Google Tensor dispatch library is not installed with this app."
-        else -> null
-    }
+    /** Null when an NPU start may be attempted; otherwise why it cannot be (not Tensor, or packaging). */
+    fun precheck(context: Context): TensorDiagnosis? =
+        TensorDiagnostics.precheck(abi, Build.SOC_MANUFACTURER, Build.SOC_MODEL, dispatchPackaged(context))
+    fun unavailableReason(context: Context): String? = precheck(context)?.message
 
     fun describe(context: Context): String =
         "ABI $abi · SoC $soc · dispatch library ${if (dispatchPackaged(context)) "packaged" else "absent"} · " +
@@ -76,7 +75,7 @@ class LiteRtLmDriver(private val context: Context) : LocalDriver {
     @OptIn(ExperimentalApi::class)
     override fun load(spec: LoadSpec): LocalMetadata {
         unload()
-        if (spec.backend == ComputeBackend.NPU) TensorSupport.unavailableReason(context)?.let { throw LocalFailure(it) }
+        if (spec.backend == ComputeBackend.NPU) TensorSupport.precheck(context)?.let { throw LocalFailure(it.message, it.detail) }
         val runtimeBackend = when (spec.backend) {
             ComputeBackend.CPU -> Backend.CPU(threadCount = spec.threads)
             ComputeBackend.GPU -> Backend.GPU()
@@ -94,19 +93,17 @@ class LiteRtLmDriver(private val context: Context) : LocalDriver {
         )
         ExperimentalFlags.enableBenchmark = true
         val loadStarted = System.currentTimeMillis() / 1000.0
-        val candidate = try { Engine(config) } catch (t: Throwable) { throw startFailure(spec.backend, t) }
+        val candidate = try { Engine(config) } catch (t: Throwable) { throw startFailure(spec.backend, t, runtimeLines(loadStarted)) }
         try {
             candidate.initialize()
         } catch (t: Throwable) {
             runCatching { if (candidate.isInitialized()) candidate.close() }
-            val failure = startFailure(spec.backend, t)
-            val runtime = runtimeLog(loadStarted)
-            throw if (runtime == null) failure else LocalFailure("${failure.message} $runtime")
+            throw startFailure(spec.backend, t, runtimeLines(loadStarted))
         }
         engine = candidate
         backend = spec.backend
         context0 = maxTokens ?: 0
-        val runtime = runtimeLog(loadStarted)
+        val runtime = runtimeLines(loadStarted)?.let(TensorDiagnostics::summary)
         Log.i(TAG, "LiteRT-LM engine initialized backend=${runtimeBackend.name} runtime_log=${runtime ?: "unavailable"}")
         return LocalMetadata(
             description = "LiteRT-LM bundle",
@@ -118,35 +115,32 @@ class LiteRtLmDriver(private val context: Context) : LocalDriver {
     }
 
     /**
-     * LiteRT logs which accelerators it registered and how many graph nodes each delegate took.
-     * The app may read its own process log; only a code-owned summary (counts and an uppercase
-     * delegate identifier) is returned, never the log lines themselves.
+     * LiteRT's own log lines for this start (tags litert and tflite, this process only, oldest
+     * first); the app may read its own process log. [TensorDiagnostics] classifies and summarises
+     * them; at most one line, with paths reduced to file names, reaches the UI.
      */
-    private fun runtimeLog(sinceEpochSeconds: Double): String? = runCatching {
+    private fun runtimeLines(sinceEpochSeconds: Double): List<String>? = runCatching {
         val process = ProcessBuilder("logcat", "-d", "-v", "epoch", "--pid", android.os.Process.myPid().toString(), "-s", "litert:*", "tflite:*")
             .redirectErrorStream(true).start()
         val lines = process.inputStream.bufferedReader().use { it.readLines() }
         process.waitFor()
-        val recent = lines.filter { line -> line.trim().substringBefore(' ').toDoubleOrNull()?.let { it >= sinceEpochSeconds - 1 } == true }
-        val parts = mutableListOf<String>()
-        if (recent.any { "npu_registry" in it && "could not be loaded" in it }) parts += "NPU accelerator could not be loaded"
-        if (recent.any { "RegisterAccelerator" in it && Regex("NPU|Npu|Tensor|Dispatch").containsMatchIn(it) }) parts += "NPU accelerator registered"
-        val delegated = Regex("Replacing (\\d+) out of (\\d+) node\\(s\\) with delegate \\(([A-Z0-9_]{1,40})\\)")
-        recent.mapNotNull { delegated.find(it) }.map { "${it.groupValues[1]}/${it.groupValues[2]} nodes on ${it.groupValues[3]}" }
-            .distinct().take(4).let { parts += it }
-        if (parts.isEmpty()) "LiteRT's log for this start has no accelerator or delegation lines."
-        else "LiteRT's log for this start: " + parts.joinToString("; ") + "."
+        lines.filter { line -> line.trim().substringBefore(' ').toDoubleOrNull()?.let { it >= sinceEpochSeconds - 1 } == true }
     }.getOrNull()
 
-    private fun startFailure(backend: ComputeBackend, t: Throwable): LocalFailure {
-        // Class name only: native messages can contain paths. Logcat also has LiteRT's own log.
-        Log.w(TAG, "LiteRT-LM start failed backend=$backend error=${t.javaClass.simpleName}")
+    private fun startFailure(backend: ComputeBackend, t: Throwable, lines: List<String>?): LocalFailure {
+        val log = lines.orEmpty()
         val nothingElse = "Nothing was switched to another backend or a connected model."
-        return LocalFailure(when (backend) {
-            ComputeBackend.NPU -> "Tensor accelerator not available on this phone/OS: LiteRT-LM could not start its NPU backend with this bundle. $nothingElse"
-            ComputeBackend.GPU -> "LiteRT-LM could not start its GPU backend on this phone with this bundle. $nothingElse"
-            ComputeBackend.CPU -> "LiteRT-LM could not load this bundle on CPU (memory or an unsupported bundle). $nothingElse"
-        })
+        val diagnosis = if (backend == ComputeBackend.NPU) TensorDiagnostics.classify(log, t.javaClass.simpleName) else null
+        // Class name, cause and code-owned summary only; the cleaned LiteRT line goes to the status card.
+        Log.w(TAG, "LiteRT-LM start failed backend=$backend error=${t.javaClass.simpleName} cause=${diagnosis?.cause ?: "n/a"} " +
+            "runtime_log=${if (lines == null) "unavailable" else TensorDiagnostics.summary(log)}")
+        return when (backend) {
+            ComputeBackend.NPU -> LocalFailure(diagnosis!!.message, diagnosis.detail)
+            ComputeBackend.GPU -> LocalFailure("LiteRT-LM could not start its GPU backend on this phone with this bundle. $nothingElse",
+                TensorDiagnostics.firstConcreteError(log))
+            ComputeBackend.CPU -> LocalFailure("LiteRT-LM could not load this bundle on CPU (memory or an unsupported bundle). $nothingElse",
+                TensorDiagnostics.firstConcreteError(log))
+        }
     }
 
     override fun unload() {

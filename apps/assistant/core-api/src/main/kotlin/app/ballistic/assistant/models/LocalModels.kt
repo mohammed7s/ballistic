@@ -106,6 +106,8 @@ data class LocalState(
     val loadMs: Double? = null,
     val metrics: LocalMetrics? = null,
     val error: String? = null,
+    /** The runtime line behind [error], if the driver supplied one (see [LocalFailure.detail]). */
+    val errorDetail: String? = null,
     /** The loaded (or loading/failed) target. Backend is the one the engine was started on. */
     val target: LoadTarget? = null,
 ) { val busy: Boolean get() = phase == LocalPhase.Loading || phase == LocalPhase.Generating }
@@ -165,7 +167,7 @@ class LocalModels(private val drivers: Map<ModelRuntime, LocalDriver>, private v
             mutable.value = LocalState(LocalPhase.Ready, metadata, (nanoTime() - start) / 1e6, target = target)
         } catch (e: Exception) {
             unloadAll()
-            mutable.value = LocalState(phase = LocalPhase.Error, error = safeError(e), target = target)
+            mutable.value = LocalState(phase = LocalPhase.Error, error = safeError(e), errorDetail = (e as? LocalFailure)?.detail, target = target)
             throw PortException.Host(safeError(e))
         }
     }
@@ -195,8 +197,11 @@ class LocalModels(private val drivers: Map<ModelRuntime, LocalDriver>, private v
     private fun safeError(e: Exception): String = if (e is LocalFailure) e.message!! else "Local engine failed; unload and retry"
 }
 
-/** Only code-owned error strings cross JNI. No model/prompt/path exception excerpts. */
-class LocalFailure(message: String) : RuntimeException(message)
+/**
+ * Only code-owned error strings cross JNI. No model/prompt/path exception excerpts. [detail] is at
+ * most one runtime log line with paths reduced to file names, shown as status-card details only.
+ */
+class LocalFailure(message: String, val detail: String? = null) : RuntimeException(message)
 
 /** Frozen for a whole Ask run, including all roles; Stop remains latched between callbacks. */
 interface ModelRunLifecycle {
