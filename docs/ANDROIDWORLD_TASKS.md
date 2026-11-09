@@ -232,6 +232,22 @@ The first five by tasks needing them: **ANS 25** (every answer task), **EXT 15**
 **DATE 13**, **NUM 10**. By sole-remaining-gap unlocks: DATE 8, FIND 7, EXT 7 (with ANS), EDIT 5,
 NUM 5 (4 with ANS).
 
+**Status after improvement loop 2 (9 Nov 2026; implemented and tested offline, live results in
+`docs/BENCHMARK_RUNS.md`, "Loop 2").** The verdicts and counts above are unchanged; these notes say
+which gaps have code now. **ANS**: implemented in the harness only (`run_task.py`
+`--deliver_answers`): a sourced `answer.text`, or available owner excerpts joined with `, `, goes to
+`env.interaction_cache` through AndroidWorld's ANSWER action; the PASS column counts it only for
+`InformationRetrieval` tasks. **EXT**: partly, as the question form of the terminal owner excerpt
+channel (interrogative sentence ending in `?`; one exact excerpt per chosen row; 160 reader
+tokens); no cross-screen accumulation. **DATE**: partly, Simple Calendar's event-list section
+headers carry a typed day/weekday; pickers unchanged. **FIND**: partly, a planner rule to `scroll …
+until` the exact owner-named item, a tappable checkable chip the request names, and long press on
+a clickable owner-named row; no code-driven search loop. **SENDV**: unchanged since b22da1f (the
+reply row slack is confirmed on the recorded Opus trace by replay). **LP**: reader picks remain
+tap-only (see core/README.md §5, loop 2 paragraph, for why); owner-named rows could already be
+long-pressed. New typed postconditions for deleted named rows and a saved Markor note cover parts of
+the FIND and EDIT task families' completion evidence, not their gaps.
+
 ### Cumulative unlock order (judgement, design-compatible gaps only)
 
 Greedy order: at each step, close the gap that turns the most remaining *needs* tasks into tasks with
