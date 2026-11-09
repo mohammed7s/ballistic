@@ -192,6 +192,20 @@ field, both lines) and exits 1, or reports a match and exits 0. Timing keys in l
 (`seconds`, ...) are left out of the comparison; `--ignore_keys` changes the list. This is
 core/README.md §15 rule 4, on the host side.
 
+### Dream pass over a suite (`dream.py`, offline)
+
+```bash
+python3 harness/dream.py ballistic_runs/suite_X/ --compare ballistic_runs/suite_OLD/ \
+    --group "practice:ContactsAddContact,..." --price_in 0.10 --price_out 0.50 --out dream.md
+```
+Clusters non-PASS runs by failure category, final package and activity (observation headers
+only), last action type, readback word and outcome kind, and lists state-passed-but-not-credited
+runs, false done, per-task one-liners, token totals and cost. It reads only core- and
+harness-written fields (fixed report phrases, step outcomes, readback words); planner prompts,
+reader prompts, screen text and answer text never enter the report. No model call unless
+`--summarize` (one Anthropic call over the cluster table only, labelled as unverified
+proposals). Proposal C of `docs/research/OPENCLAW_DREAMING.md`; it proposes, it changes nothing.
+
 ### Answers to AndroidWorld's answer checkers (harness only)
 
 The 25 information-retrieval tasks score `env.interaction_cache`. After a core run, `run_task.py`
