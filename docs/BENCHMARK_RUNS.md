@@ -30,6 +30,65 @@ setup and gaps and is not the sum in this table. Errors and early failed stops r
 time. These runs do **not** establish a speedup or a controlled latency comparison.
 Prompt means include only usage-bearing calls; failed-call usage is unknown.
 
+## Loop 2 — 9 November 2026 (code changed; live runs not made)
+
+**No live run was made in this loop.** The ThinkPad (`ubuntu-thinkpad-e470`, 100.114.231.86)
+answered one SSH command at the start of the loop and then stopped answering: every later SSH
+attempt timed out, and `tailscale status` reported it offline ("last seen 2h ago") when this
+section was written. No emulator lock was taken, nothing was built on the ThinkPad, and no API
+call was made: loop 2 API cost **$0**. The practice-20 + rotation-10 table (PASS / state passed /
+false done / cost / tokens, Haiku and Opus) therefore does not exist yet; nothing below is a live
+result. Supervisor prepared for the runs (not run): practice 20 + rotation 10 with `TASKS`,
+`--provider anthropic --effort low`, seed 0, judge off, `THINKING_HEADROOM` 2048, emulator-5554
+only, lock created and removed by the script, `WINDOW=1` when it has to start the emulator.
+
+### What changed (branch `worktree-agent-ae62eb1fed4d009a4`, from master `3670ae2`)
+
+| Commit | Change | Recorded case it addresses |
+|---|---|---|
+| `e6456ba` | Harness: a sourced `answer.text` (or available owner excerpts joined with `, `) goes to `env.interaction_cache` through AndroidWorld's ANSWER action; PASS counts it only for `InformationRetrieval` tasks; wrong answer = FAIL (`failure_category: answer`) | all 25 answer tasks scored 0 by construction (ANDROIDWORLD_TASKS.md §1) |
+| `db74598` | Harness: `dream.py`, offline failure clustering (no model call by default) | proposal C, OPENCLAW_DREAMING.md |
+| `0e07397` | Harness: after an acknowledged input, an app tree identical to the previous one is acquired again up to twice, 0.8 s apart | in Haiku 3, 24 of 136 inputs (12 runs) and in Opus 5.5, 21 of 131 inputs (10 runs) were followed by an identical foreground app tree (this count includes inputs that really changed nothing); traces show wasted `wait` steps and the calendar's second "Start time" tap landing on the picker |
+| `184d876` | Core: a repeated cycle of three inputs on unchanged screens is warned, then stopped | Opus SimpleCalendarAddOneEvent: Start time, Start time, OK × 11 |
+| `88b86e1` | Core: typed postconditions RowsDeleted (named rows gone from the same page) and NoteSaved (Markor editor saved, then the file list shows the exact name) | Opus ExpenseDeleteSingle and MarkorCreateNote (state passed, not credited) |
+| `dfc1c68` | Core: Internet page proven while Wi-Fi scans; DocumentsUI roots drawer labels; tap on a checkable chip the request names; long press on a clickable owner-named row; planner rule to `scroll … until` an owner-named item | Haiku SystemWifiTurnOff (opaque switch), Files storage root, Opus/Haiku ExpenseAddSingle (matched chip not tappable), Markor/Files near-name reader picks |
+| `a080f1d` | Core: question requests end with exact owner excerpts (question form of the summary channel); calendar list section headers carry a typed day/weekday | SimpleCalendarEventsOnDate (titles are content; date headers hidden) |
+
+Offline verification: core tests 409 → 424 passing (`cargo test`, 0 failed); harness tests 154 → 171
+run, OK (7 skipped). The SMS reply row slack committed after b22da1f was checked on the recorded
+Opus SimpleSmsReplyMostRecent run with `harness/replay_core.py`: the current binary diverges from
+the recording at step 5 by completing (`core checked the result: a new outgoing row …`), where the
+recorded run had continued for seven more steps. The new deletion and saved-note checks change the
+ask sequence from step 1 (one extra observation after each input), so their recorded runs cannot
+be replayed; they are tested on screens extracted from those runs (`tests/rows_and_notes.rs`).
+
+### Dream pass on the existing runs (b22da1f)
+
+`harness/dream.py` on `suite_haiku55_b22da1f_20261109-000304` and `suite_opus55_b22da1f_20261109-003201`
+reproduces the totals above (Haiku 3: 9 PASS, state 10, 0 false done, 263 calls, $0.1147;
+Opus 5.5: 12 PASS, state 15, 0 false done, 256 calls, $3.7466). Every cluster (failure category ×
+final package × activity × last action × readback × outcome kind) holds one task in each suite, so
+20 runs show no shared failure signature; by category Haiku 3 has 10 planning and 1 verification
+failures, Opus 6 planning and 2 verification. Done but not credited: Haiku 3 SystemBrightnessMax;
+Opus ExpenseDeleteSingle, MarkorCreateNote, SimpleSmsReplyMostRecent. False done: none.
+
+### Remaining failures and proposed next fixes (proposals, not measured)
+
+- **Run the loop:** the 30-task Haiku run, at most one Haiku rerun after a dream pass, then one
+  Opus run, as specified; nothing above predicts their scores.
+- **Markor create** (EDIT): `type` appends, and the new-file extension field held `txttxttxt.md`
+  from earlier runs. Proposal: a replace-text Hands operation (`ACTION_SET_TEXT`) with the same
+  taint rule; this is an action-schema change and needs the Kotlin mirror.
+- **Calendar add** (DATE): the time picker itself is unchanged; the cycle stop and the harness
+  re-observation only shorten failing runs. Proposal: typed picker values as done for list headers.
+- **Files delete**: the drawer now names "Device storage", but whether a long press selects a
+  DocumentsUI row through the harness has not been observed.
+- **Rotation EDIT/LP tasks** (MarkorEditNote, MarkorCreateNoteFromClipboard, MarkorMoveNote):
+  no new capability; expected to stay failing (judgement).
+- **Reader near-name picks**: in both recorded MarkorDeleteNote runs the reader picked
+  `2023_03_14_qFzW_polite_wolf.md` for `qFzW_polite_wolf`. Proposal: when the request names the
+  item, refuse element reads whose candidates contain no exact match and point to `scroll … until`.
+
 ## Haiku 3 (after fixes) and Opus 5.5 (same code as Haiku 3) — 9 November 2026
 
 Both runs used the same binary, built on the ThinkPad from branch `worktree-agent-aa5bd64a2bd8e7a06`
