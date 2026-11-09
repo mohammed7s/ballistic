@@ -315,8 +315,9 @@ Every action carries a short `why` string (logged, not executed). The model neve
 coordinates: core resolves `e7` to the node's centre.
 
 **Repeated inputs (9 Nov 2026, `agent::repeated_inputs`).** The same two acknowledged inputs
-alternating (A, B, A, B), or one input three times, where each repeat was planned on a screen that
-reads back unchanged in code (readback.rs) from the previous time, is no progress; so is scrolling
+alternating (A, B, A, B), one input three times, or a cycle of three inputs repeated (A, B, C, A,
+B, C; added after Opus 5.5 tapped Start time, Start time, OK eleven times), where each repeat was
+planned on a screen that reads back unchanged in code (readback.rs) from the previous time, is no progress; so is scrolling
 one target down and up (or left and right) twice, whatever the screens show. Recorded in Haiku 2:
 the calendar time picker opened and closed unchanged 18 times; the recipe form scrolled down and up
 14 times after every field was typed. Core then adds one history line in its own words
