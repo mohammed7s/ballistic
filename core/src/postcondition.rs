@@ -12,6 +12,10 @@
 //!                shows one more outgoing row with exactly that body, in the requested thread
 //!   Photo        "take one photo": exactly one shutter press in this run, and a last-photo
 //!                thumbnail that was not on the screen the press was planned on is now shown
+//!   RowsDeleted  "delete the following expenses from …: A, B": each named row was seen, an
+//!                owner-confirmed input followed, and the same page lists its other rows without them
+//!   NoteSaved    "create a new note in Markor named n.txt with the following text: …": the
+//!                editor held the text with Save disabled, then the file list shows n.txt
 //!
 //! Recognition is a full-string grammar over the owner's words; anything else (other wording,
 //! compound requests) is not recognized and keeps the ordinary verifier. Checks read the raw
@@ -29,6 +33,14 @@ pub enum Goal {
     Brightness { percent: u8 },
     MessageSent { to: Recipient, body: String },
     Photo,
+    /// "delete the following expenses from <app>: A, B" / "delete the note in <app> named A":
+    /// every named row was seen on a list, an owner-confirmed input followed, and the same list
+    /// now shows the other rows it showed then, in order, without the named ones.
+    RowsDeleted { names: Vec<String> },
+    /// "create a new note in Markor named <name> with the following text: <text>": the editor
+    /// held exactly the owner's text with Save disabled (saved), then Markor's file list shows a
+    /// file row titled exactly <name> that no list showed before the text was typed.
+    NoteSaved { name: String, text: String },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -62,7 +74,9 @@ impl Goal {
     /// stand in for either. Message and photo goals fall back to the ordinary verifier on `done`
     /// when the typed check does not pass, as before this module existed.
     pub fn verifier_fallback(&self) -> bool {
-        !matches!(self, Goal::Launch { .. } | Goal::Brightness { .. })
+        // A saved file is not visible in an editor: a verifier citing typed text was the
+        // MarkorCreateNote rejection path, and accepting it would be a guess.
+        !matches!(self, Goal::Launch { .. } | Goal::Brightness { .. } | Goal::NoteSaved { .. })
     }
 }
 
@@ -85,7 +99,69 @@ pub fn recognize(request: &str, apps: &[AppEntry]) -> Option<Goal> {
     }
     let w = words(request);
     let w = w.strip_prefix("please ").unwrap_or(&w);
-    brightness(w).or_else(|| photo(w)).or_else(|| message(request, apps))
+    brightness(w).or_else(|| photo(w)).or_else(|| message(request, apps)).or_else(|| rows_deleted(request))
+        .or_else(|| note_saved(request, apps))
+}
+
+/// A name the owner gave for a row: short, one line, not a sentence break or a list.
+fn owner_name(s: &str) -> Option<String> {
+    let s = s.trim();
+    let s = s.strip_suffix('.').unwrap_or(s).trim();
+    let ok = !s.is_empty() && s.chars().count() <= 80 && !s.contains(". ") && !s.contains(':')
+        && !s.chars().any(char::is_control);
+    ok.then(|| s.to_string())
+}
+
+/// "delete|remove the following <noun words> [from|in <app words>]: A, B and C" and
+/// "delete|remove the <noun> in|from <app words> named|called|titled <name>". The names are the
+/// owner's exact words; the rest must be plain words (no second clause, no other verb).
+fn rows_deleted(request: &str) -> Option<Goal> {
+    let t = request.trim();
+    let lower = t.to_ascii_lowercase();
+    let start = lower.len() - lower.strip_prefix("please ").unwrap_or(&lower).len();
+    let rest = &lower[start..];
+    let verb = strip_any(rest, &["delete ", "remove "])?;
+    let plain = |s: &str| !s.is_empty() && s.split(' ').count() <= 8
+        && s.chars().all(|c| c.is_ascii_alphabetic() || c == ' ')
+        && !s.split(' ').any(|w| matches!(w, "and" | "then" | "send" | "add" | "create" | "open" | "reply" | "also"));
+    let names: Vec<String> = if let Some(head) = verb.strip_prefix("the following ") {
+        let (words_part, _) = head.split_once(": ")?;
+        if !plain(words_part) { return None; }
+        let list = &t[t.len() - (head.len() - words_part.len() - 2)..];
+        let list = list.trim().strip_suffix('.').unwrap_or(list.trim());
+        list.split(", ").flat_map(|p| p.split(" and ")).map(owner_name).collect::<Option<Vec<_>>>()?
+    } else {
+        let head = verb.strip_prefix("the ")?;
+        let (words_part, name) = [" named ", " called ", " titled "].iter().find_map(|k| head.split_once(k))?;
+        if !plain(words_part) || !words_part.split(' ').any(|w| matches!(w, "in" | "from")) { return None; }
+        vec![owner_name(&t[t.len() - name.len()..])?]
+    };
+    if names.is_empty() || names.len() > 10 { return None; }
+    Some(Goal::RowsDeleted { names })
+}
+
+const MARKOR: &str = "net.gsantner.markor";
+
+/// "create a [new] note|file in|using <Markor label> [app] named|called <name> with the
+/// following text: <text>". Only Markor's recorded editor and file list are known.
+fn note_saved(request: &str, apps: &[AppEntry]) -> Option<Goal> {
+    let t = request.trim();
+    let lower = t.to_ascii_lowercase();
+    let rest = lower.strip_prefix("please ").unwrap_or(&lower);
+    let rest = strip_any(rest, &["create a new note ", "create a note ", "create a new file ", "create a new text file ", "create a file "])?;
+    let rest = strip_any(rest, &["in ", "using ", "with "])?;
+    let rest = apps.iter().filter(|a| a.package == MARKOR && !a.label.is_empty()).find_map(|a| {
+        let label = a.label.to_ascii_lowercase();
+        rest.strip_prefix(&format!("{label} app ")).or_else(|| rest.strip_prefix(&format!("{label} ")))
+    })?;
+    let rest = strip_any(rest, &["named ", "called ", "titled "])?;
+    let (name, after) = rest.split_once(' ')?;
+    let text = strip_any(after, &["with the following text: ", "with the text: ", "with text: ", "with the following content: "])?;
+    let name = &t[t.len() - rest.len()..][..name.len()];
+    let text = t[t.len() - text.len()..].trim();
+    let name_ok = !name.is_empty() && name.chars().count() <= 100 && !name.contains('/') && !name.chars().any(char::is_control);
+    if !name_ok || text.is_empty() || text.chars().count() > 2000 { return None; }
+    Some(Goal::NoteSaved { name: name.to_string(), text: text.to_string() })
 }
 
 fn brightness(w: &str) -> Option<Goal> {
@@ -187,7 +263,120 @@ pub fn assess(goal: &Goal, effects: &[Effect], before: &ScreenState, fresh: &Scr
         Goal::Brightness { percent } => brightness_level(fresh, *percent),
         Goal::MessageSent { to, body } => message_sent(effects, fresh, to, body),
         Goal::Photo => photo_taken(effects, fresh),
+        Goal::RowsDeleted { names } => rows_gone(effects, fresh, names),
+        Goal::NoteSaved { name, text } => note_in_list(effects, fresh, name, text),
     }
+}
+
+// ---- named rows deleted -----------------------------------------------------------------------
+
+/// Every label and text in a node's subtree, in tree order: a row's identity, compared in code.
+fn subtree_strings(s: &ScreenState, id: NodeId) -> String {
+    let mut out = Vec::new();
+    let mut stack = vec![id];
+    while let Some(i) = stack.pop() {
+        if let Some(n) = node(s, i) {
+            out.extend(n.label.iter().chain(n.text.iter()).cloned());
+        }
+        let kids: Vec<NodeId> = children(s, i).map(|n| n.id).collect();
+        stack.extend(kids.into_iter().rev());
+    }
+    out.join("\n")
+}
+
+/// The row elements on `s` that show `name` as a match-only title (case-insensitive equality),
+/// each as (row node, its resource id). Only what the planner's own view showed counts.
+fn rows_named(s: &ScreenState, name: &str) -> Vec<(NodeId, String)> {
+    let view = screen_filter::filter(s, &screen_filter::FilterContext { request: name, typed: &[] });
+    view.elements.iter().filter(|e| e.package == s.package && (e.flags.clickable || e.flags.long_clickable) && !e.flags.editable
+        && e.shown_content.iter().any(|c| c.trim().eq_ignore_ascii_case(name)))
+        .filter_map(|e| Some((e.node, e.resource_id.clone()?))).collect()
+}
+
+/// The labeled controls of the app's own page (labels are code- or OS-owned, never content),
+/// rows of `rid_` excluded: two screens with the same set show the same page around the list.
+fn page_labels(s: &ScreenState, rid_: &str) -> Vec<(String, String)> {
+    let view = screen_filter::filter(s, &screen_filter::FilterContext { request: "", typed: &[] });
+    let mut labels: Vec<(String, String)> = view.elements.iter()
+        .filter(|e| e.package == s.package && e.resource_id.as_deref() != Some(rid_))
+        .filter_map(|e| Some((screen_filter::role_name(e.role).to_string(), e.label.clone()?))).collect();
+    labels.sort();
+    labels
+}
+
+/// Shown rows with this resource id in the screen's own package, top to bottom, as identities.
+fn row_identities(s: &ScreenState, rid_: &str) -> Vec<String> {
+    let mut rows: Vec<&Node> = s.nodes.iter().filter(|n| rid(n) == Some(rid_) && shown(n)
+        && n.package.as_deref() == Some(s.package.as_str())).collect();
+    rows.sort_by_key(|n| (n.bounds.y1, n.bounds.x1));
+    rows.into_iter().map(|n| subtree_strings(s, n.id)).collect()
+}
+
+fn rows_gone(effects: &[Effect], fresh: &ScreenState, names: &[String]) -> Assessment {
+    const NOT_YET: &str = "core checks a deletion on the list where each named row was seen: the same list, scrolled as it was, must show its other rows without the named ones";
+    // Per name: the latest screen an input was planned on that showed it as a row.
+    let mut latest: Option<(usize, String)> = None;
+    let mut deleted: Vec<String> = Vec::new();
+    for name in names {
+        let Some((at, row, rid_)) = effects.iter().enumerate().rev().find_map(|(i, e)| {
+            rows_named(&e.before, name).into_iter().next().map(|(row, rid_)| (i, row, rid_))
+        }) else { return unknown(NOT_YET); };
+        let before = &effects[at].before;
+        // An owner-confirmed input in that app after the row was seen (the delete itself).
+        if !effects[at..].iter().any(|e| e.confirmed && e.before.package == before.package) { return unknown(NOT_YET); }
+        if !rows_named(fresh, name).is_empty() { return unknown(NOT_YET); }
+        if let Some((_, r)) = &latest { if *r != rid_ { return unknown(NOT_YET); } }
+        if latest.as_ref().is_none_or(|(i, _)| at >= *i) { latest = Some((at, rid_.clone())); }
+        deleted.push(subtree_strings(before, row));
+    }
+    let Some((at, rid_)) = latest else { return unknown(NOT_YET); };
+    let before = &effects[at].before;
+    if !about(fresh, &before.package) || fresh.activity != before.activity
+        || page_labels(fresh, &rid_) != page_labels(before, &rid_) { return unknown(NOT_YET); }
+    let after = row_identities(fresh, &rid_);
+    if after.iter().any(|r| deleted.contains(r)) { return unknown(NOT_YET); }
+    let kept: Vec<String> = row_identities(before, &rid_).into_iter().filter(|r| !deleted.contains(r)).collect();
+    // The rows that stayed keep their order at the top of the same list; rows the deletion
+    // brought up from below may follow. With no other row seen, the list must now be empty.
+    let same_list = if kept.is_empty() { after.is_empty() } else { after.starts_with(&kept) };
+    if !same_list { return unknown(NOT_YET); }
+    verified("code_validated_rows_removed", fresh, "after a confirmed input, the list where the named rows were seen shows its other rows without them")
+}
+
+// ---- note saved (Markor) ------------------------------------------------------------------------
+
+fn markor_id(name: &str) -> String { format!("{MARKOR}:id/{name}") }
+const MARKOR_EDITOR: &str = "net.gsantner.markor.activity.DocumentActivity";
+const MARKOR_FILES: &str = "net.gsantner.markor.activity.MainActivity";
+
+/// A file row titled exactly `name` in Markor's file list (the recorded caption form).
+fn file_row_titled(s: &ScreenState, name: &str) -> bool {
+    s.package == MARKOR && s.activity == MARKOR_FILES && s.nodes.iter().any(|n| rid(n) == Some(&markor_id("opoc_filesystem_item__root"))
+        && shown(n) && !n.flags.selected && n.label.as_deref() == Some(format!("File {name} ").as_str()))
+}
+
+/// The editor shows exactly `text`, its title is the file's name (Markor shows it without the
+/// extension) and Save is disabled: nothing unsaved.
+fn saved_editor(s: &ScreenState, name: &str, text: &str) -> bool {
+    if s.package != MARKOR || s.activity != MARKOR_EDITOR { return false; }
+    let one = |id: &str| { let v: Vec<&Node> = s.nodes.iter().filter(|n| rid(n) == Some(&markor_id(id)) && shown(n)).collect(); if v.len() == 1 { Some(v[0]) } else { None } };
+    let (Some(editor), Some(save), Some(title)) = (one("document__fragment__edit__highlighting_editor"), one("action_save"), one("note__activity__text_note_title")) else { return false; };
+    let stem = name.rsplit_once('.').map_or(name, |(s, _)| s);
+    editor.flags.editable && editor.text.as_deref().map(str::trim) == Some(text.trim()) && !save.flags.enabled
+        && title.text.as_deref().is_some_and(|t| t == name || t == stem)
+}
+
+fn note_in_list(effects: &[Effect], fresh: &ScreenState, name: &str, text: &str) -> Assessment {
+    const NOT_YET: &str = "core checks a saved note: the editor shows exactly the requested text with Save disabled (tap Save), then Markor's file list shows the new file's full name";
+    let Some(typed) = effects.iter().position(|e| matches!(&e.action, Action::Type { text: t, .. } if t == text)
+        && e.before.package == MARKOR && e.before.activity == MARKOR_EDITOR
+        && e.target.and_then(|t| node(&e.before, t)).is_some_and(|n| rid(n) == Some(&markor_id("document__fragment__edit__highlighting_editor")))) else {
+        return unknown(NOT_YET);
+    };
+    if effects[..typed].iter().any(|e| file_row_titled(&e.before, name)) { return unknown(NOT_YET); }
+    if !effects[typed + 1..].iter().any(|e| saved_editor(&e.before, name, text)) { return unknown(NOT_YET); }
+    if !about(fresh, MARKOR) || !file_row_titled(fresh, name) { return unknown(NOT_YET); }
+    verified("code_validated_saved_file", fresh, "the editor held the requested text with nothing unsaved, and Markor's file list shows the new file")
 }
 
 const SETTINGS: &str = "com.android.settings";

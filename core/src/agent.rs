@@ -99,6 +99,16 @@ pub fn repeated_inputs(effects: &[Effect]) -> Option<String> {
     if n>=3 && again(&effects[n-3],&effects[n-2]) && again(&effects[n-2],&effects[n-1]) {
         return Some(format!("{} was repeated three times",said(&effects[n-1])));
     }
+    // A cycle of three inputs repeated (A, B, C, A, B, C), each planned on an unchanged screen:
+    // Opus 5.5 tapped Start time, Start time, OK eleven times on the calendar form.
+    if n>=6 {
+        let (cycle,repeat)=(&effects[n-6..n-3],&effects[n-3..]);
+        let distinct=said(&cycle[0])!=said(&cycle[1]) || said(&cycle[1])!=said(&cycle[2]);
+        if distinct && cycle.iter().zip(repeat).all(|(a,b)| again(a,b)) {
+            let names:Vec<String>=cycle.iter().map(said).collect();
+            return Some(format!("{} were repeated as a cycle twice",names.join(", ")));
+        }
+    }
     None
 }
 
@@ -438,7 +448,7 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, optio
                     // 64-token reader port call; no core retry/correction or planner continuation.
                     // The host retains its existing bounded transport retry policy.
                     stop_if_cancelled!(step-1);
-                    let answer=guarded!(step,ModelRole::Reader,64,Room::default(),|_:&Trim| input.messages(request));
+                    let answer=guarded!(step,ModelRole::Reader,summary::tokens(request),Room::default(),|_:&Trim| input.messages(request));
                     stop_if_cancelled!(step-1);
                     match answer {
                         Err(_)=>summary::Output::unavailable(summary::Status::Failed),

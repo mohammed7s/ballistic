@@ -237,6 +237,14 @@ def slightly_different(old: list[dict[str, Any]], new: list[dict[str, Any]]) -> 
 
 SOFT_DEADLINE_SECONDS = 30.0
 
+# After an acknowledged input, an observation identical to the one before it is often the old
+# tree, captured before the app redrew (Haiku 3 / Opus 5.5: taps whose history said "screen
+# unchanged", then a wasted wait, or a second tap that landed on the next screen). The host then
+# looks again a bounded number of times; a screen that stays the same is reported as observed.
+UNCHANGED_AFTER_INPUT_RETRIES = 2
+UNCHANGED_AFTER_INPUT_DELAY_SECONDS = 0.8
+_INPUT_OPS = frozenset(("tap", "long_press", "type", "scroll", "swipe", "back", "home"))
+
 
 class ObservationError(RuntimeError):
     """The host could not obtain a sufficiently consistent, ready observation."""
@@ -259,9 +267,27 @@ class CoreHost:
         self._apps: Optional[list[dict[str, Any]]] = None
         self._last_observation: Optional[tuple[str, str]] = None
         self._observation_sequence = 0
+        # Set by act() when Hands acknowledged an input; cleared by the next observe().
+        self._input_since_observation = False
 
     # ---- observe -------------------------------------------------------------------------
     def observe(self) -> dict[str, Any]:
+        """One settled observation (`_observe_settled`). After an acknowledged input, a
+        foreground tree identical to the previous observation's is acquired again, up to
+        UNCHANGED_AFTER_INPUT_RETRIES times and UNCHANGED_AFTER_INPUT_DELAY_SECONDS apart,
+        since it is often captured before the app redrew. Timing only: nothing is decided
+        here, and a screen that stays the same is returned as observed."""
+        prior = self._last_observation
+        acted, self._input_since_observation = self._input_since_observation, False
+        observation = self._observe_settled()
+        for _ in range(UNCHANGED_AFTER_INPUT_RETRIES if acted and prior is not None else 0):
+            if self._last_observation != prior:
+                break
+            time.sleep(UNCHANGED_AFTER_INPUT_DELAY_SECONDS)
+            observation = self._observe_settled()
+        return observation
+
+    def _observe_settled(self) -> dict[str, Any]:
         """Bounded consistency checks, not a guarantee of post-action freshness.
 
         AndroidWorld's stable-state check compares all ui_elements and can return
@@ -407,6 +433,8 @@ class CoreHost:
                 time.sleep(op.get("millis", 1000) / 1000)
             else:
                 return {"result": "not_executed", "message": f"unknown op {kind}"}
+            if kind in _INPUT_OPS:
+                self._input_since_observation = True
             return {"result": "ok"}
         except Exception as e:  # noqa: BLE001  report, don't decide
             return {"result": "error", "message": f"{type(e).__name__}: {e}"}

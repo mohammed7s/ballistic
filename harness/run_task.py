@@ -46,7 +46,7 @@ import numpy as np
 import requests
 
 import core_bridge  # local module, same directory
-from outcomes import evaluate_benchmark, combined_verdict, failure_category
+from outcomes import evaluate_benchmark, combined_verdict, deliver_answer, failure_category
 from reporting import print_core_event
 from android_world import registry
 from android_world.agents import infer, m3a, t3a
@@ -75,6 +75,7 @@ flags.DEFINE_enum("provider", "openai", ["openai", "anthropic"], "core: openai =
 flags.DEFINE_enum("effort", "low", ["low", "medium", "high"], "core, provider anthropic: output_config.effort")
 flags.DEFINE_integer("thinking_headroom", core_bridge.ModelClient.ANTHROPIC_THINKING_HEADROOM,
                      "core, provider anthropic: tokens added to core's per-role max_tokens (thinking counts toward it); 0 = core's cap", lower_bound=0, upper_bound=core_bridge.ModelClient.MAX_THINKING_HEADROOM)
+flags.DEFINE_bool("deliver_answers", True, "core, harness only: write a sourced answer's raw text (or available owner excerpts) to the env's interaction cache before the checker runs, as AndroidWorld's answer action does; never passed to core")
 flags.DEFINE_bool("core_disable_native_tools", False, "core: opt in to tool_choice=none for every model role; endpoint must support it without tools")
 flags.DEFINE_integer("seed", None, "Seed for task generation; original baseline was unseeded")
 flags.DEFINE_string("task", None, "AndroidWorld task name; random if omitted")
@@ -252,13 +253,19 @@ def _run_core(env, task, name: str, goal: str, budget: int) -> None:
     args = ["observe"] if FLAGS.core_mode == "observe" else ["run", "--request", goal, "--max-steps", str(budget)]
     run = serve_core(host, args)
 
-    outcome = evaluate_benchmark(task if FLAGS.core_mode == "run" else None, env, run["done"])
+    # Harness only: the answer goes to the env for AndroidWorld's answer checkers, never back
+    # into a model prompt. The checker then scores it; the agent's done flag is unchanged.
+    report = (run["finished"] or {}).get("report")
+    run["answer_delivery"] = (deliver_answer(env, report, make_answer_action) if FLAGS.deliver_answers
+                              else {"delivered": False, "source": None, "chars": 0})
+    outcome = evaluate_benchmark(task if FLAGS.core_mode == "run" else None, env, run["done"],
+                                 answer_delivered=run["answer_delivery"]["delivered"])
     run["benchmark"] = outcome
     run["failure_category"] = failure_category(run, outcome, host.models.calls)
     success = outcome["combined_success"]
     verdict = combined_verdict(outcome)
     steps = [e for e in host.events if "step" in e]
-    print(f"\n{verdict}  {name}  steps={len(steps)}  time={run['total_seconds']}s  exit={run['exit_code']}  model_calls={len(host.models.calls)} benchmark={outcome['benchmark_status']} agent_done={str(run['done']).lower()}")
+    print(f"\n{verdict}  {name}  steps={len(steps)}  time={run['total_seconds']}s  exit={run['exit_code']}  model_calls={len(host.models.calls)} benchmark={outcome['benchmark_status']} agent_done={str(run['done']).lower()} answer_delivered={str(run['answer_delivery']['delivered']).lower()}")
     if run["stderr"].strip():
         print("core stderr:", run["stderr"].strip()[:2000])
     if any(c.get("error_category") == "billing" for c in host.models.calls):
@@ -268,6 +275,12 @@ def _run_core(env, task, name: str, goal: str, budget: int) -> None:
 
 
 # ---- core runs, shared with chat.py ---------------------------------------------------------
+
+def make_answer_action(text: str):
+    """AndroidWorld's ANSWER action; env.execute_action sets env.interaction_cache from it."""
+    from android_world.env import json_action
+    return json_action.JSONAction(action_type=json_action.ANSWER, text=text)
+
 
 def core_models() -> core_bridge.ModelClient:
     """Every role on --base_url (provider anthropic: the SDK's default endpoint);
@@ -339,6 +352,7 @@ def write_core_record(name: str, goal: str, core_mode: str, args: list[str], hos
             "model_calls": host.models.calls, "confirmations": host.confirmations,
             "total_seconds": run["total_seconds"], "exit_code": run["exit_code"], "stderr": run["stderr"][-4000:],
             "lines": host.lines, "failure_category": run.get("failure_category"),
+            "answer_delivery": run.get("answer_delivery"),
             **run.get("benchmark", evaluate_benchmark(None, None, run["done"])),
         }, f, indent=1)
     return out

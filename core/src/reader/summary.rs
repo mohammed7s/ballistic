@@ -11,10 +11,20 @@ const MAX_TOTAL_CHARS: usize = 8192;
 const MAX_EXCERPT_CHARS: usize = 240;
 const MAX_REPLY_BYTES: usize = 2048;
 const PROMPT: &str = include_str!("../../prompts/summary.txt");
+const QUESTION_PROMPT: &str = include_str!("../../prompts/question.txt");
+
+/// Reader tokens per attempt: a summary keeps the original 64; a question's answer (one exact
+/// excerpt per chosen row, such as event titles) gets 160.
+pub const SUMMARY_TOKENS: u32 = 64;
+pub const QUESTION_TOKENS: u32 = 160;
 
 /// A narrow English opt-in to display content, NOT a recognizer of complete task semantics.
 /// Compound tasks may opt in, but even useful output never asserts the task is completed.
 pub fn requested(request: &str) -> bool {
+    summarize(request) || question(request)
+}
+
+fn summarize(request: &str) -> bool {
     request.split(['.', '?', '!', '\n']).any(|sentence| {
         let lower = sentence.trim().to_ascii_lowercase();
         let imperative = lower.strip_prefix("please ").unwrap_or(&lower);
@@ -22,6 +32,31 @@ pub fn requested(request: &str) -> bool {
             imperative.strip_prefix(prefix).is_some_and(|subject| !subject.trim().is_empty())
         })
     })
+}
+
+/// The owner asked a question (added 9 Nov 2026, loop 2): a sentence ending in `?` whose first
+/// word is an interrogative ("What events do I have October 27 2023 in Simple Calendar Pro?").
+/// Like `summarize`, a syntactic opt-in to see content as exact excerpts, never a recognizer of
+/// what would answer the question or a claim that the excerpts do.
+pub fn question(request: &str) -> bool {
+    let mut rest = request;
+    while let Some(end) = rest.find('?') {
+        let sentence = &rest[..end];
+        let start = sentence.rfind(['.', '!', '\n']).map_or(0, |i| i + 1);
+        let lower = sentence[start..].trim().to_ascii_lowercase();
+        let first = lower.split_whitespace().next().unwrap_or("");
+        if lower.split_whitespace().count() >= 3 && matches!(first, "what" | "which" | "who" | "whom" | "when" | "where"
+            | "do" | "does" | "did" | "is" | "are" | "was" | "were" | "how") {
+            return true;
+        }
+        rest = &rest[end + 1..];
+    }
+    false
+}
+
+/// The reader's token cap for this request's excerpts.
+pub fn tokens(request: &str) -> u32 {
+    if !summarize(request) && question(request) { QUESTION_TOKENS } else { SUMMARY_TOKENS }
 }
 
 /// Private copy of the requested filter content. No truncation or model-supplied provenance.
@@ -47,8 +82,9 @@ impl Input {
     }
 
     pub fn messages(&self, request: &str) -> Vec<ChatMessage> {
+        let prompt = if !summarize(request) && question(request) { QUESTION_PROMPT } else { PROMPT };
         vec![
-            ChatMessage { role: "system".into(), content: PROMPT.into() },
+            ChatMessage { role: "system".into(), content: prompt.into() },
             ChatMessage { role: "user".into(), content: json!({
                 "owner_request": request,
                 "sources": self.sources.iter().map(|c| json!({"ref":format!("c{}",c.id),"text":c.text})).collect::<Vec<_>>()

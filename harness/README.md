@@ -192,6 +192,33 @@ field, both lines) and exits 1, or reports a match and exits 0. Timing keys in l
 (`seconds`, ...) are left out of the comparison; `--ignore_keys` changes the list. This is
 core/README.md §15 rule 4, on the host side.
 
+### Dream pass over a suite (`dream.py`, offline)
+
+```bash
+python3 harness/dream.py ballistic_runs/suite_X/ --compare ballistic_runs/suite_OLD/ \
+    --group "practice:ContactsAddContact,..." --price_in 0.10 --price_out 0.50 --out dream.md
+```
+Clusters non-PASS runs by failure category, final package and activity (observation headers
+only), last action type, readback word and outcome kind, and lists state-passed-but-not-credited
+runs, false done, per-task one-liners, token totals and cost. It reads only core- and
+harness-written fields (fixed report phrases, step outcomes, readback words); planner prompts,
+reader prompts, screen text and answer text never enter the report. No model call unless
+`--summarize` (one Anthropic call over the cluster table only, labelled as unverified
+proposals). Proposal C of `docs/research/OPENCLAW_DREAMING.md`; it proposes, it changes nothing.
+
+### Answers to AndroidWorld's answer checkers (harness only)
+
+The 25 information-retrieval tasks score `env.interaction_cache`. After a core run, `run_task.py`
+(`--deliver_answers`, default on; never passed to core) writes the raw planner `answer.text` of
+a sourced answer (`evidence_basis: answer_values_sourced`), or the excerpts of an available owner
+summary joined with `, `, through AndroidWorld's own ANSWER action (`env.execute_action`, as T3A
+does), before the checker runs. The display string with `(from <source>)` tags is never sent.
+Nothing goes back into a model prompt. The run JSON records `answer_delivery` (delivered, source,
+character count) and the benchmark fields `answer_delivered`, `answer_scored_by_checker` and
+`agent_complete_basis`. The combined PASS counts a delivered answer as agent-complete only for a
+task whose checker scores the answer (`InformationRetrieval`), and the checker still decides: a
+wrong answer is FAIL (`failure_category: answer`). `agent_reported_done` stays core's own flag.
+
 Ollama is configured by `setup_emulator.sh`'s systemd override with `OLLAMA_CONTEXT_LENGTH=8192`
 (AndroidWorld prompts exceed the 4k default), `OLLAMA_KEEP_ALIVE=1h`, and listening on all
 interfaces so another machine can use it over Tailscale.

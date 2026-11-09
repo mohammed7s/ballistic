@@ -73,6 +73,32 @@ fn recorded_time_picker_alternation_is_warned_then_stopped() {
 }
 
 #[test]
+fn a_three_input_cycle_on_unchanged_screens_is_warned_then_stopped() {
+    // Recorded in Opus 5.5 (b22da1f): Start time, Start time, OK, eleven times; the two-input
+    // check did not see it. Here: Start time, the hour toggle, OK, then the same three again.
+    let start = element(&fixture("calendar_form"), CALENDAR, "com.simplemobiletools.calendar.pro:id/event_start_time");
+    let start_again = element(&fixture("calendar_form_again"), CALENDAR, "com.simplemobiletools.calendar.pro:id/event_start_time");
+    let hour = element(&fixture("calendar_picker"), CALENDAR, "com.simplemobiletools.calendar.pro:id/material_hour_tv");
+    let okay = element(&fixture("calendar_picker_again"), CALENDAR, "com.simplemobiletools.calendar.pro:id/material_timepicker_ok_button");
+    assert_eq!(start, start_again);
+    let (report, calls) = run(CALENDAR, vec![json!(fixture("calendar_form")),
+        tap(&start), ok(), json!(fixture("calendar_picker")),
+        tap(&hour), ok(), json!(fixture("calendar_picker_again")),
+        tap(&okay), ok(), json!(fixture("calendar_form_again")),
+        tap(&start), ok(), json!(fixture("calendar_picker")),
+        tap(&hour), ok(), json!(fixture("calendar_picker_again")),
+        tap(&okay), ok(), json!(fixture("calendar_form")),
+        tap(&start), ok(), json!(fixture("calendar_picker")),
+    ], 34);
+    let users = planner_users(&calls);
+    assert_eq!(users.len(), 7);
+    assert!(users[..6].iter().all(|u| !u.contains("warning:")));
+    assert!(users[6].contains(&format!("warning: tap {start}, tap {hour}, tap {okay} were repeated as a cycle twice")), "{}", users[6]);
+    assert!(report["reason"].as_str().unwrap().starts_with("stopped:"), "{report}");
+    assert_eq!(report["steps"], 7);
+}
+
+#[test]
 fn a_warning_followed_by_a_different_action_continues_the_run() {
     let start = element(&fixture("calendar_form"), CALENDAR, "com.simplemobiletools.calendar.pro:id/event_start_time");
     let okay = element(&fixture("calendar_picker"), CALENDAR, "com.simplemobiletools.calendar.pro:id/material_timepicker_ok_button");

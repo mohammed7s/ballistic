@@ -238,6 +238,25 @@ built from the toggles' own labels (`note: time picker shows 13:15; editing hour
 node whose visible children share one row renders `[scrollable horizontally]` (geometry only); the
 Expense category list was scrolled up and down in Haiku 2.
 
+Added 9 Nov 2026 in improvement loop 2 from the Haiku 3 and Opus 5.5 screens
+(`tests/loop2_screens.rs`): the Settings **Internet** page proof accepts the scan progress bar
+(exact id, class, no text, no action, no children) as the one extra child it adds while Wi-Fi
+scans; with it the page was unproven and the Wi-Fi switch opaque, and Haiku 3 toggled another
+switch. DocumentsUI's **roots drawer** names its rows only inside the complete recorded list shape:
+the rows above the divider by their titles from a fixed list (Recent, Images, Videos, Audio,
+Documents, Downloads, each once), and the single row below it "Device storage" (its title, the
+device model name such as `sdk_gphone64_x86_64`, stays content); an unknown, extra or duplicate
+root names no row, so an app's provider root never gets a label. Two interaction choices, neither
+a security boundary: a clickable, checkable item or button with no label whose content is a
+match-only title (a category chip the owner named) may be tapped, never in Settings or SystemUI
+and never a switch, checkbox, field or slider; and a clickable row the owner named may be
+long-pressed even when the app does not flag it long-clickable (DocumentsUI rows select on a long
+press without the flag). Both go through the same guarded-word and taint confirmation as any tap.
+A reader pick still authorizes a tap only: in both recorded Markor deletions the reader picked a
+row with a similar name (`2023_03_14_qFzW_polite_wolf.md` for `qFzW_polite_wolf`), so widening a
+pick to a long press would have selected the wrong file for deletion. The planner rules now say to
+`scroll … until` the exact name when the request names an item and no row shows it.
+
 **Dedicated typed values** (7 Nov 2026, `typed_value.rs`): exact calendar form controls and
 explicit event-list items can carry bounded numeric date/time observations. These are untrusted
 app data, separate from labels, matched titles and typed history; raw strings remain with the
@@ -315,8 +334,9 @@ Every action carries a short `why` string (logged, not executed). The model neve
 coordinates: core resolves `e7` to the node's centre.
 
 **Repeated inputs (9 Nov 2026, `agent::repeated_inputs`).** The same two acknowledged inputs
-alternating (A, B, A, B), or one input three times, where each repeat was planned on a screen that
-reads back unchanged in code (readback.rs) from the previous time, is no progress; so is scrolling
+alternating (A, B, A, B), one input three times, or a cycle of three inputs repeated (A, B, C, A,
+B, C; added after Opus 5.5 tapped Start time, Start time, OK eleven times), where each repeat was
+planned on a screen that reads back unchanged in code (readback.rs) from the previous time, is no progress; so is scrolling
 one target down and up (or left and right) twice, whatever the screens show. Recorded in Haiku 2:
 the calendar time picker opened and closed unchanged 18 times; the recipe form scrolled down and up
 14 times after every field was typed. Core then adds one history line in its own words
@@ -492,6 +512,20 @@ insensitive, sentence boundaries `.?!` or newline). This is a narrow syntactic d
 not a semantic task recognizer. Compound requests can opt in; nothing in this path establishes
 that their other requirements have been met. Other wording is unsupported, not inferred from
 fixture strings, app names or model judgment.
+
+**Question form (9 Nov 2026, loop 2; offline tests only, `tests/question_excerpts.rs`).** A
+request with a sentence ending in `?` whose first word is an interrogative (`what`, `which`, `who`,
+`whom`, `when`, `where`, `do`, `does`, `did`, `is`, `are`, `was`, `were`, `how`; at least three
+words) also opts in. Everything below applies unchanged (one item per chosen ref, exact
+whitespace-bounded excerpts, fresh-observation check, terminal, owner-only, never in a planner
+prompt), except that the reader gets a question prompt (`prompts/question.txt`: copy only the part
+of each source that answers the question, such as a title) and 160 tokens instead of 64. This is
+how a question whose answer is content (event titles on a date) can be answered without the
+planner seeing it; the planner chooses which rows to cite and cannot write their text. The
+benchmark harness delivers the excerpts, joined with `, `, to AndroidWorld's answer checker
+(harness only). Simple Calendar's event-list section headers (`27 Friday`, exact grammar, exact
+envelope) now carry `[observed section day=27 weekday=5 month=unknown …]` like the other typed
+calendar values, so the planner can find the rows under a date; the header text stays content.
 
 The planner chooses one to four current cN refs. Core requires distinct refs and current grants
 for their actual source packages. Only the separate reader sees their content, with the owner's
@@ -707,6 +741,8 @@ observation, with no model:
 | Brightness | `[please] turn/set/change… [the] [screen/display] brightness to [the] max/maximum/min/minimum [value/level]` | Settings > Display, proven by its complete page signature (§5), shows the Brightness level row's summary exactly `100%` / `0%`; the slider shows no value and never counts |
 | MessageSent | `send a text message [using <SMS app>] to <number> with message: <body>` and `reply to the most recent text message [using <SMS app>] with message: <body>` | the latest owner-confirmed tap on the thread's Send control in this run read back `changed (field_emptied)`, the composer it was planned on held exactly `<body>`, and the fresh thread shows one more outgoing row (no sender photo) with exactly `<body>` than before, under the same title. For a number the title equals it (digits compared); for "most recent" the thread was opened in this run from the top row of the unscrolled conversation list, in its recorded three-child shape, whose address equals the title |
 | Photo | `take one/a photo/picture [with the camera]` | exactly one shutter press in this run, and a last-photo thumbnail that was not on the screen the press was planned on |
+| RowsDeleted (9 Nov 2026, loop 2) | `delete/remove the following <plain words>: A, B and C` and `delete/remove the <noun> in/from <app words> named/called/titled <name>` (plain words only: no second verb or clause) | for every name, an input in this run was planned on a screen whose own view showed a clickable row with a resource id and that name as a match-only title, and an owner-confirmed input in that app followed; the fresh screen is the same package and activity with the same set of labeled controls (labels only), shows none of the names, and lists the other rows of that resource id it showed then (identity: the row's raw strings, compared in code) in the same order at the top, optionally followed by rows that moved up; with no other row seen, none may show |
+| NoteSaved (9 Nov 2026, loop 2) | `create a [new] note/file in/using <Markor's label> [app] named/called <name> with the following text: <text>` | an acknowledged `type` of exactly `<text>` into Markor's editor; a later input planned on the editor showing exactly `<text>` with Save disabled and the title `<name>` or its stem; the fresh screen is Markor's file list with a file row captioned exactly `<name>`, and no list before the `type` showed it. The verifier is not asked when this fails: a typed editor is not a saved file |
 
 Structural identities are the recorded ones (Simple SMS Messenger thread layout, AOSP camera, AOSP
 Settings); anything else is not recognized and keeps the ordinary verifier. Core runs the check
@@ -714,7 +750,11 @@ itself after **every acknowledged input** on the next observation (the readback'
 then; the next step plans on it either way), so a run ends as done without a planner `done` claim
 or extra model call; the step event carries `typed_postcondition: "verified"` and
 `verification.evidence_basis` names the evidence (`code_validated_host_foreground`,
-`code_validated_settings_value`, `code_validated_sent_row`, `code_validated_new_photo_thumbnail`).
+`code_validated_settings_value`, `code_validated_sent_row`, `code_validated_new_photo_thumbnail`,
+`code_validated_rows_removed`, `code_validated_saved_file`). Deletion and saved-note tests:
+`tests/rows_and_notes.rs` on screens recorded in the Opus 5.5 suite (b22da1f), with derived
+variants (cancelled delete, other pages of the same activity, another row shown, an unseen name,
+another extension, unsaved editor, a pre-existing file).
 On a planner `done` the same check runs on the done branch's fresh readback. When it does not pass,
 a plain launch still stops pending; launch-with-pop-up and brightness give fixed feedback and no
 model is asked (a verifier citing the labeled slider was a false-done path); message and photo

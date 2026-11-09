@@ -358,7 +358,15 @@ fn prove(screen: &ScreenState) -> Option<HashMap<NodeId, &'static str>> {
         _ => return None,
     };
     if screen.activity != SUB_SETTINGS && screen.activity != activity { return None; }
-    if content_children.len() != if page == "Bluetooth" { 3 } else { 2 } { return None; }
+    // While Wi-Fi scans, the Internet page adds its indeterminate progress bar between toolbar and
+    // list (recorded with Wi-Fi on in Haiku 3, 9 Nov 2026). It carries no text and no action.
+    let scanning = page == "Internet" && content_children.len() == 3;
+    if scanning {
+        let bar = content_children.iter().find(|n| n.resource_id.as_deref() == Some("com.android.settings:id/progress_bar_animation"))?;
+        tree.shape(bar, Role::Slider, "android.widget.ProgressBar", Some("com.android.settings:id/progress_bar_animation"))?;
+        if !Tree::passive(bar) || !Tree::empty(bar) || !tree.children(bar).is_empty() { return None; }
+    }
+    if content_children.len() != if page == "Bluetooth" || scanning { 3 } else { 2 } { return None; }
     let toolbar_children = tree.children(toolbar);
     if toolbar_children.len() != if page == "Internet" { 3 } else { 2 } { return None; }
     let up = toolbar_children.iter().find(|n| n.role == Role::Button)?;
