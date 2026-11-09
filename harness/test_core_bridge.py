@@ -236,5 +236,46 @@ class ObservationTest(unittest.TestCase):
         self.assertEqual(failure_category(run, {'benchmark_status': 'failed'}, []), 'environment')
 
 
+class UnchangedAfterInputTest(unittest.TestCase):
+    """After an acknowledged input, the old tree is acquired again a bounded number of times."""
+    def setUp(self):
+        self.sleep = patch('core_bridge.time.sleep').start()
+        patch('core_bridge.time.monotonic', return_value=0).start()
+        patch('core_bridge.adb_utils').start()
+        self.addCleanup(patch.stopall)
+        self.old = forest(window())
+        self.new = forest(window(text='Screen B'))
+
+    def host(self, *samples):
+        env = FakeEnv(samples)
+        env.controller = Mock()
+        host = CoreHost(env, Mock())
+        host._apps = []
+        return host
+
+    def test_old_tree_after_a_tap_is_acquired_again(self):
+        host = self.host(sample(self.old), sample(self.old), sample(self.old), sample(self.old),
+                         sample(self.new), sample(self.new))
+        self.assertEqual(host.observe()['nodes'][0]['text'], 'Screen A')
+        self.assertEqual(host.act({'op': 'tap', 'x': 1, 'y': 1}), {'result': 'ok'})
+        self.assertEqual(host.observe()['nodes'][0]['text'], 'Screen B')
+        self.assertEqual(host.env.state_reads, 6)
+        self.sleep.assert_any_call(0.8)
+
+    def test_a_screen_that_stays_the_same_is_returned_after_the_bound(self):
+        host = self.host(sample(self.old))
+        host.observe()
+        host.act({'op': 'tap', 'x': 1, 'y': 1})
+        self.assertEqual(host.observe()['nodes'][0]['text'], 'Screen A')
+        self.assertEqual(host.env.state_reads, 2 + 2 * 3)  # one settled read plus two retries
+
+    def test_no_retry_without_an_input(self):
+        host = self.host(sample(self.old))
+        host.observe()
+        host.act({'op': 'wait', 'millis': 0})
+        host.observe()
+        self.assertEqual(host.env.state_reads, 4)
+
+
 if __name__ == '__main__':
     unittest.main()
