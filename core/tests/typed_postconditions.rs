@@ -144,6 +144,9 @@ fn brightness_swipe_then_back_completes_without_a_done_claim() {
     assert_eq!(report["steps"], 2);
     assert_eq!(report["verification"]["evidence_basis"], "code_validated_settings_value");
     assert_eq!((planner_calls(&calls), verifier_calls(&calls)), (2, 0));
+    // After the swipe the planner learns where the level is read (Haiku 3 kept swiping).
+    let first = calls.iter().find(|c| c["ask"] == "log").unwrap();
+    assert!(first["event"]["outcome"].as_str().unwrap().contains("core check: the brightness level is read on Settings > Display"), "{first}");
 }
 
 #[test]

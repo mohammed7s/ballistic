@@ -196,7 +196,7 @@ const KNOWN_CONTROLS: &[KnownControl] = &[
     // warning were opaque, so the planner could not tell what CONFIRM confirms.
     KnownControl { package: "com.arduia.expense", resource_id: "com.arduia.expense:id/tv_delete_item", role: Role::Text, label: "Delete confirmation" },
     KnownControl { package: "com.arduia.expense", resource_id: "com.arduia.expense:id/tv_delete_description", role: Role::Text, label: "Deletion warning" },
-    KnownControl { package: "com.arduia.expense", resource_id: "com.arduia.expense:id/imv_drop_close", role: Role::Image, label: "Close delete confirmation" },
+    KnownControl { package: "com.arduia.expense", resource_id: "com.arduia.expense:id/imv_drop_close", role: Role::Image, label: "Cancel (close this sheet)" },
     KnownControl { package: "com.android.camera2", resource_id: "com.android.camera2:id/rounded_thumbnail_view", role: Role::Button, label: "Last photo thumbnail" },
     KnownControl { package: "net.gsantner.markor", resource_id: "net.gsantner.markor:id/document__fragment__edit__highlighting_editor", role: Role::Edit, label: "Note text" },
     // The new-file layout has separate name and extension inputs. Hints such as my_note

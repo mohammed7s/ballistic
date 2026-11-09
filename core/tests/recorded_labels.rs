@@ -113,7 +113,7 @@ fn recorded_delete_sheet_says_what_confirm_confirms_without_showing_its_text() {
     let s = fixture("expense_delete_sheet");
     let v = view(&s, "Delete the following expenses from pro expense: Taxi Fare.");
     let rendered = screen_filter::render(&v);
-    for (rid, label) in [("tv_delete_item", "Delete confirmation"), ("tv_delete_description", "Deletion warning"), ("imv_drop_close", "Close delete confirmation")] {
+    for (rid, label) in [("tv_delete_item", "Delete confirmation"), ("tv_delete_description", "Deletion warning"), ("imv_drop_close", "Cancel (close this sheet)")] {
         let node = s.nodes.iter().find(|n| n.resource_id.as_deref() == Some(&format!("com.arduia.expense:id/{rid}"))).unwrap().id;
         assert_eq!(label_of(&v, node).as_deref(), Some(label), "{rid}");
     }
