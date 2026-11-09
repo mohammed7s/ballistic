@@ -8,7 +8,7 @@ COLUMNS = ['task', 'result', 'steps', 'seconds', 'exit', 'benchmark', 'agent_don
            'failure_category', 'model_calls', 'prompt_tokens', 'run_json',
            'http_attempts', 'retry_attempts', 'completion_tokens',
            'unknown_prompt_attempts', 'unknown_completion_attempts', 'pacing_seconds',
-           'checker_seconds']
+           'checker_seconds', 'answer_delivered']
 
 
 def model_usage(calls):
@@ -58,7 +58,9 @@ def summarize(task, log_path, process_exit):
                   agent_done=str(bool(record.get('done'))).lower(),
                   failure_category=record.get('failure_category') or '',
                   model_calls=len(record.get('model_calls', [])),
-                  run_json=path, checker_seconds=record.get('checker_seconds', ''))
+                  run_json=path, checker_seconds=record.get('checker_seconds', ''),
+                  answer_delivered=('' if not isinstance(record.get('answer_delivery'), dict)
+                                    else str(bool(record['answer_delivery'].get('delivered'))).lower()))
     result.update(model_usage(record.get('model_calls', [])))
     if (result['quota_limited'] or result['billing_error'] or record.get('benchmark_status') == 'error' or process_exit != 0
             or record.get('exit_code', 0) != 0 or record.get('failure_category') == 'environment'):
