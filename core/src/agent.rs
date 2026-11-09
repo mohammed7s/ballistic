@@ -660,7 +660,7 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, optio
                                             done=true; terminal=true; task_status="completed"; failure_category=None;
                                             outcome=format!("{outcome}; core checked the result: {}",check.feedback);
                                             self_checked=true;
-                                        } else if !goal.verifier_fallback() {
+                                        } else if !goal.verifier_fallback() && !goal.stops_on_failed_done() {
                                             // No model can check this goal: say where the code
                                             // check looks (Haiku 3 kept swiping the slider).
                                             outcome=format!("{outcome}; core check: {}",check.feedback);
