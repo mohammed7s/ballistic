@@ -192,7 +192,9 @@ fn unknown_and_ambiguous_launches_do_not_ask_a_model_to_supply_identity() {
 
 #[test]
 fn compounds_stay_on_ordinary_verification_path_and_foreground_does_not_satisfy_them() {
-    for request in ["open Compass and delete history", "open Orchard Notes and save a note", "enable wifi and open Compass"] {
+    for request in ["open Compass and delete history", "open Orchard Notes and save a note", "enable sync and open Compass"] {
+        // ("enable wifi and open Compass" is now answered before planning on this host, which
+        // cannot tap: capability_gaps.rs.)
         let (report,calls)=run(request,vec![json!(screen("org.example.compass",1)),done(),json!(screen("org.example.compass",2)),
             completion(json!({"status":"unknown","nodes":[],"evidence_basis":"visible_ui"}))],1);
         assert_eq!(report["done"],false);

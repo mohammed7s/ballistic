@@ -4,7 +4,7 @@
 use std::io::{BufRead, Write};
 use std::time::Instant;
 use serde_json::{json, Value};
-use crate::{capabilities, context::{self, Room, Sent, Trim}, verification, postcondition::{self, Effect}, actions, bridge::Bridge, ports::*, run::{Host, Options},
+use crate::{capabilities, capability_gaps, context::{self, Room, Sent, Trim}, verification, postcondition::{self, Effect}, actions, bridge::Bridge, ports::*, run::{Host, Options},
     readback::{self, Readback}, reader::{self, summary, ElementAnswer, ReaderPick}, judge::{self, Verdict}, values, skills,
     screen_filter::{self, FilterContext, FilteredScreen}, types::*};
 
@@ -231,6 +231,14 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, optio
             None => loop_warned=None,
         }
         if !screen.installed_apps.is_empty() { apps=screen.installed_apps.clone(); }
+        // Honest early answer: a request needing a capability the host does not advertise is
+        // answered now, in plain words, with no planner call (capability_gaps.rs).
+        if step==1 {
+            if let Some(gap)=capability_gaps::gap(request,screen.capabilities.as_ref()) {
+                return Ok(json!({"done":false,"reason":gap.answer,"steps":0,"task_status":"unsupported","execution_status":execution_status,
+                    "verification":verification,"failure_category":"capability","capability_gap":{"needs":gap.needs}}));
+            }
+        }
         let mut view=screen_filter::filter(&screen,&FilterContext{request,typed:&typed});
         let mut pick_lines=Vec::new();
         for p in &picks {

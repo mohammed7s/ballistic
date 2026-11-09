@@ -265,6 +265,8 @@ fn task_text(outcome: &str, report: Option<&Value>, error: Option<&str>) -> Stri
         "stopped by owner" => "Stopped. Anything I had already done stays done.".into(),
         "stopped by an error" => format!("I stopped because of an error: {}.", error.unwrap_or("unknown")),
         "failed" => format!("I couldn't do that: {reason}."),
+        // An early answer is already a whole sentence in core's words (capability_gaps.rs).
+        "not supported" if report.is_some_and(|r| r.get("capability_gap").is_some()) => reason.into(),
         "not supported" => format!("I can't do that yet: {reason}."),
         _ => format!("I didn't finish: {reason}."),
     }

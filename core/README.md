@@ -436,6 +436,24 @@ confirmation request is bound to a Hands operation, and the values stay tagged i
 later uses them in a task, where typing one is confirmed. Hosts must not feed the answer or
 `owner_facts` back into a model prompt.
 
+**Honest early answers (9 Nov 2026, `capability_gaps.rs`; offline tests only).** Some requests
+need a capability the host does not advertise; the loop would only open an app and stop after
+several planner calls. On the run's first observation core compares the owner's words with the
+advertised operations and app grants and, for a gap, ends the run at once with no planner call and
+no input: `task_status: "unsupported"`, `failure_category: "capability"`, `steps: 0`,
+`capability_gap: {needs}` and a plain-words `reason` that a chat turn shows as is. Recognized:
+alarms (`alarm`, `alarms`, `wake me`; needs taps in a granted clock app) → "I can't set alarms on
+this phone yet." (or "check" when nothing is to be changed); airplane/flight mode (needs taps in
+Settings or SystemUI) → "I can't turn airplane mode on or off on this phone yet."; changing a
+setting such as Wi-Fi, Bluetooth, brightness, dark theme, Do Not Disturb, flashlight, volume or
+location (a setting word plus a change word; needs the same taps, i.e. Computer Control) → "I can't
+change settings like Wi-Fi, Bluetooth or brightness on this phone yet." The Android app today
+advertises `open_app` and `wait` only, so these are answered there; the emulator harness advertises
+taps and grants, so its runs plan as before. Whole words, case-insensitive; a match can only
+refuse, never authorize, and a miss goes to the loop with every check. Tests:
+`capability_gaps.rs` unit tests and `tests/early_answers.rs` (chat turn and loop, phone and
+emulator capability sets).
+
 **Implemented: Chat, conversation turns (8 Nov 2026, `chat.rs`, `prompts/chat.txt`,
 `schema/chat.json`; unit-tested offline).** `converse(history, message, options, host)` is one
 turn. The host keeps the conversation, one thread with tasks as distinct entries, and passes it
