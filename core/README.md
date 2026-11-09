@@ -708,6 +708,8 @@ observation, with no model:
 | Brightness | `[please] turn/set/change… [the] [screen/display] brightness to [the] max/maximum/min/minimum [value/level]` | Settings > Display, proven by its complete page signature (§5), shows the Brightness level row's summary exactly `100%` / `0%`; the slider shows no value and never counts |
 | MessageSent | `send a text message [using <SMS app>] to <number> with message: <body>` and `reply to the most recent text message [using <SMS app>] with message: <body>` | the latest owner-confirmed tap on the thread's Send control in this run read back `changed (field_emptied)`, the composer it was planned on held exactly `<body>`, and the fresh thread shows one more outgoing row (no sender photo) with exactly `<body>` than before, under the same title. For a number the title equals it (digits compared); for "most recent" the thread was opened in this run from the top row of the unscrolled conversation list, in its recorded three-child shape, whose address equals the title |
 | Photo | `take one/a photo/picture [with the camera]` | exactly one shutter press in this run, and a last-photo thumbnail that was not on the screen the press was planned on |
+| RowsDeleted (9 Nov 2026, loop 2) | `delete/remove the following <plain words>: A, B and C` and `delete/remove the <noun> in/from <app words> named/called/titled <name>` (plain words only: no second verb or clause) | for every name, an input in this run was planned on a screen whose own view showed a clickable row with a resource id and that name as a match-only title, and an owner-confirmed input in that app followed; the fresh screen is the same package and activity with the same set of labeled controls (labels only), shows none of the names, and lists the other rows of that resource id it showed then (identity: the row's raw strings, compared in code) in the same order at the top, optionally followed by rows that moved up; with no other row seen, none may show |
+| NoteSaved (9 Nov 2026, loop 2) | `create a [new] note/file in/using <Markor's label> [app] named/called <name> with the following text: <text>` | an acknowledged `type` of exactly `<text>` into Markor's editor; a later input planned on the editor showing exactly `<text>` with Save disabled and the title `<name>` or its stem; the fresh screen is Markor's file list with a file row captioned exactly `<name>`, and no list before the `type` showed it. The verifier is not asked when this fails: a typed editor is not a saved file |
 
 Structural identities are the recorded ones (Simple SMS Messenger thread layout, AOSP camera, AOSP
 Settings); anything else is not recognized and keeps the ordinary verifier. Core runs the check
@@ -715,7 +717,11 @@ itself after **every acknowledged input** on the next observation (the readback'
 then; the next step plans on it either way), so a run ends as done without a planner `done` claim
 or extra model call; the step event carries `typed_postcondition: "verified"` and
 `verification.evidence_basis` names the evidence (`code_validated_host_foreground`,
-`code_validated_settings_value`, `code_validated_sent_row`, `code_validated_new_photo_thumbnail`).
+`code_validated_settings_value`, `code_validated_sent_row`, `code_validated_new_photo_thumbnail`,
+`code_validated_rows_removed`, `code_validated_saved_file`). Deletion and saved-note tests:
+`tests/rows_and_notes.rs` on screens recorded in the Opus 5.5 suite (b22da1f), with derived
+variants (cancelled delete, other pages of the same activity, another row shown, an unseen name,
+another extension, unsaved editor, a pre-existing file).
 On a planner `done` the same check runs on the done branch's fresh readback. When it does not pass,
 a plain launch still stops pending; launch-with-pop-up and brightness give fixed feedback and no
 model is asked (a verifier citing the labeled slider was a false-done path); message and photo
