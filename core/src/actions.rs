@@ -316,6 +316,17 @@ pub fn example(action: &str) -> Option<&'static str> {
     })
 }
 
+/// A selectable chip the owner's request names: a clickable, checkable item or button with no
+/// label whose own content is a match-only title (Pro Expense's category chips: "Transportation"
+/// (matches request) [off]). Tapping it makes the choice the owner wrote; it is not a switch,
+/// checkbox, field or slider, and Settings and SystemUI toggles never qualify. The tap keeps the
+/// ordinary confirmation rules (§9).
+fn named_chip(e: &crate::screen_filter::Element) -> bool {
+    e.flags.checkable && e.flags.clickable && !e.flags.editable && e.label.is_none() && !e.shown_content.is_empty()
+        && matches!(e.role, Role::Item | Role::Button)
+        && !matches!(e.package.as_str(), "com.android.systemui" | "com.android.settings")
+}
+
 /// Check an action against the screen the planner saw.
 pub fn validate(action: &Action, view: &FilteredScreen) -> Result<(), ActionError> {
     let element = |id: u32| {
@@ -343,6 +354,7 @@ pub fn validate(action: &Action, view: &FilteredScreen) -> Result<(), ActionErro
             }
             if e.flags.clickable || e.flags.checkable { Ok(()) } else { Err(ActionError::NotActionable(*target)) }
         }
+        Action::Tap { target } if element(*target).is_ok_and(named_chip) => Ok(()),
         Action::Tap { target } => {
             let e = identified(*target)?;
             if e.flags.clickable || e.flags.editable || e.flags.checkable { Ok(()) }
@@ -363,7 +375,12 @@ pub fn validate(action: &Action, view: &FilteredScreen) -> Result<(), ActionErro
                     error
                 }
             })?;
-            if e.flags.long_clickable { Ok(()) }
+            // A row the owner named (a match-only title, no label of its own) may be long-pressed
+            // when it is clickable even if the app does not flag it long-clickable: DocumentsUI
+            // file rows select on a long press without the flag. Same confirmation as a tap.
+            let named_row = e.label.is_none() && !e.shown_content.is_empty() && e.flags.clickable
+                && matches!(e.role, Role::Item | Role::Button);
+            if e.flags.long_clickable || named_row { Ok(()) }
             else { Err(ActionError::NotActionable(*target)) }
         }
         Action::Swipe { target, .. } => {

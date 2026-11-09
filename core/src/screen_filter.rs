@@ -281,6 +281,58 @@ fn documentsui_toolbar_label(nodes: &[Node], node: &Node, parent: Option<&Node>)
     }
 }
 
+/// Root titles DocumentsUI's own providers show above the divider of its roots drawer on the
+/// recorded emulator image (Opus 5.5 suite, 9 Nov 2026).
+const DOCUMENTSUI_ROOTS: &[&str] = &["Recent", "Images", "Videos", "Audio", "Documents", "Downloads"];
+
+/// A row of DocumentsUI's roots drawer (drawer_layout > drawer_roots > roots_list). The whole
+/// list must have the recorded shape: id-less clickable LinearLayout rows whose only child is one
+/// `android:id/title` TextView, and exactly one id-less divider FrameLayout. Rows above the
+/// divider are named by their titles, each from [`DOCUMENTSUI_ROOTS`] and at most once; exactly one
+/// row below it is named "Device storage" (its title is the device's model name, e.g.
+/// sdk_gphone64_x86_64, which stays content). Any other row, a second storage or provider root, a
+/// duplicate or another shape names no row: an app-provided root never gets a label.
+fn documentsui_root_label(nodes: &[Node], node: &Node, parent: Option<&Node>) -> Option<&'static str> {
+    let plain = |n: &Node, class: &str| n.package.as_deref() == Some(DOCUMENTSUI) && n.class_name.as_deref() == Some(class)
+        && n.label.is_none() && !n.flags.editable && !n.flags.checkable && !n.flags.scrollable && n.flags.visible && n.bounds.area() > 0;
+    if node.role != Role::Button || !plain(node, "android.widget.LinearLayout") || node.resource_id.is_some()
+        || node.text.is_some() || !node.flags.clickable { return None; }
+    let list = parent?;
+    let up = |n: &Node| n.parent.and_then(|p| nodes.iter().find(|m| m.id == p));
+    let drawer = up(list)?;
+    if list.resource_id.as_deref() != Some("com.google.android.documentsui:id/roots_list") || list.package.as_deref() != Some(DOCUMENTSUI)
+        || drawer.resource_id.as_deref() != Some("com.google.android.documentsui:id/drawer_roots")
+        || up(drawer)?.resource_id.as_deref() != Some("com.google.android.documentsui:id/drawer_layout") { return None; }
+    let kids = |p: &Node| { let id = p.id; nodes.iter().filter(move |n| n.parent == Some(id)) };
+    let mut above: Vec<(NodeId, &'static str)> = Vec::new();
+    let (mut dividers, mut below) = (0, Vec::new());
+    for row in kids(list) {
+        if row.role == Role::Container {
+            if !plain(row, "android.widget.FrameLayout") || row.resource_id.is_some() || row.text.is_some() || row.flags.clickable
+                || kids(row).next().is_some() { return None; }
+            dividers += 1;
+            continue;
+        }
+        if row.role != Role::Button || !plain(row, "android.widget.LinearLayout") || row.resource_id.is_some() || row.text.is_some()
+            || !row.flags.clickable { return None; }
+        let titles: Vec<&Node> = kids(row).collect();
+        let [title] = titles[..] else { return None; };
+        if !plain(title, "android.widget.TextView") || title.resource_id.as_deref() != Some("android:id/title")
+            || title.flags.clickable || kids(title).next().is_some() { return None; }
+        let text = title.text.as_deref()?;
+        if dividers == 0 {
+            let known = DOCUMENTSUI_ROOTS.iter().find(|t| **t == text)?;
+            if above.iter().any(|(_, t)| t == known) { return None; }
+            above.push((row.id, known));
+        } else {
+            below.push(row.id);
+        }
+    }
+    if dividers != 1 || below.len() != 1 || above.is_empty() { return None; }
+    if below[0] == node.id { return Some("Device storage"); }
+    above.iter().find(|(id, _)| *id == node.id).map(|(_, t)| *t)
+}
+
 /// Recorded controls whose identity does not depend on displayed text. Never use a caption,
 /// a generic switch id or a resource-id substring as an identity; positions only inside an
 /// exact parent (Quick Settings tiles, calendar month grid), never on their own.
@@ -290,6 +342,7 @@ fn code_owned_label(nodes: &[Node], i: usize, parent: Option<usize>) -> Option<S
     let parent_node = parent.map(|p| &nodes[p]);
     if let Some(label)=markor_create_button_label(nodes,node,parent_node) { return Some(label.into()); }
     if let Some(label)=documentsui_toolbar_label(nodes,node,parent_node) { return Some(label.into()); }
+    if let Some(label)=documentsui_root_label(nodes,node,parent_node) { return Some(label.into()); }
     let parent_rid = parent_node.and_then(|p| p.resource_id.as_deref());
     let siblings = || nodes.iter().filter(move |n| n.parent.is_some() && n.parent == node.parent);
     let rid = node.resource_id.as_deref();

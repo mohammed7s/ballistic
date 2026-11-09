@@ -238,6 +238,25 @@ built from the toggles' own labels (`note: time picker shows 13:15; editing hour
 node whose visible children share one row renders `[scrollable horizontally]` (geometry only); the
 Expense category list was scrolled up and down in Haiku 2.
 
+Added 9 Nov 2026 in improvement loop 2 from the Haiku 3 and Opus 5.5 screens
+(`tests/loop2_screens.rs`): the Settings **Internet** page proof accepts the scan progress bar
+(exact id, class, no text, no action, no children) as the one extra child it adds while Wi-Fi
+scans; with it the page was unproven and the Wi-Fi switch opaque, and Haiku 3 toggled another
+switch. DocumentsUI's **roots drawer** names its rows only inside the complete recorded list shape:
+the rows above the divider by their titles from a fixed list (Recent, Images, Videos, Audio,
+Documents, Downloads, each once), and the single row below it "Device storage" (its title, the
+device model name such as `sdk_gphone64_x86_64`, stays content); an unknown, extra or duplicate
+root names no row, so an app's provider root never gets a label. Two interaction choices, neither
+a security boundary: a clickable, checkable item or button with no label whose content is a
+match-only title (a category chip the owner named) may be tapped, never in Settings or SystemUI
+and never a switch, checkbox, field or slider; and a clickable row the owner named may be
+long-pressed even when the app does not flag it long-clickable (DocumentsUI rows select on a long
+press without the flag). Both go through the same guarded-word and taint confirmation as any tap.
+A reader pick still authorizes a tap only: in both recorded Markor deletions the reader picked a
+row with a similar name (`2023_03_14_qFzW_polite_wolf.md` for `qFzW_polite_wolf`), so widening a
+pick to a long press would have selected the wrong file for deletion. The planner rules now say to
+`scroll … until` the exact name when the request names an item and no row shows it.
+
 **Dedicated typed values** (7 Nov 2026, `typed_value.rs`): exact calendar form controls and
 explicit event-list items can carry bounded numeric date/time observations. These are untrusted
 app data, separate from labels, matched titles and typed history; raw strings remain with the

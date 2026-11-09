@@ -12,6 +12,10 @@
 //!                shows one more outgoing row with exactly that body, in the requested thread
 //!   Photo        "take one photo": exactly one shutter press in this run, and a last-photo
 //!                thumbnail that was not on the screen the press was planned on is now shown
+//!   RowsDeleted  "delete the following expenses from …: A, B": each named row was seen, an
+//!                owner-confirmed input followed, and the same page lists its other rows without them
+//!   NoteSaved    "create a new note in Markor named n.txt with the following text: …": the
+//!                editor held the text with Save disabled, then the file list shows n.txt
 //!
 //! Recognition is a full-string grammar over the owner's words; anything else (other wording,
 //! compound requests) is not recognized and keeps the ordinary verifier. Checks read the raw
