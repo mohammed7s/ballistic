@@ -910,7 +910,10 @@ scores, model quality measurements or a comprehensive security evaluation.
 
 - **Unit tests, no emulator**: recorded screens (`core/tests/screens/*.json`) → filter output,
   match-only titles, action validation, taint rule, Rule of Two, policy decisions, skill
-  matching, reader shape enforcement. Count on 8 Nov 2026: 362 (`cargo test`; 368 with
+  matching, reader shape enforcement. Count on 9 Nov 2026: 409 (`cargo test`; 415 with
+  `--features uniffi`), after the Haiku 2 fixes added `typed_postconditions.rs`,
+  `navigation.rs`, `recorded_labels.rs`, `planner_output.rs`, `early_answers.rs` and unit tests in
+  `postcondition.rs` and `capability_gaps.rs`. Count on 8 Nov 2026: 362 (`cargo test`; 368 with
   `--features uniffi`), up from 293 that morning (346/351 before the context guard, whose 14
   cases are in `context_guard.rs`, §12). The 8 Nov additions: `chat_turns.rs` (reply
   path makes no Screen or Hands call; task path starts the loop with the resolved request; a
