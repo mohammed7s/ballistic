@@ -272,4 +272,9 @@ fn the_same_input_on_changing_screens_is_progress_not_a_loop() {
     let down = || Action::Scroll { target: Some(4), direction: Direction::Down, until: None };
     let scrolls = vec![effect(fixture("recipe_a"), down()), effect(fixture("recipe_b"), down()), effect(fixture("calendar_form"), down())];
     assert_eq!(agent::repeated_inputs(&scrolls), None);
+    // Up and down with a different `until` each time (Haiku 3, recipe form) still alternates.
+    let s = |d: Direction, u: &str| Action::Scroll { target: Some(4), direction: d, until: Some(u.into()) };
+    let varied = vec![effect(fixture("recipe_a"), s(Direction::Down, "Directions")), effect(fixture("recipe_b"), s(Direction::Up, "Title")),
+        effect(fixture("recipe_a_again"), s(Direction::Down, "Time")), effect(fixture("recipe_b_again"), s(Direction::Up, "Title"))];
+    assert!(agent::repeated_inputs(&varied).is_some_and(|p| p.ends_with("alternated twice")));
 }

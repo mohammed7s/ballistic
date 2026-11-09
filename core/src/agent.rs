@@ -89,7 +89,9 @@ pub fn repeated_inputs(effects: &[Effect]) -> Option<String> {
     let n=effects.len();
     if n>=4 {
         let (a1,b1,a2,b2)=(&effects[n-4],&effects[n-3],&effects[n-2],&effects[n-1]);
-        let alternated=if opposite(a1,b1) { said(a1)==said(a2) && said(b1)==said(b2) } else { again(a1,a2) && again(b1,b2) };
+        // Opposite scrolls count whatever `until` names: Haiku 3 varied it each time and kept
+        // scrolling the recipe form up and down for 14 steps.
+        let alternated=if opposite(a1,b1) { opposite(a2,b2) && opposite(a1,b2) && opposite(b1,a2) } else { again(a1,a2) && again(b1,b2) };
         if said(a1)!=said(b1) && alternated {
             return Some(format!("{} and {} alternated twice",said(a1),said(b1)));
         }
