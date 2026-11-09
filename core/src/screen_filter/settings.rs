@@ -258,7 +258,68 @@ pub(super) fn dedicated_activity(activity: &str) -> bool {
 }
 
 pub(super) fn labels(screen: &ScreenState) -> HashMap<NodeId, &'static str> {
-    prove(screen).unwrap_or_default()
+    prove(screen).or_else(|| homepage(screen)).unwrap_or_default()
+}
+
+pub(super) const HOMEPAGE: &str = "com.android.settings.Settings";
+
+/// Top-level Settings tiles on the recorded AOSP 13 (Google APIs) emulator image, 8 Nov 2026.
+/// Their summaries can carry device or network names and stay content; only these titles name a
+/// row, and only inside the complete homepage envelope below.
+const HOMEPAGE_TITLES: &[&str] = &[
+    "Network & internet", "Connected devices", "Apps", "Notifications", "Battery", "Storage",
+    "Sound & vibration", "Display", "Wallpaper & style", "Accessibility", "Security", "Privacy",
+    "Location", "Safety & emergency", "Passwords & accounts", "Digital Wellbeing & parental controls",
+    "Google", "System", "About emulated device", "About phone", "Tips & support",
+];
+
+/// The Settings homepage: homepage_container > recycler_view, every row a clickable LinearLayout
+/// with no id, label or text of its own whose children are exactly one `android:id/title` and at
+/// most one `android:id/summary` TextView. Every title must be one of [`HOMEPAGE_TITLES`] and
+/// appear once; an injected tile with another title, a duplicate title (a lookalike tile), any
+/// other child or any other shape rejects the whole page, so no row is named.
+fn homepage(screen: &ScreenState) -> Option<HashMap<NodeId, &'static str>> {
+    if screen.package != PKG || screen.activity != HOMEPAGE { return None; }
+    let mut ids = HashSet::new();
+    let mut children: HashMap<NodeId, Vec<&Node>> = HashMap::new();
+    for n in &screen.nodes {
+        if n.parent.is_some_and(|p| !ids.contains(&p)) || !ids.insert(n.id) { return None; }
+        if let Some(p) = n.parent { children.entry(p).or_default().push(n); }
+    }
+    let of = |n: &Node| children.get(&n.id).cloned().unwrap_or_default();
+    let ours = |n: &Node, role: Role, class: &str, rid: Option<&str>| n.package.as_deref() == Some(PKG) && n.role == role
+        && n.class_name.as_deref() == Some(class) && n.resource_id.as_deref() == rid && !n.flags.editable && !n.flags.checkable;
+    let lists: Vec<&Node> = screen.nodes.iter().filter(|n| n.resource_id.as_deref() == Some("com.android.settings:id/recycler_view")).collect();
+    let [list] = lists[..] else { return None; };
+    if !ours(list, Role::List, "androidx.recyclerview.widget.RecyclerView", Some("com.android.settings:id/recycler_view")) { return None; }
+    let parent = screen.nodes.iter().find(|n| Some(n.id) == list.parent)?;
+    if !ours(parent, Role::Container, "android.widget.LinearLayout", Some("com.android.settings:id/homepage_container")) { return None; }
+    let rows = of(list);
+    if rows.len() < 8 { return None; }
+    let mut labels = HashMap::new();
+    let mut seen = HashSet::new();
+    for row in rows {
+        if !ours(row, Role::Button, "android.widget.LinearLayout", None) || !row.flags.clickable
+            || row.label.is_some() || row.text.is_some() { return None; }
+        let kids = of(row);
+        let mut title = None;
+        let mut summaries = 0;
+        for k in &kids {
+            if !of(k).is_empty() || k.flags.clickable || k.label.is_some() { return None; }
+            match k.resource_id.as_deref() {
+                Some("android:id/title") if ours(k, Role::Text, "android.widget.TextView", Some("android:id/title")) && title.is_none() => {
+                    title = HOMEPAGE_TITLES.iter().find(|t| k.text.as_deref() == Some(**t)).copied();
+                    title?;
+                }
+                Some("android:id/summary") if ours(k, Role::Text, "android.widget.TextView", Some("android:id/summary")) => summaries += 1,
+                _ => return None,
+            }
+        }
+        let title = title?;
+        if summaries > 1 || !seen.insert(title) { return None; }
+        labels.insert(row.id, title);
+    }
+    Some(labels)
 }
 
 fn prove(screen: &ScreenState) -> Option<HashMap<NodeId, &'static str>> {

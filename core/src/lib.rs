@@ -23,9 +23,11 @@ pub mod values;
 pub mod chat;
 
 pub mod capabilities;
+pub mod capability_gaps;
 pub mod tools;
 pub mod verification;
 pub mod launch_completion;
+pub mod postcondition;
 
 #[cfg(feature = "uniffi")]
 pub mod ffi;

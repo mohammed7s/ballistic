@@ -2,7 +2,7 @@
 
 Measured facts only. Same 20 tasks (`harness/run_suite.sh`), same emulator (AndroidWorldAvd, API
 33, ThinkPad), same model `gemini-flash-lite-latest` (Gemini resolves it to `gemini-3.5-flash-lite`)
-except the Haiku rows, which use `claude-haiku-5-5` through the Anthropic API, core seed 0; the T3A baseline was unseeded. Goals therefore differ. Run artefacts: `ballistic_runs/suite_core_<stamp>/` on the Latitude (git-ignored) and
+except the Haiku and Opus rows, which use `claude-haiku-5-5` or `claude-opus-5-5` through the Anthropic API, core seed 0; the T3A baseline was unseeded. Goals therefore differ. Run artefacts: `ballistic_runs/suite_core_<stamp>/` on the Latitude (git-ignored) and
 `~/ballistic_runs/` on the ThinkPad.
 
 ## Runs
@@ -18,6 +18,8 @@ except the Haiku rows, which use `claude-haiku-5-5` through the Anthropic API, c
 | **Core 6** | **7 Nov 2026 08:35–09:04** | **core** | **`05ab6eb`** | **8 / 10 / 2** | **1,258.3 s** | **52.75 s** | **223** | **2,651** |
 | Haiku 1 (no thinking headroom) | 8 Nov 2026 19:22–19:47 | core, `claude-haiku-5-5` | harness `c75fa07`, core of `a29b611` | 2 / 8 / 10 | 990.7 s | 40.75 s | 262 | 3,360 |
 | **Haiku 2** | **8 Nov 2026 19:48–20:17** | **core, `claude-haiku-5-5`** | **harness `b8d1030`, core of `a29b611`** | **6 / 14 / 0** | **1,261.3 s** | **49.55 s** | **341** | **3,358** |
+| **Haiku 3 (after fixes)** | **9 Nov 2026 00:03–00:30** | **core, `claude-haiku-5-5`** | **core and harness `b22da1f`** | **9 / 11 / 0** | **977.7 s** | **43.95 s** | **263** | **3,045** |
+| **Opus 5.5 (same code as Haiku 3)** | **9 Nov 2026 00:32–01:00** | **core, `claude-opus-5-5`** | **core and harness `b22da1f`** | **12 / 8 / 0** | **1,046.1 s** | **45.0 s** | **256** | **3,117** |
 
 Core 3 was run on a second API key after the first key's daily quota was used up.
 This records the historical run; daily-quota exhaustion must stop a run, without automatic key rotation.
@@ -27,6 +29,84 @@ setup and checker. Core 3 adds 15.93 s checker time; Core 4 adds 17.40 s. Suite 
 setup and gaps and is not the sum in this table. Errors and early failed stops reduce recorded
 time. These runs do **not** establish a speedup or a controlled latency comparison.
 Prompt means include only usage-bearing calls; failed-call usage is unknown.
+
+## Haiku 3 (after fixes) and Opus 5.5 (same code as Haiku 3) — 9 November 2026
+
+Both runs used the same binary, built on the ThinkPad from branch `worktree-agent-aa5bd64a2bd8e7a06`
+at `b22da1f` (core fixes 1–5: typed postconditions checked after every effect, repeated-input stop,
+recorded labels and the time picker note, keypad entry, scroll until, compact schema, overlong
+replies invalid, planner budget before history, forgiving parsing with two corrections) with
+`rustup run stable cargo build --release --target-dir ~/ballistic_haiku/target`, SHA-256
+`ffc45443d29681db32fd22f010b89fe87a13cb95122382d21cfdfa39cc0dc85a`. Harness unchanged from master.
+Settings exactly as Haiku 2: `run_suite.sh --agent core --provider anthropic --effort low`, seed 0,
+judge off, confirmations approved by the harness, `THINKING_HEADROOM` 2048 (default), core caps 800
+planner / 64 reader / 400 verifier; only the model differs between the two. Opus smoke call through
+the client before its run: HTTP 200, text `ok`, 24 prompt + 4 output tokens, no thinking block,
+`end_turn` (excluded below); its first task's eight calls all ended `end_turn` with no thinking, so
+the headroom stayed 2048. Cost on recorded usage with thinking billed as output: Haiku 5.5 $0.10 / M
+input, $0.50 / M output; Opus 5.5 $4 / M input, $20 / M output. No prompt caching (cache read and
+creation 0); no call over 100K prompt tokens. Fixes committed after `b22da1f` (post-effect feedback for
+brightness, the Expense sheet close label, opposite-scroll detection with `until`, the reply row
+slack) are **not** in either run.
+
+**Haiku 3: 9 PASS / 11 FAIL / 0 ERROR; independent state 10/20; zero false done** (Haiku 2: 6 / 14 /
+0, state 10). **Opus 5.5: 12 PASS / 8 FAIL / 0 ERROR; state 15/20; zero false done.** T3A baseline
+13/20. Single seed-0 trials: no model ranking or causal claim follows, and the state passes do not
+establish absence of duplicate or unrelated side effects.
+
+| Totals | Haiku 2 | Haiku 3 | Opus 5.5 |
+|---|---:|---:|---:|
+| Logical calls / HTTP attempts / retries | 341 / 341 / 0 | 263 / 263 / 0 | 256 / 256 / 0 |
+| HTTP status | 341 × 200 | 263 × 200 | 256 × 200 |
+| Planner / reader / verifier calls | 267 / 46 / 28 | 210 / 45 / 8 | 210 / 31 / 15 |
+| Calls stopped at `max_tokens`; text over core cap | 4; 5 | 0; 0 | 0; 0 |
+| Prompt tokens (per call) | 1,144,988 (3,358) | 800,832 (3,045) | 797,942 (3,117) |
+| Output tokens, of which thinking | 117,860, 76,196 | 69,296, 52,813 | 27,743, 14,503 |
+| Cost, input + output | $0.1145 + $0.0589 = **$0.1734** | $0.0801 + $0.0346 = **$0.1147** | $3.1918 + $0.5549 = **$3.7466** |
+| Agent seconds (median) | 1,261.3 (49.55) | 977.7 (43.95) | 1,046.1 (45.0) |
+| Checker seconds | 15.052 | 15.043 | 15.031 |
+| Suite wall (UTC) | 19:48:04–20:17:01 | 00:03:03–00:30:20 | 00:32:01–01:00:32 |
+
+Combined / state per task; steps, agent seconds and model calls are given for the two new runs.
+
+| Task | T3A | Haiku 2 | Haiku 3 | H3 steps / s / calls | Opus 5.5 | Opus steps / s / calls | Cause (Haiku 3; Opus where it differs) |
+|---|---|---|---|---|---|---|---|
+| ContactsAddContact | PASS | PASS | **PASS** / passed | 8 / 48.6 / 10 | **PASS** / passed | 7 / 38.2 / 8 | Verifier verified |
+| ClockTimerEntry | FAIL | FAIL | **PASS** / passed | 5 / 26.4 / 7 | **PASS** / passed | 4 / 21.4 / 5 | Keypad entry: one `type` of the digits (confirmed as planner-made), then verified |
+| ClockStopWatchRunning | PASS | PASS | **PASS** / passed | 4 / 22.4 / 5 | **PASS** / passed | 4 / 19.9 / 5 | Verifier verified |
+| OpenAppTaskEval | PASS | FAIL / passed | **PASS** / passed | 1 / 7.1 / 1 | **PASS** / passed | 1 / 8.7 / 1 | Typed launch-with-pop-up check after `open_app`: one planner call |
+| SystemWifiTurnOff | PASS | PASS | FAIL / failed | 10 / 46.0 / 14 | **PASS** / passed | 7 / 31.0 / 9 | Haiku: the Internet page's Wi-Fi switch is unlabeled while on (page signature not proven, as in Haiku 2); the reader was asked a navigation question and the planner toggled "Turn on Wi-Fi automatically" instead |
+| SystemBluetoothTurnOn | FAIL | PASS | FAIL / failed | 10 / 45.9 / 14 | **PASS** / passed | 7 / 35.2 / 8 | Haiku: reached the Bluetooth page but read its labels three times and went back; budget exhausted |
+| SystemBrightnessMax | FAIL | FAIL / passed | FAIL / passed | 10 / 42.0 / 12 | **PASS** / passed | 10 / 46.4 / 12 | Haiku: homepage label and `scroll until "Display"` reached the slider at step 5, then four more swipes and a reopened Settings home; never back on Display. Opus went back: typed Brightness level 100% check passed |
+| TurnOnWifiAndOpenApp | PASS | PASS | **PASS** / passed | 7 / 32.5 / 9 | **PASS** / passed | 7 / 33.9 / 9 | Verifier verified |
+| SimpleSmsSend | PASS | FAIL / passed | **PASS** / passed | 7 / 30.8 / 7 | **PASS** / passed | 6 / 28.7 / 6 | Typed sent-row check on the Send readback |
+| SimpleSmsReplyMostRecent | PASS | FAIL / passed | **PASS** / passed | 9 / 37.3 / 13 | FAIL / passed | 12 / 68.5 / 17 | Typed sent-row check passed (Haiku). Opus: same path, but the top row sat at y 299 under a list at 296 and the check required equality; four done claims rejected (slack added after the run, not in this binary) |
+| SimpleCalendarAddOneEvent | FAIL | FAIL | FAIL / failed | 22 / 89.2 / 23 | FAIL / failed | 34 / 142.2 / 36 | Haiku: the end-time picker alternation was warned once, then it gave up at step 22 (was 34 steps). Opus: a three-input cycle (Start time, Start time, OK) that the two-input check does not catch; budget exhausted |
+| SimpleCalendarEventsOnDate | FAIL | FAIL | FAIL / failed | 10 / 60.0 / 17 | FAIL / failed | 10 / 55.6 / 16 | Date headers are content; reads and scrolls used the 10 steps (Opus found the section at step 9) |
+| MarkorCreateNote | FAIL | FAIL | FAIL / failed | 11 / 56.7 / 15 | FAIL / passed | 16 / 92.7 / 22 | `type` appends: the extension field already held text from earlier runs (`txttxt…`); Haiku gave up. Opus chose the type from the spinner, saved and the state passed; the verifier would not accept a typed editor as saved |
+| MarkorDeleteNote | PASS | FAIL | FAIL / failed | 10 / 47.5 / 13 | FAIL / failed | 10 / 58.7 / 15 | Deleting needs a long press on a reader-picked row, which stays tap-only by policy; both opened the note and searched for a delete action |
+| MarkorCreateFolder | PASS | PASS | **PASS** / passed | 7 / 38.4 / 10 | **PASS** / passed | 6 / 43.6 / 8 | Verifier verified |
+| ExpenseAddSingle | FAIL | FAIL | FAIL / failed | 12 / 59.8 / 19 | FAIL / failed | 12 / 67.5 / 18 | `scroll until "Transportation"` showed the chip as `(matches request)`, but a matched chip is checkable, so it is not tappable without a reader pick, and the reader was asked about stale cN; budget exhausted |
+| ExpenseDeleteSingle | PASS | FAIL | FAIL / failed | 10 / 41.9 / 12 | FAIL / passed | 9 / 61.7 / 16 | Haiku tapped the sheet's close control, labeled "Close delete confirmation" (guarded by the word "delete"), not CONFIRM (relabeled after the run). Opus confirmed (state passed) but found no evidence the row was gone and gave up |
+| RecipeAddSingleRecipe | PASS | FAIL | FAIL / failed | 24 / 129.9 / 28 | **PASS** / passed | 11 / 62.4 / 12 | Haiku: all fields typed, then up/down scrolls with a different `until` each time, which the repetition check treated as different inputs (fixed after the run) |
+| FilesDeleteFile | PASS | FAIL | FAIL / failed | 22 / 97.4 / 32 | FAIL / failed | 22 / 113.0 / 31 | The storage root is `sdk_gphone64_x86_64`, not the requested `sdk_gphone_x86_64`, so it never matches; drawer roots stay content and reads did not find it. Opus searched and hit a guarded control, budget exhausted |
+| CameraTakePhoto | PASS | FAIL | **PASS** / passed | 2 / 17.9 / 2 | **PASS** / passed | 2 / 16.8 / 2 | Typed new-thumbnail check after one shutter press: no second photo |
+
+Against Haiku 2, Haiku 3 gains ClockTimerEntry, OpenAppTaskEval, SimpleSmsSend,
+SimpleSmsReplyMostRecent and CameraTakePhoto and loses SystemWifiTurnOff and SystemBluetoothTurnOn
+(both opaque-page navigation, not new rejections). Of its 11 failures one has state passed
+(SystemBrightnessMax); the others are navigation, entry or policy limits listed above. Opus on the
+same code passes 12: 9 of T3A's 13 (it misses SimpleSmsReplyMostRecent, MarkorDeleteNote,
+ExpenseDeleteSingle and FilesDeleteFile) plus ClockTimerEntry, SystemBluetoothTurnOn and
+SystemBrightnessMax, which T3A failed; three Opus failures have state passed (SMS reply, Markor
+create, Expense delete). Typed checks completed 4 Haiku 3 runs (launch, both SMS, camera) and 4 Opus
+runs (launch, brightness, SMS send, camera) with `code_validated_*` evidence and no planner `done`
+needed; no run reported done with state failed.
+
+Evidence (git-ignored, Latitude): `ballistic_runs/suite_haiku55_b22da1f_20261109-000304/` and
+`ballistic_runs/suite_opus55_b22da1f_20261109-003201/` (TSV, 20 logs, 20 JSONs, supervisor script and
+status, suite output); originals in `~/ballistic_runs/` on the ThinkPad. Both supervisors released the
+emulator lock (00:30:20 and 01:00:32 UTC). The copied files contain no API key.
 
 ## Core with Claude Haiku 5.5 — 8 November 2026
 

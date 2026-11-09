@@ -273,6 +273,9 @@ mod tests {
             "observe".to_string(),
             "complete planner 800".to_string(),
             r#"act {"op":"open_app","package":"com.android.deskclock","activity":null}"#.to_string(),
+            // A launch request is checked by core itself on the next observation
+            // (postcondition.rs); this shell advertises no foreground readback, so it stays open.
+            "observe".to_string(),
         ]);
         assert_eq!(events.lock().unwrap()[0]["outcome"], "opened_ui");
     }

@@ -11,6 +11,11 @@
 //!   (e) refuse         the model is not asked; the caller reports
 //!                      "prompt does not fit this model's N-token context"
 //!
+//! The planner takes (d) first (9 Nov 2026): recorded planner replies are 36–49 tokens, so its
+//! 800-token budget shrinks to what fits (not below 256) before any history line is dropped; the
+//! lines go only when even the minimum does not fit, and the budget then gets whatever room the
+//! shorter prompt leaves, up to the 800 asked for. Other roles keep the order above.
+//!
 //! A reduction only removes lines core itself put in the prompt. Nothing is added, and the
 //! rules, the schema, the owner's request, the screen and the current step's correction are
 //! never touched. Truncation inside the runtime is never relied on. With no limit advertised
@@ -50,12 +55,17 @@ pub fn min_output(role: ModelRole, requested: u32) -> u32 {
 
 /// Conservative prompt size in tokens; see the module comment for the rule and its evidence.
 pub fn estimate(messages: &[ChatMessage]) -> u32 {
-    let tokens: u64 = messages.iter().map(|m| {
-        let digits = m.content.bytes().filter(u8::is_ascii_digit).count() as u64;
-        let other = m.content.len() as u64 - digits;
-        digits + other.div_ceil(3) + MESSAGE_FRAMING_TOKENS as u64
-    }).sum::<u64>() + REPLY_FRAMING_TOKENS as u64;
+    let tokens: u64 = messages.iter().map(|m| text_tokens(&m.content) as u64 + MESSAGE_FRAMING_TOKENS as u64)
+        .sum::<u64>() + REPLY_FRAMING_TOKENS as u64;
     tokens.min(u32::MAX as u64) as u32
+}
+
+/// The same conservative count for one text with no framing: every ASCII digit one token,
+/// every other byte a third of one. Used to recognize a reply longer than its role's cap.
+pub fn text_tokens(text: &str) -> u32 {
+    let digits = text.bytes().filter(u8::is_ascii_digit).count() as u64;
+    let other = text.len() as u64 - digits;
+    (digits + other.div_ceil(3)).min(u32::MAX as u64) as u32
 }
 
 /// Which lines the caller may drop: how many of the oldest history lines and chat turns lie
@@ -172,35 +182,44 @@ pub fn complete<M: Models + ?Sized>(
     let mut messages = build(&trim);
     let (mut prompt, counted_by) = measure(&messages)?;
     let full = prompt;
+    let floor = min_output(role, max_tokens);
     let mut reductions = Vec::new();
+    // The planner shrinks its output budget first: the trims below then only need to make room
+    // for the role's minimum, not for the full budget.
+    let output_first = role == ModelRole::Planner && !fits(prompt, max_tokens);
+    if output_first { reductions.push(Reduction::MaxTokens); }
+    let want = if output_first { floor } else { max_tokens };
     // (a) history: one oldest line at a time down to the floor.
-    if !fits(prompt, max_tokens) && room.history_lines > 0 {
+    if !fits(prompt, want) && room.history_lines > 0 {
         reductions.push(Reduction::History);
-        while !fits(prompt, max_tokens) && trim.history_lines < room.history_lines {
+        while !fits(prompt, want) && trim.history_lines < room.history_lines {
             trim.history_lines += 1;
             messages = build(&trim);
             prompt = measure(&messages)?.0;
         }
     }
     // (b) reader fact sets from before the previous step, all at once.
-    if !fits(prompt, max_tokens) && room.old_facts {
+    if !fits(prompt, want) && room.old_facts {
         reductions.push(Reduction::OldReaderFacts);
         trim.old_facts = true;
         messages = build(&trim);
         prompt = measure(&messages)?.0;
     }
     // (c) chat turns: one oldest turn at a time down to the floor.
-    if !fits(prompt, max_tokens) && room.chat_turns > 0 {
+    if !fits(prompt, want) && room.chat_turns > 0 {
         reductions.push(Reduction::ChatHistory);
-        while !fits(prompt, max_tokens) && trim.chat_turns < room.chat_turns {
+        while !fits(prompt, want) && trim.chat_turns < room.chat_turns {
             trim.chat_turns += 1;
             messages = build(&trim);
             prompt = measure(&messages)?.0;
         }
     }
-    // (d) a smaller output budget, never below the role's minimum.
+    // (d) a smaller output budget, never below the role's minimum. For the planner this was
+    // decided first; it gets whatever room the prompt leaves, up to what it asked for.
     let mut output = max_tokens;
-    if !fits(prompt, output) && fits(prompt, min_output(role, max_tokens)) {
+    if output_first {
+        output = limit.saturating_sub(prompt).min(max_tokens).max(floor);
+    } else if !fits(prompt, output) && fits(prompt, floor) {
         reductions.push(Reduction::MaxTokens);
         output = limit - prompt;
     }

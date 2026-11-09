@@ -224,6 +224,20 @@ identity; SSIDs and device names stay content. Every entry was seen in a recorde
 no substring or caption heuristic. Keyboard text other than exact `key_pos_*` keys (the
 suggestion strip shows the clipboard) is content.
 
+Added 9 Nov 2026 from the Haiku 2 screens (`tests/recorded_labels.rs`): the **Settings homepage**
+tiles are named by their titles only inside the complete recorded envelope (homepage_container >
+recycler_view, every row an id-less clickable LinearLayout with exactly one `android:id/title` from a
+fixed list of 21 AOSP/GMS titles and at most one summary; any unknown, duplicate or reshaped row
+names no row; summaries stay content). The **DocumentsUI** toolbar ("Show roots", Search, More
+options) is named when package, class, id or its absence, the parent chain (a ScrollView directly in
+`drawer_layout`) and the OS description agree; the whole page sits in one scrolling view, which made
+them look like list rows. The **Pro Expense delete sheet** title, warning and close control get
+exact-id labels so the planner can tell what CONFIRM confirms. A recognized **Material time picker**
+(library ids `material_hour_tv`/`material_minute_tv`) adds one `note:` line after the elements,
+built from the toggles' own labels (`note: time picker shows 13:15; editing hours …`). A scrollable
+node whose visible children share one row renders `[scrollable horizontally]` (geometry only); the
+Expense category list was scrolled up and down in Haiku 2.
+
 **Dedicated typed values** (7 Nov 2026, `typed_value.rs`): exact calendar form controls and
 explicit event-list items can carry bounded numeric date/time observations. These are untrusted
 app data, separate from labels, matched titles and typed history; raw strings remain with the
@@ -255,7 +269,32 @@ Also report it live per step in the run JSON, as today.
 ## 6. Actions (the planner's only output)
 
 One JSON object per step, validated against `core/schema/actions.json`. Anything that fails
-validation is rejected and counted; the model gets one retry with the error.
+validation is rejected and counted; the model gets up to `Options::planner_corrections` retries
+with the error (default 2, at most 4; one before 9 Nov 2026).
+
+**Forgiving parsing for small models (9 Nov 2026; from the owner's phone with Gemma 4 E2B).**
+Extra fields on `back`, `home` and `wait` are ignored, since they cannot change what those do, and
+noted in the step event's `parse_notes`; every other action still rejects unknown fields. A few key
+aliases are read as the schema key only when the action's schema lacks the alias, the key itself
+is absent and exactly one alias is present (`element`/`element_id`/`target_id` → `target`,
+`value`/`input` → `text` for type, `app_name`/`package`/`name` → `app`, `dir` → `direction`, a
+single `target` → `targets` for read, `answer` → `text` for answer, `reasoning` and, except for
+give_up, `reason` → `why`); ids and values are validated as before. App names also match ignoring
+case, spaces and punctuation (`simple_sms_messenger`), with a trailing "app" dropped and
+`system_settings`/`SystemSettings`/`android settings` read as `settings`, and only ever to an app
+in the advertised list (exactly one). An object with no `action` is never guessed from its fields:
+the correction names the actions those fields would fit. Output-shape corrections include one
+correct object of the action the model attempted (from its `action`, an obvious synonym such as
+`click` → tap, or the single action its fields fit); `actions::example` has one per action and a
+test parses each.
+
+**Overlong replies (9 Nov 2026).** A planner reply whose text is longer than the planner's 800-token
+cap (counted with the context guard's conservative estimate, §12) is invalid output even if it
+contains an action; so is a chat reply beyond its 400. In Haiku 2 four planner replies carried
+2,360–2,623 visible tokens of repeated tags. The correction echoes at most 400 characters of the
+rejected reply and, for output-shape errors (no JSON, too long, unknown action, bad arguments), asks
+for "exactly one corrected JSON object and nothing else: no prose, tags or code fences"; the planner
+rules open with the same demand. Tests: `tests/planner_output.rs`.
 
 | action | arguments | notes |
 |---|---|---|
@@ -274,6 +313,39 @@ validation is rejected and counted; the model gets one retry with the error.
 
 Every action carries a short `why` string (logged, not executed). The model never emits
 coordinates: core resolves `e7` to the node's centre.
+
+**Repeated inputs (9 Nov 2026, `agent::repeated_inputs`).** The same two acknowledged inputs
+alternating (A, B, A, B), or one input three times, where each repeat was planned on a screen that
+reads back unchanged in code (readback.rs) from the previous time, is no progress; so is scrolling
+one target down and up (or left and right) twice, whatever the screens show. Recorded in Haiku 2:
+the calendar time picker opened and closed unchanged 18 times; the recipe form scrolled down and up
+14 times after every field was typed. Core then adds one history line in its own words
+(`warning: tap e10 and tap e29 alternated twice, and the screen returned to the same state each
+time; …`) and, if the next input continues the pattern, stops the run before the next planner call
+(`failure_category: "planning"`, `task_status: "pending"`). The planner prompt also lists the
+labels of the fields core typed into in this task (`Fields typed in this task: Title, Servings`),
+labels only, so it keeps them after a scroll moves the fields off the screen. Tests:
+`tests/navigation.rs` on the recorded calendar and recipe screens.
+
+**Keypad entry (9 Nov 2026).** `type` with `submit: false` and digits only (at most 12) into a
+labeled display that is not a text field is accepted when the display's app shows a digit keypad:
+for every digit exactly one enabled, clickable, non-toggle button labeled with exactly that digit.
+Core taps those keys in order (Hands sees ordinary taps; an interrupted entry is unknown and stops
+the run). The typed text still goes through the taint rule, so digits the owner did not write
+literally (`124856` for "12 hours, 48 minutes, and 56 seconds") need the owner's yes naming
+`model:planner`. Recorded in Haiku 2: the timer was entered one digit per step and the 10-step
+budget ran out.
+
+**Scroll until (9 Nov 2026).** `scroll` may carry `until` (a label or request-matched text, at most
+80 characters). After each acknowledged scroll core observes and stops when a control whose label,
+or an item whose request-matched text, contains it (whole words, case-insensitive) is on the
+screen, when the list stopped moving (readback unchanged), or after `SCROLL_UNTIL_MAX` = 5 scrolls;
+the outcome says which. Only what the planner's own view would show is searched, so the search
+reveals no withheld content. Not recorded as a skill step.
+
+The planner prompt carries `schema/actions.json` without whitespace (`actions::schema_for_prompt`,
+the same JSON in about half the bytes, roughly 880 fewer estimated tokens per planner call); the
+file itself stays pretty-printed for hosts.
 
 ## 7. Planner, reader and provenance
 
@@ -363,6 +435,24 @@ asking for a hard confirmation (rule 2 below lists `answer`). It causes no opera
 confirmation request is bound to a Hands operation, and the values stay tagged if the owner
 later uses them in a task, where typing one is confirmed. Hosts must not feed the answer or
 `owner_facts` back into a model prompt.
+
+**Honest early answers (9 Nov 2026, `capability_gaps.rs`; offline tests only).** Some requests
+need a capability the host does not advertise; the loop would only open an app and stop after
+several planner calls. On the run's first observation core compares the owner's words with the
+advertised operations and app grants and, for a gap, ends the run at once with no planner call and
+no input: `task_status: "unsupported"`, `failure_category: "capability"`, `steps: 0`,
+`capability_gap: {needs}` and a plain-words `reason` that a chat turn shows as is. Recognized:
+alarms (`alarm`, `alarms`, `wake me`; needs taps in a granted clock app) → "I can't set alarms on
+this phone yet." (or "check" when nothing is to be changed); airplane/flight mode (needs taps in
+Settings or SystemUI) → "I can't turn airplane mode on or off on this phone yet."; changing a
+setting such as Wi-Fi, Bluetooth, brightness, dark theme, Do Not Disturb, flashlight, volume or
+location (a setting word plus a change word; needs the same taps, i.e. Computer Control) → "I can't
+change settings like Wi-Fi, Bluetooth or brightness on this phone yet." The Android app today
+advertises `open_app` and `wait` only, so these are answered there; the emulator harness advertises
+taps and grants, so its runs plan as before. Whole words, case-insensitive; a match can only
+refuse, never authorize, and a miss goes to the loop with every check. Tests:
+`capability_gaps.rs` unit tests and `tests/early_answers.rs` (chat turn and loop, phone and
+emulator capability sets).
 
 **Implemented: Chat, conversation turns (8 Nov 2026, `chat.rs`, `prompts/chat.txt`,
 `schema/chat.json`; unit-tested offline).** `converse(history, message, options, host)` is one
@@ -605,6 +695,37 @@ side effects. No benchmark checker or private app data supplies evidence. Native
 no APK permissions or observation mechanism were added. Rust/Kotlin JSON mirrors change together;
 the UniFFI ABI remains unchanged.
 
+**Typed postconditions (9 Nov 2026, `postcondition.rs`; implemented and tested offline on screens
+recorded in the Haiku 2 suite, not yet run live).** In Haiku 2 four tasks reached their goal state
+(checker passed) but did not count: core rejected the done claims or the budget ran out after the
+effect. A few full-string request forms now have a result core checks in code on a fresh
+observation, with no model:
+
+| Goal | Request form (whole request) | Evidence on the fresh screen |
+|---|---|---|
+| Launch | the launch form above, optionally followed by exactly the sentence "Clear any pop-ups that may appear by granting all permissions that are required." | the launch readback above; with the sentence also no permission-controller node, no platform alert-dialog id and no other app's window over the target (status bar and keyboard excepted) |
+| Brightness | `[please] turn/set/change… [the] [screen/display] brightness to [the] max/maximum/min/minimum [value/level]` | Settings > Display, proven by its complete page signature (§5), shows the Brightness level row's summary exactly `100%` / `0%`; the slider shows no value and never counts |
+| MessageSent | `send a text message [using <SMS app>] to <number> with message: <body>` and `reply to the most recent text message [using <SMS app>] with message: <body>` | the latest owner-confirmed tap on the thread's Send control in this run read back `changed (field_emptied)`, the composer it was planned on held exactly `<body>`, and the fresh thread shows one more outgoing row (no sender photo) with exactly `<body>` than before, under the same title. For a number the title equals it (digits compared); for "most recent" the thread was opened in this run from the top row of the unscrolled conversation list, in its recorded three-child shape, whose address equals the title |
+| Photo | `take one/a photo/picture [with the camera]` | exactly one shutter press in this run, and a last-photo thumbnail that was not on the screen the press was planned on |
+
+Structural identities are the recorded ones (Simple SMS Messenger thread layout, AOSP camera, AOSP
+Settings); anything else is not recognized and keeps the ordinary verifier. Core runs the check
+itself after **every acknowledged input** on the next observation (the readback's, or one taken
+then; the next step plans on it either way), so a run ends as done without a planner `done` claim
+or extra model call; the step event carries `typed_postcondition: "verified"` and
+`verification.evidence_basis` names the evidence (`code_validated_host_foreground`,
+`code_validated_settings_value`, `code_validated_sent_row`, `code_validated_new_photo_thumbnail`).
+On a planner `done` the same check runs on the done branch's fresh readback. When it does not pass,
+a plain launch still stops pending; launch-with-pop-up and brightness give fixed feedback and no
+model is asked (a verifier citing the labeled slider was a false-done path); message and photo
+goals fall back to the verifier as before. A pass is screen evidence for the requested
+postcondition, not a delivery receipt; it does not establish the absence of other side effects,
+and "most recent" relies on the app listing conversations newest first. Tests:
+`tests/typed_postconditions.rs` (recorded screens, one-field derived variants for 100%, other
+numbers, bodies, incoming rows, unconfirmed or unchanged sends, a second row, a scrolled list, a
+pin marker, two shutter presses, a permission prompt, an unproven Settings page and a contradicting
+foreground readback).
+
 After an ambiguous send or other side effect (timeout, lost acknowledgment), inspect state before
 retrying. Retry only when reliable readback proves no effect or the route offers a valid
 idempotency guarantee for that exact operation. Otherwise stop and report the uncertainty;
@@ -701,8 +822,10 @@ max_steps = 15
 Switching the backend is one line. Keys stay in the environment, never in the file or the repo.
 
 The file is design; what exists today is `run::Options` (8 Nov 2026), passed per call:
-`{"max_steps":15,"judge":true,"chat_history_turns":12,"skills":[]}`. Missing fields take the app
-defaults; unknown fields are rejected. `Options::harness()` differs only in `judge: false`.
+`{"max_steps":15,"judge":true,"chat_history_turns":12,"skills":[],"planner_corrections":2}`.
+Missing fields take the app defaults; unknown fields are rejected; `planner_corrections` is written
+only when it is not the default, so the JSON hosts mirror is unchanged. `Options::harness()` differs
+only in `judge: false`.
 
 ### Context guard (`src/context.rs`, 8 Nov 2026)
 
@@ -728,9 +851,12 @@ stops at the first that fits:
    judge call therefore stops before any confirmation or dispatch.
 
 Reductions only remove lines core itself wrote; nothing is added, and the rules, schema, owner's
-request, screen and the step's correction messages are never touched. The order is fixed: with
-the conservative estimator below, history lines go before the output budget shrinks, even though
-measured planner replies were 36–49 tokens.
+request, screen and the step's correction messages are never touched. The order is fixed, with one
+exception (9 Nov 2026): **the planner shrinks its output budget first** (step 4, down to 256),
+because measured planner replies were 36–49 tokens; history lines and old fact sets go only when
+even the minimum does not fit, and the budget then gets whatever room the shorter prompt leaves,
+up to 800. A planner check therefore logs `reductions: ["max_tokens", "history", …]` in that order.
+Other roles keep steps 1–4 as listed.
 
 **Measuring.** The host's exact count when `count_tokens` returns one (no host does yet), else
 `context::estimate`: every ASCII digit one token, every other UTF-8 byte a third of a token
@@ -784,7 +910,10 @@ scores, model quality measurements or a comprehensive security evaluation.
 
 - **Unit tests, no emulator**: recorded screens (`core/tests/screens/*.json`) → filter output,
   match-only titles, action validation, taint rule, Rule of Two, policy decisions, skill
-  matching, reader shape enforcement. Count on 8 Nov 2026: 362 (`cargo test`; 368 with
+  matching, reader shape enforcement. Count on 9 Nov 2026: 409 (`cargo test`; 415 with
+  `--features uniffi`), after the Haiku 2 fixes added `typed_postconditions.rs`,
+  `navigation.rs`, `recorded_labels.rs`, `planner_output.rs`, `early_answers.rs` and unit tests in
+  `postcondition.rs` and `capability_gaps.rs`. Count on 8 Nov 2026: 362 (`cargo test`; 368 with
   `--features uniffi`), up from 293 that morning (346/351 before the context guard, whose 14
   cases are in `context_guard.rs`, §12). The 8 Nov additions: `chat_turns.rs` (reply
   path makes no Screen or Hands call; task path starts the loop with the resolved request; a

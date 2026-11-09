@@ -265,6 +265,8 @@ fn task_text(outcome: &str, report: Option<&Value>, error: Option<&str>) -> Stri
         "stopped by owner" => "Stopped. Anything I had already done stays done.".into(),
         "stopped by an error" => format!("I stopped because of an error: {}.", error.unwrap_or("unknown")),
         "failed" => format!("I couldn't do that: {reason}."),
+        // An early answer is already a whole sentence in core's words (capability_gaps.rs).
+        "not supported" if report.is_some_and(|r| r.get("capability_gap").is_some()) => reason.into(),
         "not supported" => format!("I can't do that yet: {reason}."),
         _ => format!("I didn't finish: {reason}."),
     }
@@ -310,10 +312,12 @@ pub fn converse<H: Host>(host: &mut H, history: &[Turn], message: &str, options:
             // Nothing appended: the owner's message was not answered and may be sent again.
             Sent::Refused => return Ok(result(TurnKind::DoesNotFit, does_not_fit_text(refused.as_deref()), vec![], vec![], &mut checks)),
         };
-        match parse_reply(&completion.text) {
+        // Text beyond the chat cap is invalid output, whatever it contains.
+        let length = crate::actions::check_length(&completion.text, CHAT_TOKENS).map_err(|e| e.to_string());
+        match length.and_then(|_| parse_reply(&completion.text)) {
             Ok(reply) => { parsed = Some(reply); break; }
             Err(e) if attempt == 0 => {
-                corrections.push(ChatMessage { role: "assistant".into(), content: completion.text });
+                corrections.push(ChatMessage { role: "assistant".into(), content: crate::actions::echo_rejected(&completion.text) });
                 corrections.push(ChatMessage { role: "user".into(), content: format!("Invalid reply: {e}. Return exactly one JSON object matching the reply schema.") });
             }
             Err(_) => {}

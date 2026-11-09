@@ -112,7 +112,7 @@ mod tests {
 
     #[test]
     fn read_only_actions_do_not_reach_the_judge() {
-        for a in [Action::Back, Action::Wait, Action::Scroll { target: None, direction: Direction::Down },
+        for a in [Action::Back, Action::Wait, Action::Scroll { target: None, direction: Direction::Down, until: None },
             Action::Done { evidence: String::new() }, Action::Answer { text: String::new() }] {
             assert!(!state_changing(&a));
         }

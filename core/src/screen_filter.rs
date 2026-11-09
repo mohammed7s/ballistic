@@ -94,6 +94,9 @@ pub struct FilteredScreen {
     /// Elements the reader picked (§7 `element` shape) and core re-located on this screen.
     /// Set by the agent loop, never by the filter; they may be tapped like a matched item.
     pub reader_picks: Vec<u32>,
+    /// Lines core writes after the elements, built only from labels already in the view (a
+    /// recognized time picker's value, say). Never content.
+    pub notes: Vec<String>,
 }
 
 impl FilteredScreen {
@@ -105,9 +108,47 @@ impl FilteredScreen {
     }
 }
 
+/// Static Settings labels proven by the complete page signatures in `settings.rs`, keyed by raw
+/// node id. Empty for any screen whose whole envelope is not recognized. For code-side typed
+/// postconditions (`postcondition.rs`); never a source of planner text by itself.
+pub fn proven_settings_labels(screen: &ScreenState) -> std::collections::HashMap<NodeId, &'static str> {
+    settings::labels(screen)
+}
+
 /// The planner's view as text: one line per element.
 pub fn render(screen: &FilteredScreen) -> String {
-    screen.lines.join("\n")
+    screen.lines.iter().chain(screen.notes.iter()).cloned().collect::<Vec<_>>().join("\n")
+}
+
+/// `13` from a Material time picker toggle's description `13 hours` / `0 minutes` (written by
+/// the library from the picker's value; it is the control's label in this view).
+fn picker_number(label: &str, unit: &str) -> Option<u32> {
+    let first = label.split(" · ").next()?;
+    let n = first.strip_suffix(unit)?.strip_suffix(' ')?;
+    (n.len() <= 2 && n.bytes().all(|b| b.is_ascii_digit())).then(|| n.parse().ok()).flatten()
+}
+
+/// The Material Components time picker (exact library resource ids, recorded in Simple Calendar
+/// Pro): one line saying what time it shows and which part is being edited, from the toggles'
+/// own labels. Other pickers get no note.
+fn time_picker_note(view: &FilteredScreen) -> Option<String> {
+    let by_suffix = |suffix: &str| {
+        let found: Vec<&Element> = view.elements.iter().filter(|e| e.resource_id.as_deref()
+            .is_some_and(|r| r.strip_prefix(e.package.as_str()).and_then(|r| r.strip_prefix(":id/")) == Some(suffix))).collect();
+        match found[..] { [e] => Some(e), _ => None }
+    };
+    let (hour, minute) = (by_suffix("material_hour_tv")?, by_suffix("material_minute_tv")?);
+    let ok = by_suffix("material_timepicker_ok_button");
+    let h = picker_number(hour.label.as_deref()?, "hours")?;
+    let m = picker_number(minute.label.as_deref()?, "minutes")?;
+    let editing = match (hour.flags.checked, minute.flags.checked) {
+        (true, false) => "hours (the clock face lists hours)",
+        (false, true) => "minutes (the clock face lists minutes)",
+        _ => return None,
+    };
+    let ok = ok.map(|e| format!("; OK e{} keeps this time", e.id)).unwrap_or_default();
+    Some(format!("note: time picker shows {h:02}:{m:02}; editing {editing}. Tap e{} for hours or e{} for minutes, then pick a value{ok}",
+        hour.id, minute.id))
 }
 
 /// Rough token count: characters / 4, rounded up. Good enough to compare formats on the same
@@ -151,6 +192,11 @@ const KNOWN_CONTROLS: &[KnownControl] = &[
     KnownControl { package: "com.arduia.expense", resource_id: "com.arduia.expense:id/fb_main_add", role: Role::Button, label: "Add expense" },
     KnownControl { package: "com.arduia.expense", resource_id: "com.arduia.expense:id/btn_delete", role: Role::Image, label: "Delete expense" },
     KnownControl { package: "com.arduia.expense", resource_id: "com.arduia.expense:id/btn_close", role: Role::Button, label: "Close" },
+    // The delete bottom sheet after "Delete expense" (Haiku 2, 8 Nov 2026): its title and
+    // warning were opaque, so the planner could not tell what CONFIRM confirms.
+    KnownControl { package: "com.arduia.expense", resource_id: "com.arduia.expense:id/tv_delete_item", role: Role::Text, label: "Delete confirmation" },
+    KnownControl { package: "com.arduia.expense", resource_id: "com.arduia.expense:id/tv_delete_description", role: Role::Text, label: "Deletion warning" },
+    KnownControl { package: "com.arduia.expense", resource_id: "com.arduia.expense:id/imv_drop_close", role: Role::Image, label: "Cancel (close this sheet)" },
     KnownControl { package: "com.android.camera2", resource_id: "com.android.camera2:id/rounded_thumbnail_view", role: Role::Button, label: "Last photo thumbnail" },
     KnownControl { package: "net.gsantner.markor", resource_id: "net.gsantner.markor:id/document__fragment__edit__highlighting_editor", role: Role::Edit, label: "Note text" },
     // The new-file layout has separate name and extension inputs. Hints such as my_note
@@ -213,6 +259,28 @@ fn markor_create_button_label(nodes: &[Node], node: &Node, parent: Option<&Node>
     }
 }
 
+const DOCUMENTSUI: &str = "com.google.android.documentsui";
+
+/// DocumentsUI (the system Files app, recorded 8 Nov 2026) wraps its whole page, toolbar
+/// included, in one scrolling view directly inside `drawer_layout`, so its toolbar controls look
+/// like list rows and their OS-written descriptions become content. Name the recorded toolbar
+/// controls only when package, class, resource id (or its absence), that exact parent chain and
+/// the OS description all agree; a lookalike anywhere else stays unidentified.
+fn documentsui_toolbar_label(nodes: &[Node], node: &Node, parent: Option<&Node>) -> Option<&'static str> {
+    if node.package.as_deref() != Some(DOCUMENTSUI) || node.text.is_some() || node.flags.editable
+        || node.flags.checkable || !node.flags.clickable { return None; }
+    let p = parent?;
+    let grandparent = p.parent.and_then(|g| nodes.iter().find(|n| n.id == g))?;
+    if p.package.as_deref() != Some(DOCUMENTSUI) || p.class_name.as_deref() != Some("android.widget.ScrollView")
+        || grandparent.resource_id.as_deref() != Some("com.google.android.documentsui:id/drawer_layout") { return None; }
+    match (node.class_name.as_deref(), node.resource_id.as_deref(), node.label.as_deref()) {
+        (Some("android.widget.ImageButton"), None, Some("Show roots")) => Some("Show roots (storage and folders drawer)"),
+        (Some("android.widget.TextView"), Some("com.google.android.documentsui:id/option_menu_search"), Some("Search")) => Some("Search files"),
+        (Some("android.widget.ImageView"), None, Some("More options")) => Some("More options"),
+        _ => None,
+    }
+}
+
 /// Recorded controls whose identity does not depend on displayed text. Never use a caption,
 /// a generic switch id or a resource-id substring as an identity; positions only inside an
 /// exact parent (Quick Settings tiles, calendar month grid), never on their own.
@@ -221,6 +289,7 @@ fn code_owned_label(nodes: &[Node], i: usize, parent: Option<usize>) -> Option<S
     let package = node.package.as_deref()?;
     let parent_node = parent.map(|p| &nodes[p]);
     if let Some(label)=markor_create_button_label(nodes,node,parent_node) { return Some(label.into()); }
+    if let Some(label)=documentsui_toolbar_label(nodes,node,parent_node) { return Some(label.into()); }
     let parent_rid = parent_node.and_then(|p| p.resource_id.as_deref());
     let siblings = || nodes.iter().filter(move |n| n.parent.is_some() && n.parent == node.parent);
     let rid = node.resource_id.as_deref();
@@ -699,10 +768,24 @@ pub fn filter(screen: &ScreenState, ctx: &FilterContext) -> FilteredScreen {
             typed,
             content: content_id,
         };
-        out.lines.push(render_line(&element, out.contents.last().filter(|_| content_id.is_some())));
+        let mut line = render_line(&element, out.contents.last().filter(|_| content_id.is_some()));
+        if element.flags.scrollable && lays_out_in_a_row(screen, n) {
+            line = line.replace(" [scrollable]", " [scrollable horizontally]");
+        }
+        out.lines.push(line);
         out.elements.push(element);
     }
+    if let Some(note) = time_picker_note(&out) { out.notes.push(note); }
     out
+}
+
+/// A scrollable node whose visible children (at least two) all share one row: it scrolls left
+/// and right. Geometry only.
+fn lays_out_in_a_row(screen: &ScreenState, n: &Node) -> bool {
+    let kids: Vec<&Bounds> = screen.nodes.iter().filter(|c| c.parent == Some(n.id) && c.flags.visible && c.bounds.area() > 0)
+        .map(|c| &c.bounds).collect();
+    kids.len() >= 2 && kids.iter().map(|b| b.y1).max() < kids.iter().map(|b| b.y2).min()
+        && kids.iter().map(|b| b.x1).collect::<HashSet<_>>().len() == kids.len()
 }
 
 fn truncate(s: &str, max: usize) -> String {

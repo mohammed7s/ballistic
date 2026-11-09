@@ -25,10 +25,11 @@ fn denied_confirmation_never_calls_hands() {
     assert!(!calls.iter().any(|c|c["ask"]=="act"));
 }
 #[test]
-fn invalid_actions_retry_once_and_never_call_hands() {
-    let (result,calls)=run(vec![json!(screen()),completion(r#"{"action":"tap","target":"e999"}"#),completion(r#"{"action":"tap","target":"e1","x":5}"#)],1);
+fn invalid_actions_get_two_corrections_and_never_call_hands() {
+    let (result,calls)=run(vec![json!(screen()),completion(r#"{"action":"tap","target":"e999"}"#),completion(r#"{"action":"tap","target":"e1","x":5}"#),
+        completion(r#"{"action":"tap","target":"e7"}"#)],1);
     assert_eq!(result["done"],false);
-    assert_eq!(calls.iter().filter(|c|c["ask"]=="complete").count(),2);
+    assert_eq!(calls.iter().filter(|c|c["ask"]=="complete").count(),3);
     assert!(!calls.iter().any(|c|c["ask"]=="act"));
 }
 #[test]
@@ -51,7 +52,8 @@ fn disabled_targets_and_uninstalled_apps_cannot_resolve() {
 }
 #[test]
 fn parser_rejects_wrong_fields_and_noncanonical_ids() {
-    for text in [r#"{"action":"home","text":"bad"}"#,r#"{"action":"tap","target":1}"#,r#"{"action":"tap","target":"e0"}"#,r#"{"action":"tap","target":"e01"}"#,r#"{"action":"tap","target":"e1","why":5}"#,r#"{"action":"scroll","direction":"DOWN"}"#] {
+    // An argumentless action ignores extra fields instead (tests/planner_output.rs).
+    for text in [r#"{"action":"tap","target":"e1","text":"bad"}"#,r#"{"action":"tap","target":1}"#,r#"{"action":"tap","target":"e0"}"#,r#"{"action":"tap","target":"e01"}"#,r#"{"action":"tap","target":"e1","why":5}"#,r#"{"action":"scroll","direction":"DOWN"}"#] {
         assert!(actions::parse_reply(text).is_err(),"{text}");
     }
 }
@@ -170,7 +172,7 @@ fn planner_gets_compact_available_operations_without_hands_parameters() {
 }
 #[test]
 fn invalid_later_plan_preserves_prior_execution_status() {
-    let (result,_)=run(vec![json!(screen()),completion(r#"{"action":"home"}"#),json!({"result":"ok"}),json!(screen()),completion("invalid"),completion("invalid")],2);
+    let (result,_)=run(vec![json!(screen()),completion(r#"{"action":"home"}"#),json!({"result":"ok"}),json!(screen()),completion("invalid"),completion("invalid"),completion("invalid")],2);
     assert_eq!(result["execution_status"],"executed");
     assert_eq!(result["failure_category"],"planning");
 }

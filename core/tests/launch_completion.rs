@@ -78,20 +78,38 @@ fn unknown_aliases_and_all_label_package_wrapper_collisions_are_unresolved() {
 }
 
 #[test]
-fn actual_launch_then_done_uses_fresh_host_evidence_without_verifier_or_extra_mutations() {
+fn actual_launch_is_checked_by_core_on_the_next_readback_without_verifier_or_extra_mutations() {
+    // Core checks the typed postcondition itself on the observation after the launch: no done
+    // claim, no second planner call and no verifier are needed (postcondition.rs).
     for app in apps() {
         let (report,calls)=run(&format!("open {}",app.label),vec![json!(screen("org.example.launcher",1)),
             completion(json!({"action":"open_app","app":app.label})),json!({"result":"ok"}),
-            json!(screen(&app.package,2)),done(),json!(screen(&app.package,3))],4);
+            json!(screen(&app.package,2))],4);
         assert_eq!(report["done"],true);
+        assert_eq!(report["task_status"],"completed");
         assert_eq!(report["execution_status"],"executed");
         assert_eq!(report["verification"]["evidence_basis"],"code_validated_host_foreground");
         assert_eq!(report["verification"]["foreground"]["package"],app.package);
-        assert_eq!(report["verification"]["foreground"]["sequence"],3);
+        assert_eq!(report["verification"]["foreground"]["sequence"],2);
         assert_eq!(calls.iter().filter(|v|v["ask"]=="act").count(),1);
-        assert_eq!(calls.iter().filter(|v|v["role"]=="planner").count(),2);
+        assert_eq!(calls.iter().filter(|v|v["role"]=="planner").count(),1);
         assert!(!calls.iter().any(|v|v["role"]=="verifier"));
+        let event=calls.iter().find(|v|v["ask"]=="log").unwrap();
+        assert_eq!(event["event"]["typed_postcondition"],"verified");
     }
+}
+
+#[test]
+fn launch_then_done_uses_fresh_host_evidence_when_the_first_readback_is_not_the_target() {
+    // The app is not yet in the foreground on the observation right after the launch; the
+    // planner claims done later and the done branch's own fresh readback establishes it.
+    let (report,calls)=run("open Compass",vec![json!(screen("org.example.launcher",1)),
+        completion(json!({"action":"open_app","app":"Compass"})),json!({"result":"ok"}),
+        json!(screen("org.example.launcher",2)),done(),json!(screen("org.example.compass",3))],4);
+    assert_eq!(report["done"],true);
+    assert_eq!(report["verification"]["foreground"]["sequence"],3);
+    assert_eq!(calls.iter().filter(|v|v["role"]=="planner").count(),2);
+    assert!(!calls.iter().any(|v|v["role"]=="verifier"));
 }
 
 #[test]
@@ -174,7 +192,9 @@ fn unknown_and_ambiguous_launches_do_not_ask_a_model_to_supply_identity() {
 
 #[test]
 fn compounds_stay_on_ordinary_verification_path_and_foreground_does_not_satisfy_them() {
-    for request in ["open Compass and delete history", "open Orchard Notes and save a note", "enable wifi and open Compass"] {
+    for request in ["open Compass and delete history", "open Orchard Notes and save a note", "enable sync and open Compass"] {
+        // ("enable wifi and open Compass" is now answered before planning on this host, which
+        // cannot tap: capability_gaps.rs.)
         let (report,calls)=run(request,vec![json!(screen("org.example.compass",1)),done(),json!(screen("org.example.compass",2)),
             completion(json!({"status":"unknown","nodes":[],"evidence_basis":"visible_ui"}))],1);
         assert_eq!(report["done"],false);

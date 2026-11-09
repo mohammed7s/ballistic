@@ -4,7 +4,7 @@
 use std::io::{BufRead, Write};
 use std::time::Instant;
 use serde_json::{json, Value};
-use crate::{capabilities, context::{self, Room, Sent, Trim}, verification, launch_completion, actions, bridge::Bridge, ports::*, run::{Host, Options},
+use crate::{capabilities, capability_gaps, context::{self, Room, Sent, Trim}, verification, postcondition::{self, Effect}, actions, bridge::Bridge, ports::*, run::{Host, Options},
     readback::{self, Readback}, reader::{self, summary, ElementAnswer, ReaderPick}, judge::{self, Verdict}, values, skills,
     screen_filter::{self, FilterContext, FilteredScreen}, types::*};
 
@@ -58,6 +58,49 @@ fn target_node(action: &Action, view: &FilteredScreen) -> Option<NodeId> {
     }
 }
 
+
+/// Upper bound on `Options::planner_corrections`, whatever a host asks for.
+pub const MAX_PLANNER_CORRECTIONS: u32 = 4;
+
+/// Scrolls one `scroll … until` may make, the planner's own included.
+pub const SCROLL_UNTIL_MAX: u32 = 5;
+
+/// A control labeled with `name`, or an item whose request-matched text contains it, is on the
+/// screen: whole words, case-insensitive. Only what the planner's own view shows is searched.
+fn shows(view: &FilteredScreen, name: &str) -> bool {
+    view.elements.iter().any(|e| e.label.as_deref().is_some_and(|l| screen_filter::matches_request(l, name))
+        || e.shown_content.iter().any(|c| screen_filter::matches_request(c, name)))
+}
+
+/// Inputs that make no progress: the same two inputs alternating (A, B, A, B), or one input three
+/// times (A, A, A), where each repeat was planned on a screen that reads back unchanged from the
+/// previous time it was planned (readback.rs, in code). Scrolling one target down and up (or
+/// left and right) twice ends where it began whatever the screens show, so that alternation
+/// counts without the screen comparison. The result names only core's own action descriptions.
+pub fn repeated_inputs(effects: &[Effect]) -> Option<String> {
+    let said=|e:&Effect| actions::describe(&e.action);
+    let unchanged=|a:&Effect,b:&Effect| readback::compare(&a.before,&b.before,None).outcome==readback::ReadbackOutcome::Unchanged;
+    let again=|a:&Effect,b:&Effect| said(a)==said(b) && unchanged(a,b);
+    let opposite=|a:&Effect,b:&Effect| match (&a.action,&b.action) {
+        (Action::Scroll{target:t1,direction:d1,..},Action::Scroll{target:t2,direction:d2,..}) => t1==t2 && matches!((d1,d2),
+            (Direction::Up,Direction::Down)|(Direction::Down,Direction::Up)|(Direction::Left,Direction::Right)|(Direction::Right,Direction::Left)),
+        _ => false,
+    };
+    let n=effects.len();
+    if n>=4 {
+        let (a1,b1,a2,b2)=(&effects[n-4],&effects[n-3],&effects[n-2],&effects[n-1]);
+        // Opposite scrolls count whatever `until` names: Haiku 3 varied it each time and kept
+        // scrolling the recipe form up and down for 14 steps.
+        let alternated=if opposite(a1,b1) { opposite(a2,b2) && opposite(a1,b2) && opposite(b1,a2) } else { again(a1,a2) && again(b1,b2) };
+        if said(a1)!=said(b1) && alternated {
+            return Some(format!("{} and {} alternated twice",said(a1),said(b1)));
+        }
+    }
+    if n>=3 && again(&effects[n-3],&effects[n-2]) && again(&effects[n-2],&effects[n-1]) {
+        return Some(format!("{} was repeated three times",said(&effects[n-1])));
+    }
+    None
+}
 
 pub fn run<R: BufRead,W:Write>(host: &mut Bridge<R,W>, request:&str, max_steps:u32) -> PortResult<Value> {
     drive(host, request, max_steps)
@@ -131,6 +174,14 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, optio
     let mut next_screen: Option<ScreenState> = None;
     let mut pending_line: Option<(String, ScreenState, Option<NodeId>)> = None;
     let mut foreground_high_water = 0;
+    // Every input Hands acknowledged, with the screen it was planned on: evidence for the typed
+    // postconditions (postcondition.rs), read in code only.
+    let mut effects: Vec<Effect> = Vec::new();
+    // effects.len() when the repeated-input warning was given; cleared when the pattern ends.
+    let mut loop_warned: Option<usize> = None;
+    // Labels of the fields core typed into in this task, in order (labels only, never content):
+    // the planner keeps them after a scroll moves the fields off the screen.
+    let mut typed_fields: Vec<String> = Vec::new();
     // Per step: what the context guard checked and the usage the host reported for every call.
     let mut guard_log: Vec<context::Check> = Vec::new();
     let mut step_usage = Usage::default();
@@ -165,7 +216,31 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, optio
             history.push(format!("{line}; screen {}",change.describe()));
             if history.len()>8 {history.remove(0);}
         }
+        // Repeated inputs: warn once in the history, stop if the planner continues the pattern.
+        match repeated_inputs(&effects) {
+            Some(pattern) => match loop_warned {
+                Some(at) if effects.len()>at => {
+                    let reason=format!("stopped: {pattern} again after a warning, and the screen kept returning to the same state");
+                    return Ok(json!({"done":false,"reason":reason,"steps":step-1,"task_status":"pending","execution_status":execution_status,"verification":verification,"failure_category":"planning"}));
+                },
+                Some(_) => {},
+                None => {
+                    loop_warned=Some(effects.len());
+                    history.push(format!("warning: {pattern}, and the screen returned to the same state each time; this makes no progress. Do something different (another control or value, or give_up). Continuing the same pattern stops the run."));
+                    if history.len()>8 {history.remove(0);}
+                },
+            },
+            None => loop_warned=None,
+        }
         if !screen.installed_apps.is_empty() { apps=screen.installed_apps.clone(); }
+        // Honest early answer: a request needing a capability the host does not advertise is
+        // answered now, in plain words, with no planner call (capability_gaps.rs).
+        if step==1 {
+            if let Some(gap)=capability_gaps::gap(request,screen.capabilities.as_ref()) {
+                return Ok(json!({"done":false,"reason":gap.answer,"steps":0,"task_status":"unsupported","execution_status":execution_status,
+                    "verification":verification,"failure_category":"capability","capability_gap":{"needs":gap.needs}}));
+            }
+        }
         let mut view=screen_filter::filter(&screen,&FilterContext{request,typed:&typed});
         let mut pick_lines=Vec::new();
         for p in &picks {
@@ -184,11 +259,11 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, optio
             match r.next(&view,&screen) {
                 skills::Next::Act(a) if actions::resolve(&a,&view,&screen,&apps).is_ok() => {
                     replayed_steps+=1;
-                    replayed=Some(actions::PlannerReply{action:a,why:"skill replay".into()});
+                    replayed=Some(actions::PlannerReply{action:a,why:"skill replay".into(),notes:vec![]});
                 },
                 skills::Next::Done => {
                     replay=None;
-                    replayed=Some(actions::PlannerReply{action:Action::Done{evidence:"skill replay finished".into()},why:"skill replay".into()});
+                    replayed=Some(actions::PlannerReply{action:Action::Done{evidence:"skill replay finished".into()},why:"skill replay".into(),notes:vec![]});
                 },
                 _ => {
                     let n=replayed_steps+1;
@@ -202,7 +277,7 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, optio
             let named:Vec<String>=task.tainted.iter().map(|v|format!("{:?} (source {})",v.value,reader::source_tag(&v.source))).collect();
             format!("Request values not from the owner: {}\n",named.join(", "))
         };
-        let system=format!("{RULES}\nAction schema: {}\n{}",actions::ACTIONS_SCHEMA,capabilities::planner_instructions(screen.capabilities.as_ref()));
+        let system=format!("{RULES}\nAction schema: {}\n{}",actions::schema_for_prompt(),capabilities::planner_instructions(screen.capabilities.as_ref()));
         let (apps_line,rendered)=(json!(app_names).to_string(),screen_filter::render(&view));
         // The planner prompt for a context-guard trim: only history lines and old fact sets can
         // be left out; rules, schema, request, screen and this step's corrections never are.
@@ -211,23 +286,26 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, optio
                 .chain(fact_lines.iter().filter(|(old,_)|!(t.old_facts && *old)).map(|(_,l)|l.as_str())).collect();
             let facts_block=if facts.is_empty() {String::new()} else {format!("Reader facts:\n{}\n",facts.join("\n"))};
             let kept=&history[t.history_lines.min(history.len())..];
-            let state=format!("Owner request: {request}\n{request_values}Apps: {apps_line}\nHistory: {}\n{facts_block}Screen {} / {}:\n{rendered}",kept.join("\n"),screen.package,screen.activity);
+            let fields=if typed_fields.is_empty() {String::new()} else {format!("Fields typed in this task: {}\n",typed_fields.join(", "))};
+            let state=format!("Owner request: {request}\n{request_values}Apps: {apps_line}\nHistory: {}\n{fields}{facts_block}Screen {} / {}:\n{rendered}",kept.join("\n"),screen.package,screen.activity);
             vec![message("system",system.clone()),message("user",state)]
         };
         let planner_room=Room{history_lines:history.len().saturating_sub(context::HISTORY_FLOOR),old_facts:fact_lines.iter().any(|(old,_)|*old),chat_turns:0};
         let mut corrections:Vec<ChatMessage>=Vec::new();
         let mut parsed=replayed;
-        for attempt in 0..2 {
+        // Corrections per step (Options, default 2): each rejected reply gets one more call.
+        let last_attempt=options.planner_corrections.min(MAX_PLANNER_CORRECTIONS);
+        for attempt in 0..=last_attempt {
             if parsed.is_some() { break; }
             stop_if_cancelled!(step-1);
-            let completion=guarded!(step,ModelRole::Planner,800,planner_room,|t:&Trim|{ let mut m=planner_prompt(t); m.extend(corrections.iter().cloned()); m })?;
-            match actions::parse_reply(&completion.text).and_then(|r|{
+            let completion=guarded!(step,ModelRole::Planner,actions::PLANNER_TOKENS,planner_room,|t:&Trim|{ let mut m=planner_prompt(t); m.extend(corrections.iter().cloned()); m })?;
+            match actions::check_length(&completion.text,actions::PLANNER_TOKENS).and_then(|_|actions::parse_reply(&completion.text)).and_then(|r|{
                 actions::resolve(&r.action,&view,&screen,&apps)?;
                 if let Action::Answer{text}=&r.action { actions::answer_values(text,&view,request,task.tainted,&facts_values)?; }
                 Ok(r)
             }) {
                 Ok(reply)=> {
-                    if attempt==0 {
+                    if attempt==0 && attempt<last_attempt {
                         if let Action::Read{targets,question,shape:ReadShape::Element}=&reply.action {
                             let (_,query)=element_request(&view,targets,question);
                             if read_exhausted(&read_queries,&query) {
@@ -243,19 +321,20 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, optio
                     parsed=Some(reply);break;
                 },
                 Err(e)=> {
-                    if attempt==1 {
+                    if attempt==last_attempt {
                         let category=match &e {
                             actions::ActionError::NoSuchElement(_)|actions::ActionError::UnknownApp(_)|actions::ActionError::Disabled(_)|actions::ActionError::NotActionable(_)|actions::ActionError::Unidentified(_)|actions::ActionError::ReaderTapOnly(_)|actions::ActionError::NotEditable(_)|actions::ActionError::NotScrollable(_)=>"target_resolution",
                             _=>"planning",
                         };
                         return Ok(json!({"done":false,"reason":format!("invalid action: {e}"),"steps":step,"execution_status":execution_status,"task_status":"failed","verification":verification,"failure_category":category}));
                     }
-                    corrections.push(message("assistant",completion.text));
-                    corrections.push(message("user",format!("Invalid action: {e}. Return a corrected JSON action.")));
+                    corrections.push(message("assistant",actions::echo_rejected(&completion.text)));
+                    corrections.push(message("user",actions::correction(&e,&completion.text)));
                 }
             }
         }
         let reply=parsed.expect("validated reply");
+        let parse_notes=reply.notes;
         let action=reply.action;
         if !matches!(&action, Action::Read{..}) { read_queries.clear(); }
         // A run that used content to choose or type cannot become a skill.
@@ -271,32 +350,42 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, optio
         let mut owner_output: Option<summary::Output> = None;
         let mut answer_out: Option<Value> = None;
         let mut judge_event: Option<&str> = None;
+        // Set when core's own typed check after this step's effect established completion.
+        let mut self_checked = false;
         match &action {
             Action::Done{..}=> {
                 stop_if_cancelled!(step-1);
                 let fresh=host.observe()?;
                 stop_if_cancelled!(step-1);
-                let launch_goal=launch_completion::recognize(request,&apps);
-                let assessment=if let Some(goal)=launch_goal.as_ref() {
-                    // One fresh readback, then stop even if unavailable. Neither repeated
-                    // guesses nor a model verdict can substitute for this typed postcondition.
-                    launch_completion::assess(goal,&screen,&fresh,foreground_high_water,request,&apps)
-                } else {
-                    let filtered=screen_filter::filter(&fresh,&FilterContext{request,typed:&typed});
-                    stop_if_cancelled!(step-1);
-                    let rendered=screen_filter::render(&filtered);
-                    let check=guarded!(step,ModelRole::Verifier,400,Room::default(),|_:&Trim| vec![
-                        message("system",include_str!("../prompts/verifier.txt").into()),
-                        message("user",format!("Request: {request}\nScreen {}:\n{rendered}",fresh.package))])?;
-                    stop_if_cancelled!(step-1);
-                    verification::assess_with_feedback(&check.text,&filtered)
+                let goal=postcondition::recognize(request,&apps);
+                // A recognized request is checked in code on this one fresh readback. A plain
+                // launch then stops even if unavailable: neither repeated guesses nor a model
+                // verdict can substitute for the host's foreground readback. Other typed goals
+                // that do not pass yet fall back to the ordinary verifier.
+                let typed_check=goal.as_ref().map(|g| postcondition::assess(g,&effects,&screen,&fresh,foreground_high_water,&apps));
+                let assessment=match (goal.as_ref(),typed_check) {
+                    (Some(_),Some(a)) if a.verification.status==VerificationStatus::Verified => a,
+                    (Some(g),Some(a)) if !g.verifier_fallback() => a,
+                    (_,typed_check) => {
+                        let filtered=screen_filter::filter(&fresh,&FilterContext{request,typed:&typed});
+                        stop_if_cancelled!(step-1);
+                        let rendered=screen_filter::render(&filtered);
+                        let check=guarded!(step,ModelRole::Verifier,400,Room::default(),|_:&Trim| vec![
+                            message("system",include_str!("../prompts/verifier.txt").into()),
+                            message("user",format!("Request: {request}\nScreen {}:\n{rendered}",fresh.package))])?;
+                        stop_if_cancelled!(step-1);
+                        let model=verification::assess_with_feedback(&check.text,&filtered);
+                        // The code check's fixed feedback says what is missing more precisely.
+                        match typed_check { Some(t) if model.verification.status!=VerificationStatus::Verified => verification::Assessment{verification:model.verification,feedback:t.feedback}, _ => model }
+                    },
                 };
                 stop_if_cancelled!(step-1);
                 verification=assessment.verification;
                 done=verification.status == VerificationStatus::Verified;
-                terminal=done || launch_goal.is_some();
+                let stops=goal.as_ref().is_some_and(postcondition::Goal::stops_on_failed_done);
+                terminal=done || stops;
                 if done {task_status="completed";}
-                else if launch_goal.is_some() {task_status="pending";}
+                else if stops {task_status="pending";}
                 outcome=assessment.feedback.into();
                 if !done {
                     failure_category=Some("verification");
@@ -483,14 +572,57 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, optio
                 }
                 if !terminal {
                     stop_if_cancelled!(step-1);
-                    match capabilities::dispatch(host,&op,app,screen.capabilities.as_ref(),confirmation_required,authorization) {
+                    let caps=screen.capabilities.as_ref();
+                    let mut result=capabilities::dispatch(host,&op,app,caps,confirmation_required,authorization);
+                    let mut scroll_note: Option<String> = None;
+                    if matches!(result,Ok(HandsResult::Ok)) {
+                        execution_status=ExecutionStatus::Executed;
+                        // Keypad entry: the remaining keys in order. Each is an ordinary digit tap
+                        // (no key needs a confirmation of its own); an interrupted entry is unknown.
+                        if let Some(taps)=actions::keypad_taps(&action,&view,&screen) {
+                            for tap in &taps[1..] {
+                                stop_if_cancelled!(step);
+                                result=match capabilities::dispatch(host,tap,app,caps,false,None) {
+                                    Ok(HandsResult::Ok)=>Ok(HandsResult::Ok),
+                                    _=>Ok(HandsResult::Error{message:"keypad entry interrupted".into()}),
+                                };
+                                if !matches!(result,Ok(HandsResult::Ok)) { break; }
+                            }
+                        }
+                        // Scroll until: observe after each scroll and stop when the named control
+                        // or request-matched item shows, the list stops moving, or the bound.
+                        if let Action::Scroll{until:Some(name),..}=&action {
+                            let (mut before,mut scrolls)=(screen.clone(),1u32);
+                            loop {
+                                stop_if_cancelled!(step);
+                                let Ok(fresh)=host.observe() else { break; };
+                                let shown=shows(&screen_filter::filter(&fresh,&FilterContext{request,typed:&typed}),name);
+                                let moved=readback::compare(&before,&fresh,None).outcome==readback::ReadbackOutcome::Changed;
+                                next_screen=Some(fresh.clone());
+                                let s=if scrolls==1 {""} else {"s"};
+                                if shown { scroll_note=Some(format!("{name:?} is on the screen after {scrolls} scroll{s}")); break; }
+                                if !moved { scroll_note=Some(format!("{name:?} not found; the list stopped moving after {scrolls} scroll{s}")); break; }
+                                if scrolls>=SCROLL_UNTIL_MAX { scroll_note=Some(format!("{name:?} not found after {scrolls} scrolls")); break; }
+                                stop_if_cancelled!(step);
+                                if !matches!(capabilities::dispatch(host,&op,app,caps,false,None),Ok(HandsResult::Ok)) { break; }
+                                scrolls+=1; before=fresh;
+                            }
+                        }
+                    }
+                    match result {
                         Ok(HandsResult::Ok)=> {
                             execution_status=ExecutionStatus::Executed;
                             step_execution_status=ExecutionStatus::Executed;
                             task_status=if matches!(op,HandsOp::OpenApp{..}) {"opened_ui"} else {"pending"};
                             verification=Verification::default();
                             outcome=if matches!(op,HandsOp::OpenApp{..}) {"opened_ui"} else {"host acknowledged input"}.into();
-                            if let Action::Type{text,..}=&action {typed.push(text.clone());}
+                            if let Some(note)=scroll_note.take() { outcome=format!("{outcome}; {note}"); }
+                            if let Action::Type{text,target,..}=&action {
+                                typed.push(text.clone());
+                                if let Some(label)=view.element(*target).and_then(|e|e.label.clone()) {
+                                    if !typed_fields.contains(&label) { typed_fields.push(label); }
+                                }
+                            }
                             recorder.executed(&action,&op,&view,&screen,taint.is_empty());
                             if confirmation_required {
                                 // An input acknowledgment is not an effect receipt. Read the screen
@@ -510,6 +642,31 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, optio
                                 if count>=GUARDED_REPEAT_LIMIT {
                                     outcome.push_str("; same guarded input acknowledged twice, stopped");
                                     failure_category=Some("verification");terminal=true;
+                                }
+                            }
+                            effects.push(Effect{action:action.clone(),before:screen.clone(),target:target_node(&action,&view),
+                                confirmed:confirmation_required,readback:readback_event.clone()});
+                            // Core checks a recognized request itself after every effect, on a new
+                            // observation (the readback's, or one taken now; the next step plans
+                            // on it either way). No model call; a pass ends the run as done.
+                            if !terminal {
+                                if let Some(goal)=postcondition::recognize(request,&apps) {
+                                    stop_if_cancelled!(step);
+                                    let fresh=match next_screen.take() { Some(s)=>Some(s), None=>host.observe().ok() };
+                                    if let Some(fresh)=fresh {
+                                        let check=postcondition::assess(&goal,&effects,&screen,&fresh,foreground_high_water,&apps);
+                                        if check.verification.status==VerificationStatus::Verified {
+                                            verification=check.verification;
+                                            done=true; terminal=true; task_status="completed"; failure_category=None;
+                                            outcome=format!("{outcome}; core checked the result: {}",check.feedback);
+                                            self_checked=true;
+                                        } else if !goal.verifier_fallback() && !goal.stops_on_failed_done() {
+                                            // No model can check this goal: say where the code
+                                            // check looks (Haiku 3 kept swiping the slider).
+                                            outcome=format!("{outcome}; core check: {}",check.feedback);
+                                        }
+                                        next_screen=Some(fresh);
+                                    }
                                 }
                             }
                         },
@@ -534,6 +691,8 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, optio
         if usage.prompt_tokens>0 { event["prompt_tokens"]=json!(usage.prompt_tokens); }
         if usage.completion_tokens>0 { event["completion_tokens"]=json!(usage.completion_tokens); }
         if !checks.is_empty() { event["context_guard"]=json!(checks); }
+        if self_checked { event["typed_postcondition"]=json!("verified"); }
+        if !parse_notes.is_empty() { event["parse_notes"]=json!(parse_notes); }
         host.log(&event)?;
         if let Some(output)=owner_output {
             let reason=if output.is_available() {output.display()} else {outcome};

@@ -36,7 +36,9 @@ fn run_result(replies: Vec<Result<Value, &str>>, steps: u32) -> (PortResult<Valu
         }.to_string() + "\n"
     }).collect::<String>();
     let mut output = Vec::new();
-    let report = agent::run(&mut Bridge::new(Cursor::new(input), &mut output), REQUEST, steps);
+    // Written for the one-correction policy (the default is now two, tests/planner_output.rs).
+    let one = ballistic_core::run::Options { planner_corrections: 1, ..ballistic_core::run::Options::harness() };
+    let report = agent::run_with(&mut Bridge::new(Cursor::new(input), &mut output), REQUEST, steps, &one);
     let calls = String::from_utf8(output).unwrap().lines().map(|s| serde_json::from_str(s).unwrap()).collect();
     (report, calls)
 }
