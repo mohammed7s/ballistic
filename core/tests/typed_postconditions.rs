@@ -261,6 +261,15 @@ fn reply_completes_only_in_the_thread_opened_from_the_top_conversation() {
     assert_eq!(assess(&reply_effects(0, true)), VerificationStatus::Unknown);
     // A thread entered some other way (no conversation tap in this run).
     assert_eq!(assess(&reply_effects(0, false)[1..]), VerificationStatus::Unknown);
+    // The Opus run recorded the top row 3 px below the list's top (settling): still the top row.
+    // Far below the top is not.
+    for (shift, expected) in [(3, VerificationStatus::Verified), (40, VerificationStatus::Unknown)] {
+        let mut effects = reply_effects(0, false);
+        for n in effects[0].before.nodes.iter_mut().filter(|n| n.resource_id.as_deref().is_some_and(|r| r.ends_with(":id/conversation_frame"))) {
+            n.bounds.y1 += shift;
+        }
+        assert_eq!(assess(&effects), expected, "{shift}");
+    }
     // A top row with an extra child (a pin marker, say) is not the recorded shape.
     let mut effects = reply_effects(0, false);
     let row = effects[0].target.unwrap();

@@ -282,6 +282,9 @@ fn message_sent(effects: &[Effect], fresh: &ScreenState, to: &Recipient, body: &
     verified("code_validated_sent_row", fresh, "a new outgoing row with the requested text appeared in the requested thread after the confirmed Send")
 }
 
+/// Pixels the top conversation row may sit below the list's top edge (settling).
+const TOP_ROW_SLACK: i32 = 16;
+
 /// The thread was opened in this run by tapping the first conversation row of the conversation
 /// list (newest first in the recorded app), with the list unscrolled in this run, the row in its
 /// recorded shape (address, preview, date; a pinned or otherwise different row does not count)
@@ -297,7 +300,9 @@ fn entered_from_top_conversation(effects: &[Effect], title: &str) -> bool {
     let rows: Vec<&Node> = children(s, list.id).filter(|n| rid(n) == Some(&sms_id("conversation_frame")) && shown(n)).collect();
     let top = rows.iter().min_by_key(|n| n.bounds.y1);
     if row.parent != Some(list.id) || rid(row) != Some(&sms_id("conversation_frame")) || top.map(|t| t.id) != Some(row.id)
-        || row.bounds.y1 != list.bounds.y1 { return false; }
+        // At the list's top, allowing the few pixels of settling recorded in the Opus run (299
+        // against 296). The scroll condition above is what rules out a moved list.
+        || row.bounds.y1 < list.bounds.y1 || row.bounds.y1 - list.bounds.y1 > TOP_ROW_SLACK { return false; }
     let kids: Vec<&Node> = children(s, row.id).collect();
     let mut ids: Vec<&str> = kids.iter().filter_map(|k| rid(k)).collect();
     ids.sort_unstable();
