@@ -513,6 +513,20 @@ not a semantic task recognizer. Compound requests can opt in; nothing in this pa
 that their other requirements have been met. Other wording is unsupported, not inferred from
 fixture strings, app names or model judgment.
 
+**Question form (9 Nov 2026, loop 2; offline tests only, `tests/question_excerpts.rs`).** A
+request with a sentence ending in `?` whose first word is an interrogative (`what`, `which`, `who`,
+`whom`, `when`, `where`, `do`, `does`, `did`, `is`, `are`, `was`, `were`, `how`; at least three
+words) also opts in. Everything below applies unchanged (one item per chosen ref, exact
+whitespace-bounded excerpts, fresh-observation check, terminal, owner-only, never in a planner
+prompt), except that the reader gets a question prompt (`prompts/question.txt`: copy only the part
+of each source that answers the question, such as a title) and 160 tokens instead of 64. This is
+how a question whose answer is content (event titles on a date) can be answered without the
+planner seeing it; the planner chooses which rows to cite and cannot write their text. The
+benchmark harness delivers the excerpts, joined with `, `, to AndroidWorld's answer checker
+(harness only). Simple Calendar's event-list section headers (`27 Friday`, exact grammar, exact
+envelope) now carry `[observed section day=27 weekday=5 month=unknown …]` like the other typed
+calendar values, so the planner can find the rows under a date; the header text stays content.
+
 The planner chooses one to four current cN refs. Core requires distinct refs and current grants
 for their actual source packages. Only the separate reader sees their content, with the owner's
 request (the planner's question is not used). The reply must be exactly

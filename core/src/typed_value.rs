@@ -18,6 +18,9 @@ pub enum ObservedValue {
     Time(ClockTime),
     /// Two displayed clock readings, not a duration or a date association.
     TimePair { start: ClockTime, end: ClockTime },
+    /// A day-list section header ("27 Friday"): day of month and weekday (Monday=1); the month
+    /// and year are not shown in it and are not implied.
+    DayOfMonth { day: u8, weekday: u8 },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -40,6 +43,7 @@ impl ValueObservation {
             ObservedValue::TimePair { start, end } => format!(
                 "time_pair start_hour={} start_minute={} end_hour={} end_minute={}",
                 start.hour, start.minute, end.hour, end.minute),
+            ObservedValue::DayOfMonth { day, weekday } => format!("section day={day} weekday={weekday} month=unknown"),
         };
         format!(" [observed {value}; source={}; node={}; untrusted data]",
             crate::reader::source_tag(&self.source), self.node)
@@ -62,7 +66,26 @@ pub(crate) fn is_item_content(n: &Node) -> bool {
 fn slot(n: &Node) -> Option<&str> {
     let s = n.resource_id.as_deref()?.strip_prefix(PREFIX)?;
     matches!(s, "event_start_date" | "event_start_time" | "event_end_date" |
-        "event_end_time" | "event_item_time").then_some(s)
+        "event_end_time" | "event_item_time" | "event_section_title").then_some(s)
+}
+
+/// A section header of the event list (MainActivity > calendar_events_list): a clickable
+/// TextView directly in the list, recorded as "27 Friday" in Opus 5.5 (9 Nov 2026). Exact
+/// grammar "<day 1-31> <English weekday>", nothing else.
+fn section_title(s: &ScreenState, i: usize) -> Option<ValueObservation> {
+    let n = &s.nodes[i];
+    if s.package != PACKAGE || s.activity != "com.simplemobiletools.calendar.pro.activities.MainActivity"
+        || !envelope(s, n, "event_section_title", Role::Text, "android.widget.TextView")
+        || n.flags.scrollable || n.label.is_some() { return None; }
+    let p = parent(s, i)?;
+    if !envelope(s, &s.nodes[p], "calendar_events_list", Role::List, "androidx.recyclerview.widget.RecyclerView") { return None; }
+    let raw = n.text.as_deref()?;
+    if raw.len() > 12 || !raw.is_ascii() { return None; }
+    let (day, name) = raw.split_once(' ')?;
+    let day = decimal(day, 1, 2)? as u8;
+    if day == 0 || day > 31 || raw.starts_with('0') { return None; }
+    let weekday = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].iter().position(|w| *w == name)? as u8 + 1;
+    Some(ValueObservation { node: n.id, owner_node: n.id, source: Source::App(PACKAGE.into()), value: ObservedValue::DayOfMonth { day, weekday } })
 }
 
 fn visible(s: &ScreenState, n: &Node) -> bool {
@@ -85,6 +108,11 @@ fn parent(s: &ScreenState, i: usize) -> Option<usize> {
 pub(crate) fn observe(s: &ScreenState, i: usize) -> Option<ValueObservation> {
     let n = &s.nodes[i];
     let field = slot(n)?;
+    if field == "event_section_title" {
+        let mut ids = std::collections::HashSet::new();
+        if !s.nodes.iter().all(|n| ids.insert(n.id)) { return None; }
+        return section_title(s, i);
+    }
     if s.package != PACKAGE || n.package.as_deref() != Some(PACKAGE)
         || n.role != Role::Text || n.class_name.as_deref() != Some("android.widget.TextView")
         || n.flags.editable || n.flags.checkable || n.flags.scrollable || n.flags.long_clickable

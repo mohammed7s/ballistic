@@ -448,7 +448,7 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, optio
                     // 64-token reader port call; no core retry/correction or planner continuation.
                     // The host retains its existing bounded transport retry policy.
                     stop_if_cancelled!(step-1);
-                    let answer=guarded!(step,ModelRole::Reader,64,Room::default(),|_:&Trim| input.messages(request));
+                    let answer=guarded!(step,ModelRole::Reader,summary::tokens(request),Room::default(),|_:&Trim| input.messages(request));
                     stop_if_cancelled!(step-1);
                     match answer {
                         Err(_)=>summary::Output::unavailable(summary::Status::Failed),
