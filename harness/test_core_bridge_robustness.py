@@ -761,7 +761,10 @@ class LabelTextSettlingTest(unittest.TestCase):
                 self.assertEqual(len(host.confirmations), 0 if collection else 1)
                 if collection:
                     self.assertIn('no identified control', result['report']['reason'])
-                    self.assertNotIn('Delete', repr(host.models.complete.call_args_list))
+                    # The planner's fixed instructions mention Delete; the screen content must not.
+                    shown = [m['content'] for call in host.models.complete.call_args_list
+                             for m in call.args[1] if m.get('role') != 'system']
+                    self.assertNotIn('Delete', repr(shown))
                 else:
                     self.assertIn('delete', json.dumps(host.confirmations).lower())
                     self.assertNotIn('Continue', repr(host.models.complete.call_args_list))
