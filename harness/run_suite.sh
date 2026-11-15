@@ -11,7 +11,8 @@
 # (BALLISTIC_API_KEY="$BALLISTIC_API_KEY_2" bash harness/run_suite.sh ...); for anthropic, only
 # ANTHROPIC_API_KEY is read from the file when it is not already set.
 # Env: TASKS="A B C" to override the default 20. THINKING_HEADROOM (anthropic; default 2048):
-# tokens added to core's per-role max_tokens, since thinking counts toward it.
+# tokens added to core's per-role max_tokens, since thinking counts toward it. CORE_INTENTS=1
+# (core only): advertise typed operations (run_task.py --intents; harness/intents.py).
 set -uo pipefail
 cd "$(dirname "$0")/.."
 if [ -z "${BALLISTIC_API_KEY:-}" ] && [ -f ~/.ballistic_env ]; then set -a; source ~/.ballistic_env; set +a; fi
@@ -57,7 +58,7 @@ PY=~/android_world/.venv/bin/python
 TASKS="${TASKS:-ContactsAddContact ClockTimerEntry ClockStopWatchRunning OpenAppTaskEval SystemWifiTurnOff SystemBluetoothTurnOn SystemBrightnessMax TurnOnWifiAndOpenApp SimpleSmsSend SimpleSmsReplyMostRecent SimpleCalendarAddOneEvent SimpleCalendarEventsOnDate MarkorCreateNote MarkorDeleteNote MarkorCreateFolder ExpenseAddSingle ExpenseDeleteSingle RecipeAddSingleRecipe FilesDeleteFile CameraTakePhoto}"
 OUT=~/ballistic_runs/suite_${AGENT}_$(date +%Y%m%d-%H%M%S).tsv
 mkdir -p ~/ballistic_runs
-printf "# agent=%s model=%s base_url=%s seed=%s commit=%s core_model_min_interval=%s%s\n" "$AGENT" "$MODEL" "$BASE_URL" "${SEED:-0}" "$(git rev-parse --short HEAD 2>/dev/null || echo "${BALLISTIC_COMMIT:-unknown}")" "${CORE_MODEL_MIN_INTERVAL:-0}" "$([ "$PROVIDER" = anthropic ] && echo " provider=anthropic effort=$EFFORT thinking_headroom=${THINKING_HEADROOM:-2048}")" > "$OUT"
+printf "# agent=%s model=%s base_url=%s seed=%s commit=%s core_model_min_interval=%s%s\n" "$AGENT" "$MODEL" "$BASE_URL" "${SEED:-0}" "$(git rev-parse --short HEAD 2>/dev/null || echo "${BALLISTIC_COMMIT:-unknown}")" "${CORE_MODEL_MIN_INTERVAL:-0}" "$([ "$PROVIDER" = anthropic ] && echo " provider=anthropic effort=$EFFORT thinking_headroom=${THINKING_HEADROOM:-2048}")$([ "${CORE_INTENTS:-0}" = 1 ] && echo " intents=1")" > "$OUT"
 "$PY" -c 'from harness.suite_row import COLUMNS; print("\t".join(COLUMNS))' >> "$OUT"
 attempted=0
 stop_code=0
@@ -66,7 +67,7 @@ for t in $TASKS; do
   log="${OUT%.tsv}_${t}.log"
   timeout --signal=INT --kill-after=15s "${TASK_TIMEOUT:-900}" "$PY" -u harness/run_task.py \
       --task "$t" --agent "$AGENT" --model "$MODEL" "${PROVIDER_ARGS[@]}" \
-      --core_model_min_interval "${CORE_MODEL_MIN_INTERVAL:-0}" \
+      --core_model_min_interval "${CORE_MODEL_MIN_INTERVAL:-0}" $([ "${CORE_INTENTS:-0}" = 1 ] && echo --intents) \
       --seed "${SEED:-0}" --confirm approve --max_tokens 2000 --timeout 120 > "$log" 2>&1
   process_exit=$?
   "$PY" harness/suite_row.py --task "$t" --log "$log" --exit "$process_exit" --stop-on-quota | tee -a "$OUT"

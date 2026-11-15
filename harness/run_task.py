@@ -76,6 +76,7 @@ flags.DEFINE_enum("effort", "low", ["low", "medium", "high"], "core, provider an
 flags.DEFINE_integer("thinking_headroom", core_bridge.ModelClient.ANTHROPIC_THINKING_HEADROOM,
                      "core, provider anthropic: tokens added to core's per-role max_tokens (thinking counts toward it); 0 = core's cap", lower_bound=0, upper_bound=core_bridge.ModelClient.MAX_THINKING_HEADROOM)
 flags.DEFINE_bool("deliver_answers", True, "core, harness only: write a sourced answer's raw text (or available owner excerpts) to the env's interaction cache before the checker runs, as AndroidWorld's answer action does; never passed to core")
+flags.DEFINE_bool("intents", False, "core: advertise typed operations (harness/intents.py): handlers that resolve on the device and were checked on the emulator image")
 flags.DEFINE_bool("core_disable_native_tools", False, "core: opt in to tool_choice=none for every model role; endpoint must support it without tools")
 flags.DEFINE_integer("seed", None, "Seed for task generation; original baseline was unseeded")
 flags.DEFINE_string("task", None, "AndroidWorld task name; random if omitted")
@@ -249,7 +250,7 @@ def _main() -> None:
 
 def _run_core(env, task, name: str, goal: str, budget: int) -> None:
     """Serve ballistic-core over the bridge, then judge the task as for the other agents."""
-    host = core_bridge.CoreHost(env, core_models(), FLAGS.confirm, print_core_event)
+    host = core_bridge.CoreHost(env, core_models(), FLAGS.confirm, print_core_event, intents=FLAGS.intents)
     args = ["observe"] if FLAGS.core_mode == "observe" else ["run", "--request", goal, "--max-steps", str(budget)]
     run = serve_core(host, args)
 
@@ -343,6 +344,7 @@ def write_core_record(name: str, goal: str, core_mode: str, args: list[str], hos
             "model": FLAGS.model, "roles": host.models.role_models(),
             "core_model_min_interval": host.models.min_interval_seconds,
             "core_disable_native_tools": host.models.disable_native_tools,
+            "intents": host.intents, "intent_grants": host._intent_grants,
             "provider": host.models.provider,
             **({"effort": host.models.effort, "thinking_headroom": host.models.thinking_headroom}
                if host.models.provider == "anthropic" else {}),

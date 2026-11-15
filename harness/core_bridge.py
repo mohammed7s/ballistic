@@ -26,6 +26,8 @@ import subprocess
 import time
 from typing import Any, Callable, Optional, Protocol
 
+import intents
+
 try:
     from android_world.env import adb_utils
 except ImportError:  # replay_core.py uses start_core/default_core_bin only, with no AndroidWorld
@@ -255,9 +257,14 @@ class CoreHost:
 
     def __init__(self, env: Any, models: "ModelClient", confirm_policy: str = "approve",
                  on_event: Optional[Callable[[dict[str, Any]], None]] = None,
-                 tools: Optional["Tools"] = None):
+                 tools: Optional["Tools"] = None, intents: bool = False):
         self.env = env
         self.tools = tools
+        # Typed operations (harness/intents.py): advertised only when asked for, and then only
+        # handlers that resolve on the device now and were checked on the emulator image.
+        self.intents = intents
+        self._intent_grants: Optional[list[dict[str, str]]] = None
+        self._zone: Optional[str] = None
         self.models = models
         self.confirm_policy = confirm_policy
         self.on_event = on_event
@@ -385,6 +392,12 @@ class CoreHost:
                         "observations": ["foreground_component_v1"]}
         if self.tools:
             capabilities["tool_grants"] = self.tools.grants()
+        if self.intents:
+            if self._intent_grants is None:
+                self._intent_grants = intents.grants(intents.adb_shell(self.env.controller, adb_utils),
+                                                     set(capabilities["app_grants"]))
+            if self._intent_grants:
+                capabilities["intents"] = self._intent_grants
         self._last_observation = (foreground, signature)
         # Only this successful, bracketed and settled acquisition advertises foreground.
         # This sequence is call freshness, not an accessibility capture generation.
@@ -429,6 +442,14 @@ class CoreHost:
                 adb_utils.press_back_button(c)
             elif kind == "home":
                 adb_utils.press_home_button(c)
+            elif kind == "intent":
+                shell = intents.adb_shell(c, adb_utils)
+                if self._zone is None:
+                    self._zone = intents.device_zone(shell)
+                result = intents.act(shell, op, self._zone)
+                if result["result"] == "ok":
+                    self._input_since_observation = True
+                return result
             elif kind == "wait":
                 time.sleep(op.get("millis", 1000) / 1000)
             else:
