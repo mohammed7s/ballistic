@@ -10,6 +10,8 @@ import kotlin.test.assertFailsWith
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonObject
 
 class JsonCompatibilityTest {
@@ -195,5 +197,40 @@ class JsonCompatibilityTest {
             HandsOp.Scroll(Bounds(), Direction.Down), HandsOp.Swipe(Bounds(), Direction.Down), HandsOp.Back, HandsOp.Home, HandsOp.Wait(1),
         ).map { it.operationId }
         assertEquals(listOf("open_app", "tap", "long_press", "type", "scroll", "swipe", "back", "home", "wait"), ids)
+    }
+
+    @Test
+    fun intents() {
+        // Same literals as core/tests/operations.rs `wire_forms_match_the_kotlin_mirror`.
+        val s = HandsOp.serializer()
+        same(s, HandsOp.Intent("com.google.android.deskclock", IntentOp.SetTimer(300)),
+            """{"op":"intent","package":"com.google.android.deskclock","intent":{"operation":"set_timer","seconds":300,"label":null}}""")
+        same(s, HandsOp.Intent("c", IntentOp.SetAlarm(7, 30, "Gym", listOf(Weekday.Monday))),
+            """{"op":"intent","package":"c","intent":{"operation":"set_alarm","hour":7,"minute":30,"label":"Gym","days":["monday"]}}""")
+        same(s, HandsOp.Intent("c", IntentOp.CreateEvent("Review", "2023-10-23T06:00", "2023-10-23T07:00", description = "D")),
+            """{"op":"intent","package":"c","intent":{"operation":"create_event","title":"Review","begin":"2023-10-23T06:00","end":"2023-10-23T07:00","location":null,"description":"D"}}""")
+        same(s, HandsOp.Intent("s", IntentOp.ComposeSms("+15550100", "hi")),
+            """{"op":"intent","package":"s","intent":{"operation":"compose_sms","to":"+15550100","body":"hi"}}""")
+        same(s, HandsOp.Intent("k", IntentOp.AddContact("Ana", phone = "5550100")),
+            """{"op":"intent","package":"k","intent":{"operation":"add_contact","name":"Ana","phone":"5550100","email":null}}""")
+        same(s, HandsOp.Intent("com.android.settings", IntentOp.OpenSettings(SettingsPage.InternetPanel)),
+            """{"op":"intent","package":"com.android.settings","intent":{"operation":"open_settings","page":"internet_panel"}}""")
+        same(s, HandsOp.Intent("m", IntentOp.OpenCamera(CameraMode.Video)),
+            """{"op":"intent","package":"m","intent":{"operation":"open_camera","mode":"video"}}""")
+        same(s, HandsOp.Intent("d", IntentOp.Dial("5550100")), """{"op":"intent","package":"d","intent":{"operation":"dial","number":"5550100"}}""")
+        same(s, HandsOp.Intent("b", IntentOp.ViewUri("https://example.com")),
+            """{"op":"intent","package":"b","intent":{"operation":"view_uri","uri":"https://example.com"}}""")
+        same(Action.serializer(), Action.Intent("set_timer", args = JsonObject(mapOf("seconds" to JsonPrimitive(300)))),
+            """{"action":"intent","operation":"set_timer","args":{"seconds":300}}""")
+        same(HostCapabilities.serializer(), HostCapabilities(listOf("open_app", "wait"), listOf("c"), intents = listOf(IntentGrant("set_alarm", "c"))),
+            """{"operations":["open_app","wait"],"app_grants":["c"],"intents":[{"operation":"set_alarm","package":"c"}]}""")
+        assertEquals("intent", HandsOp.Intent("p", IntentOp.Dial("123")).operationId)
+        // Rust denies unknown intent fields; so does the shell: no skip-UI or submit flag can arrive.
+        assertFailsWith<SerializationException> {
+            CoreJson.decodeFromString(s, """{"op":"intent","package":"p","intent":{"operation":"set_timer","seconds":5,"label":null,"skip_ui":true}}""")
+        }
+        assertFailsWith<SerializationException> {
+            CoreJson.decodeFromString(s, """{"op":"intent","package":"p","intent":{"operation":"call","number":"5550100"}}""")
+        }
     }
 }

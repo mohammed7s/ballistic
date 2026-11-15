@@ -145,6 +145,13 @@ sealed interface Action {
     @Serializable @SerialName("answer") data class Answer(val text: String) : Action
     @Serializable @SerialName("done") data class Done(val evidence: String) : Action
     @Serializable @SerialName("give_up") data class GiveUp(val reason: String) : Action
+    /** A typed operation (core/src/operations.rs); core validates [args] and picks the package. */
+    @Serializable @SerialName("intent")
+    data class Intent(
+        val operation: String,
+        @EncodeDefault(EncodeDefault.Mode.NEVER) val app: String? = null,
+        val args: JsonObject = JsonObject(emptyMap()),
+    ) : Action
 }
 
 /** The fixed shapes a reader answer may take. */
@@ -244,7 +251,77 @@ sealed interface HandsOp {
     @Serializable @SerialName("back") data object Back : HandsOp
     @Serializable @SerialName("home") data object Home : HandsOp
     @Serializable @SerialName("wait") data class Wait(val millis: Int) : HandsOp
+    /** Start the platform intent for one validated typed operation in exactly [package]. */
+    @Serializable @SerialName("intent")
+    data class Intent(val `package`: String, val intent: IntentOp) : HandsOp
 }
+
+/** Fixed Settings pages (core/src/operations.rs `SettingsPage`). */
+@Serializable
+enum class SettingsPage {
+    @SerialName("wifi") Wifi,
+    @SerialName("internet_panel") InternetPanel,
+    @SerialName("bluetooth") Bluetooth,
+    @SerialName("display") Display,
+    @SerialName("sound") Sound,
+    @SerialName("notifications") Notifications,
+    @SerialName("apps") Apps,
+    @SerialName("date") Date,
+}
+
+@Serializable
+enum class CameraMode { @SerialName("photo") Photo, @SerialName("video") Video }
+
+@Serializable
+enum class Weekday {
+    @SerialName("monday") Monday,
+    @SerialName("tuesday") Tuesday,
+    @SerialName("wednesday") Wednesday,
+    @SerialName("thursday") Thursday,
+    @SerialName("friday") Friday,
+    @SerialName("saturday") Saturday,
+    @SerialName("sunday") Sunday,
+}
+
+/**
+ * One validated typed operation (core/src/operations.rs `IntentOp`). [CreateEvent.begin] and
+ * [CreateEvent.end] are local wall-clock times `YYYY-MM-DDTHH:MM`; phone numbers are digits with
+ * an optional leading `+`. No field asks a handler to submit or skip its UI.
+ */
+@Serializable
+@JsonClassDiscriminator("operation")
+sealed interface IntentOp {
+    @Serializable @SerialName("set_timer") data class SetTimer(val seconds: Int, val label: String? = null) : IntentOp
+    @Serializable @SerialName("set_alarm")
+    data class SetAlarm(val hour: Int, val minute: Int, val label: String? = null, val days: kotlin.collections.List<Weekday> = emptyList()) : IntentOp
+    @Serializable @SerialName("create_event")
+    data class CreateEvent(val title: String, val begin: String, val end: String, val location: String? = null, val description: String? = null) : IntentOp
+    @Serializable @SerialName("compose_sms") data class ComposeSms(val to: String, val body: String) : IntentOp
+    @Serializable @SerialName("add_contact")
+    data class AddContact(val name: String, val phone: String? = null, val email: String? = null) : IntentOp
+    @Serializable @SerialName("open_settings") data class OpenSettings(val page: SettingsPage) : IntentOp
+    @Serializable @SerialName("open_camera") data class OpenCamera(val mode: CameraMode) : IntentOp
+    @Serializable @SerialName("dial") data class Dial(val number: String) : IntentOp
+    @Serializable @SerialName("view_uri") data class ViewUri(val uri: String) : IntentOp
+}
+
+/** Operation id as core names it (core/src/operations.rs `IntentOp::id`). */
+val IntentOp.operationId: String
+    get() = when (this) {
+        is IntentOp.SetTimer -> "set_timer"
+        is IntentOp.SetAlarm -> "set_alarm"
+        is IntentOp.CreateEvent -> "create_event"
+        is IntentOp.ComposeSms -> "compose_sms"
+        is IntentOp.AddContact -> "add_contact"
+        is IntentOp.OpenSettings -> "open_settings"
+        is IntentOp.OpenCamera -> "open_camera"
+        is IntentOp.Dial -> "dial"
+        is IntentOp.ViewUri -> "view_uri"
+    }
+
+/** A handler the host resolved for [operation] on this device now (core `IntentGrant`). */
+@Serializable
+data class IntentGrant(val operation: String, val `package`: String)
 
 /** Operation id as core's capabilities.rs names it; what [HostCapabilities.operations] lists. */
 val HandsOp.operationId: String
@@ -258,6 +335,7 @@ val HandsOp.operationId: String
         HandsOp.Back -> "back"
         HandsOp.Home -> "home"
         is HandsOp.Wait -> "wait"
+        is HandsOp.Intent -> "intent"
     }
 
 @Serializable
@@ -325,6 +403,8 @@ data class HostCapabilities(
     val operations: kotlin.collections.List<String>,
     @SerialName("app_grants") val appGrants: kotlin.collections.List<String>,
     @EncodeDefault(EncodeDefault.Mode.NEVER) val observations: kotlin.collections.List<String> = emptyList(),
+    /** Typed operations resolved to a handler now; each still needs the app grant. */
+    @EncodeDefault(EncodeDefault.Mode.NEVER) val intents: kotlin.collections.List<IntentGrant> = emptyList(),
 )
 
 @Serializable

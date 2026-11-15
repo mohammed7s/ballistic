@@ -316,3 +316,39 @@ fn a_prefilled_compose_screen_still_needs_the_guarded_send_tap_and_the_typed_che
     assert_eq!(r["done"], true, "{r}");
     assert_eq!(r["verification"]["evidence_basis"], "code_validated_sent_row");
 }
+
+// ---- wire forms shared with the Kotlin mirror (JsonCompatibilityTest.intents) ---------------
+
+#[test]
+fn wire_forms_match_the_kotlin_mirror() {
+    let cases: Vec<(HandsOp, &str)> = vec![
+        (HandsOp::Intent { package: "com.google.android.deskclock".into(), intent: IntentOp::SetTimer { seconds: 300, label: None } },
+            r#"{"op":"intent","package":"com.google.android.deskclock","intent":{"operation":"set_timer","seconds":300,"label":null}}"#),
+        (HandsOp::Intent { package: "c".into(), intent: IntentOp::SetAlarm { hour: 7, minute: 30, label: Some("Gym".into()), days: vec![operations::Weekday::Monday] } },
+            r#"{"op":"intent","package":"c","intent":{"operation":"set_alarm","hour":7,"minute":30,"label":"Gym","days":["monday"]}}"#),
+        (HandsOp::Intent { package: "c".into(), intent: IntentOp::CreateEvent { title: "Review".into(), begin: "2023-10-23T06:00".into(),
+            end: "2023-10-23T07:00".into(), location: None, description: Some("D".into()) } },
+            r#"{"op":"intent","package":"c","intent":{"operation":"create_event","title":"Review","begin":"2023-10-23T06:00","end":"2023-10-23T07:00","location":null,"description":"D"}}"#),
+        (HandsOp::Intent { package: "s".into(), intent: IntentOp::ComposeSms { to: "+15550100".into(), body: "hi".into() } },
+            r#"{"op":"intent","package":"s","intent":{"operation":"compose_sms","to":"+15550100","body":"hi"}}"#),
+        (HandsOp::Intent { package: "k".into(), intent: IntentOp::AddContact { name: "Ana".into(), phone: Some("5550100".into()), email: None } },
+            r#"{"op":"intent","package":"k","intent":{"operation":"add_contact","name":"Ana","phone":"5550100","email":null}}"#),
+        (HandsOp::Intent { package: "com.android.settings".into(), intent: IntentOp::OpenSettings { page: operations::SettingsPage::InternetPanel } },
+            r#"{"op":"intent","package":"com.android.settings","intent":{"operation":"open_settings","page":"internet_panel"}}"#),
+        (HandsOp::Intent { package: "m".into(), intent: IntentOp::OpenCamera { mode: operations::CameraMode::Video } },
+            r#"{"op":"intent","package":"m","intent":{"operation":"open_camera","mode":"video"}}"#),
+        (HandsOp::Intent { package: "d".into(), intent: IntentOp::Dial { number: "5550100".into() } },
+            r#"{"op":"intent","package":"d","intent":{"operation":"dial","number":"5550100"}}"#),
+        (HandsOp::Intent { package: "b".into(), intent: IntentOp::ViewUri { uri: "https://example.com".into() } },
+            r#"{"op":"intent","package":"b","intent":{"operation":"view_uri","uri":"https://example.com"}}"#),
+    ];
+    for (op, text) in cases {
+        assert_eq!(serde_json::to_string(&op).unwrap(), text);
+        assert_eq!(serde_json::from_str::<HandsOp>(text).unwrap(), op);
+    }
+    let action = Action::Intent { operation: "set_timer".into(), app: None, args: args(json!({"seconds":300})) };
+    assert_eq!(serde_json::to_string(&action).unwrap(), r#"{"action":"intent","operation":"set_timer","args":{"seconds":300}}"#);
+    // The Kotlin host's encoding (no tool_grants field) decodes here.
+    let caps: HostCapabilities = serde_json::from_str(r#"{"operations":["open_app","wait"],"app_grants":["c"],"intents":[{"operation":"set_alarm","package":"c"}]}"#).unwrap();
+    assert_eq!(caps.intents, vec![IntentGrant { operation: "set_alarm".into(), package: "c".into() }]);
+}

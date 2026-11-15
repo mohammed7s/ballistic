@@ -137,7 +137,7 @@ class AppGraph(val app: Application) {
     /**
      * What this host can execute now, and in which apps (SPEC.md §5.5). Operations are only the
      * ones IntentHands performs unprivileged; grants are installed apps the owner's policy lets
-     * the assistant act in.
+     * the assistant act in; typed operations are the handlers that resolve now among those apps.
      */
     fun capabilities(): HostCapabilities {
         val policy = policyStore.load()
@@ -145,7 +145,8 @@ class AppGraph(val app: Application) {
             val p = policy.forApp(it)
             AppAccess.canOpen(p)
         }
-        return HostCapabilities(operations = IntentHands.OPERATIONS, appGrants = granted)
+        return HostCapabilities(operations = IntentHands.OPERATIONS, appGrants = granted,
+            intents = IntentHands(app).intentGrants(granted))
     }
 
     /**

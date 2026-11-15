@@ -57,6 +57,22 @@ class AppAccessTest {
         }
     }
 
+    @Test fun typedOperationsUseTheHandlerAppsPolicy() {
+        var file = PolicyFile()
+        var calls = 0
+        val asked = mutableListOf<ConfirmRequest>()
+        val hands = PolicyHands({ file }, { calls++; HandsResult.Ok }, { asked += it; ConfirmResult.Denied })
+        val op = HandsOp.Intent("clock", IntentOp.SetTimer(60))
+        assertIs<HandsResult.NotExecuted>(hands.act(op), "no grant for the handler app")
+        file = file.with("clock", AppPolicy(act = Act.Navigate))
+        assertEquals(HandsResult.Ok, hands.act(op))
+        file = file.with("clock", AppPolicy(act = Act.Navigate, confirm = ConfirmMode.Always))
+        assertIs<HandsResult.NotExecuted>(hands.act(op), "denied")
+        assertEquals("set_timer", asked.single().verb)
+        assertEquals(op, asked.single().operation)
+        assertEquals(1, calls)
+    }
+
     @Test fun unsupportedOperationsNeverReachTheDelegate() {
         val hands = PolicyHands({ PolicyFile() }, { error("must not dispatch") }, { error("must not ask") })
         assertIs<HandsResult.NotExecuted>(hands.act(HandsOp.Tap(1, 2)))

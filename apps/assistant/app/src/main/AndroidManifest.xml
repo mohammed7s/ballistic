@@ -7,7 +7,7 @@
     POST_NOTIFICATIONS    the "approval needed" notification when the window cannot be raised
     USE_BIOMETRIC         command gate and hard confirmations
     HIDE_OVERLAY_WINDOWS  the confirmation window hides other apps' overlays (SPEC §7.1)
-    SET_ALARM             required by AlarmClock.ACTION_SET_ALARM (IntentHands.setAlarm)
+    SET_ALARM             required by AlarmClock.ACTION_SET_ALARM and ACTION_SET_TIMER (IntentHands, typed operations)
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
@@ -33,6 +33,61 @@
         </intent>
         <intent>
             <action android:name="android.intent.action.SET_ALARM" />
+        </intent>
+        <!-- Typed operations (IntentHands.PROBES): one entry per intent shape. -->
+        <intent>
+            <action android:name="android.intent.action.SET_TIMER" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.INSERT" />
+            <data android:mimeType="vnd.android.cursor.dir/event" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.INSERT" />
+            <data android:mimeType="vnd.android.cursor.dir/raw_contact" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.SENDTO" />
+            <data android:scheme="smsto" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="https" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="geo" />
+        </intent>
+        <intent>
+            <action android:name="android.media.action.STILL_IMAGE_CAMERA" />
+        </intent>
+        <intent>
+            <action android:name="android.media.action.VIDEO_CAMERA" />
+        </intent>
+        <intent>
+            <action android:name="android.settings.WIFI_SETTINGS" />
+        </intent>
+        <intent>
+            <action android:name="android.settings.panel.action.INTERNET_CONNECTIVITY" />
+        </intent>
+        <intent>
+            <action android:name="android.settings.BLUETOOTH_SETTINGS" />
+        </intent>
+        <intent>
+            <action android:name="android.settings.DISPLAY_SETTINGS" />
+        </intent>
+        <intent>
+            <action android:name="android.settings.SOUND_SETTINGS" />
+        </intent>
+        <intent>
+            <action android:name="android.settings.ALL_APPS_NOTIFICATION_SETTINGS" />
+        </intent>
+        <intent>
+            <action android:name="android.settings.APPLICATION_SETTINGS" />
+        </intent>
+        <intent>
+            <action android:name="android.settings.DATE_SETTINGS" />
         </intent>
     </queries>
 
