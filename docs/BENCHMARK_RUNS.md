@@ -20,6 +20,8 @@ except the Haiku and Opus rows, which use `claude-haiku-5-5` or `claude-opus-5-5
 | **Haiku 2** | **8 Nov 2026 19:48–20:17** | **core, `claude-haiku-5-5`** | **harness `b8d1030`, core of `a29b611`** | **6 / 14 / 0** | **1,261.3 s** | **49.55 s** | **341** | **3,358** |
 | **Haiku 3 (after fixes)** | **9 Nov 2026 00:03–00:30** | **core, `claude-haiku-5-5`** | **core and harness `b22da1f`** | **9 / 11 / 0** | **977.7 s** | **43.95 s** | **263** | **3,045** |
 | **Opus 5.5 (same code as Haiku 3)** | **9 Nov 2026 00:32–01:00** | **core, `claude-opus-5-5`** | **core and harness `b22da1f`** | **12 / 8 / 0** | **1,046.1 s** | **45.0 s** | **256** | **3,117** |
+| Haiku 5.5 practice 20, baseline for intents | 15 Nov 2026 20:49–21:34 (first 20 of 30) | core, `claude-haiku-5-5` | core of `f14c4ca` | 10 / 10 / 0 | 1,103.3 s | — | 235 | 3,341 |
+| Haiku 5.5 practice 20 **with typed operations (intents)** | 15 Nov 2026 22:02–22:28 | core, `claude-haiku-5-5` | `06e8dff` (master `f33ce37` + intents) | 9 / 11 / 0 (Camera contaminated) | 1,024.6 s | 44.8 s | 233 | 3,824 |
 
 Core 3 was run on a second API key after the first key's daily quota was used up.
 This records the historical run; daily-quota exhaustion must stop a run, without automatic key rotation.
@@ -29,6 +31,63 @@ setup and checker. Core 3 adds 15.93 s checker time; Core 4 adds 17.40 s. Suite 
 setup and gaps and is not the sum in this table. Errors and early failed stops reduce recorded
 time. These runs do **not** establish a speedup or a controlled latency comparison.
 Prompt means include only usage-bearing calls; failed-call usage is unknown.
+
+## Haiku 5.5 with typed operations (intents) — 15 November 2026 (practice 20)
+
+**With typed operations (intents).** One seed-0 run of the practice 20 with `CORE_INTENTS=1`, compared with
+the loop 2 Haiku run on the same core without intents. Both used `claude-haiku-5-5` (`--effort low`,
+`THINKING_HEADROOM` 2048), judge off, confirmations approved by the harness. The baseline is the
+first 20 rows of the 30-task loop 2 suite `~/ballistic_runs/suite_core_20261115-204902.tsv` (ThinkPad;
+core binary of `f14c4ca`, SHA-256 `9177914d…126b`, 20:49–21:34 UTC). The intents run is
+`~/ballistic_runs/suite_core_20261115-220227.tsv` (22:02–22:28 UTC), branch
+`worktree-agent-a0027a3f03a6eebaf` at `06e8dff` (master `f33ce37` plus intents), core built with
+`--target-dir ~/ballistic_intents/target`, SHA-256 `0d3b03f6…80ef`. Advertised handlers (resolved on
+the device, app-granted, listed in `harness/intents.py`): set_timer, set_alarm → Clock; create_event
+→ Simple Calendar Pro; compose_sms → Simple SMS Messenger; add_contact → Contacts; open_settings →
+Settings; open_camera → Camera; view_uri → Chrome; dial → Phone.
+
+**Intents: 9 PASS / 11 FAIL / 0 ERROR, independent state 12/20, one false done
+(RecipeAddSingleRecipe).** Baseline: 10 / 10 / 0, state 12/20, no false done. A single seed;
+no causal claim follows. **CameraTakePhoto is contaminated:** the emulator check of `open_camera`
+(video) just before the run left Camera2 in video mode, the planner used `open_app` (no intent) and
+its shutter press started a recording. Camera was set back to photo mode after the run.
+
+| Totals (practice 20) | Baseline | With intents |
+|---|---:|---:|
+| Model calls | 235 | 233 |
+| Prompt tokens (per call) | 785,244 (3,341) | 891,096 (3,824) |
+| Completion tokens | 62,612 | 73,164 |
+| Cost at $0.10 / M in, $0.50 / M out | $0.1098 | $0.1257 |
+| Agent seconds | 1,103.3 | 1,024.6 |
+
+The advertised operation list adds about 480 prompt tokens per planner call.
+
+| Task | Baseline | With intents | Steps / s / calls (base → intents) | Intents used and what happened |
+|---|---|---|---|---|
+| ContactsAddContact | PASS | PASS | 8 / 54.2 / 10 → 6 / 38.0 / 8 | `add_contact` (name, number) opened the filled editor; one Save tap |
+| ClockTimerEntry | PASS | PASS | 8 / 41.1 / 10 → 7 / 46.8 / 11 | none: `set_timer` starts the timer and the task says not to; keypad entry as before |
+| ClockStopWatchRunning | PASS | PASS | 4 / 19.9 / 5 → 4 / 21.7 / 5 | none |
+| OpenAppTaskEval | PASS | PASS | 1 / 6.7 / 1 → 1 / 8.6 / 1 | none |
+| SystemWifiTurnOff | PASS | PASS | 7 / 35.9 / 10 → 6 / 28.8 / 10 | `open_settings` wifi |
+| SystemBluetoothTurnOn | PASS | PASS | 7 / 33.2 / 9 → 6 / 32.1 / 7 | `open_settings` bluetooth (Connected devices page) |
+| SystemBrightnessMax | FAIL / passed | FAIL / passed | 8 / 40.7 / 10 → 9 / 42.8 / 11 | none; gave up after the slider, as before |
+| TurnOnWifiAndOpenApp | PASS | PASS | 7 / 39.3 / 10 → 4 / 27.0 / 6 | `open_settings` wifi first |
+| SimpleSmsSend | PASS | PASS | 6 / 33.1 / 6 → 4 / 19.2 / 4 | `compose_sms` (owner's number and body, no confirmation), then the confirmed Send; typed sent-row check |
+| SimpleSmsReplyMostRecent | FAIL | FAIL | 12 / 71.7 / 21 → 6 / 33.7 / 11 | none; gave up |
+| SimpleCalendarAddOneEvent | FAIL / failed | FAIL / **passed** | 21 / 124.6 / 22 → 19 / 101.4 / 29 | `create_event` (begin confirmed as planner-computed: request said "13h"); event saved at step 3 with title, description, 13:00–13:15. Done claims were rejected because the list shows no year; it then gave up |
+| SimpleCalendarEventsOnDate | FAIL | FAIL | 6 / 49.4 / 7 → 6 / 58.3 / 7 | none |
+| MarkorCreateNote | FAIL | FAIL | 16 / 88.2 / 19 → 16 / 96.7 / 22 | none |
+| MarkorDeleteNote | FAIL | FAIL | 10 / 61.8 / 15 → 10 / 47.8 / 15 | none |
+| MarkorCreateFolder | PASS | PASS | 6 / 38.1 / 8 → 5 / 27.5 / 6 | none |
+| ExpenseAddSingle | FAIL / passed | FAIL / passed | 12 / 77.8 / 14 → 12 / 51.9 / 14 | none |
+| ExpenseDeleteSingle | FAIL | FAIL | 10 / 48.2 / 13 → 10 / 52.8 / 13 | none |
+| RecipeAddSingleRecipe | FAIL | FAIL, **done claimed, state failed** | 13 / 91.3 / 14 → 20 / 124.2 / 22 | none; the verifier accepted a done claim the checker failed |
+| FilesDeleteFile | FAIL | FAIL | 22 / 126.9 / 28 → 16 / 82.6 / 20 | none |
+| CameraTakePhoto | PASS | FAIL (contaminated) | 3 / 21.2 / 3 → 10 / 82.7 / 11 | none; Camera opened in video mode left by the emulator check |
+
+Intents were used in 7 tasks (add_contact 1, open_settings 4, compose_sms 1, create_event 1), all
+executed, none submitted anything by itself; every Save and Send was a screen tap, and the Send was
+confirmed. No task tried an unadvertised operation or one the request did not fit.
 
 ## Loop 2 — 9 November 2026 (code changed; live runs not made)
 
