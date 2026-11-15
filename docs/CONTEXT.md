@@ -242,3 +242,21 @@ would not, so a context guard is required before relying on it. Prefill speed is
 deciding constraint for on-phone planning; planning quality, sustained thermal/memory behaviour
 and the app's own speed checks remain unmeasured. Details: [Local AI](../apps/assistant/LOCAL_AI.md).
 
+## Installed APK and Computer Control status — 16 November 2026
+
+Read-only verification: Pixel base.apk SHA-256 is
+`9006bffc7f65924577bd44eb3e340f0c3c6322e9ce1069fe100228ed03a60630`, matching
+`ballistic_runs/phone_20261116/ballistic-f33ce37-latitude.apk`. The installed f33ce37
+build predates the typed-intent commits now in master (5ef29cf); neither those operations
+nor the separate Computer Control adapter are installed. Earlier status wording conflated
+repository integration with phone installation.
+
+Computer Control work remains on worktree-agent-a1041c4f631e23703 (b046a7b plus two
+uncommitted build/script edits). Its agent stopped on a Claude rate limit, but the queued
+ThinkPad build subsequently succeeded at 2026-11-15 22:51:18 UTC. The APK exists under
+~/ballistic_cc/apps/assistant/app/build/outputs/apk/debug/; core-api XML results report
+185 tests, zero failures/errors, 13 skipped. These are host tests, not live session proof.
+The Pixel advertises com.android.extensions.computercontrol, but ACCESS_COMPUTER_CONTROL
+remains internal|privileged. The proposed role-based permission grant for an ordinary
+installed assistant still requires OS implementation/build validation; no OS files were
+changed by this status audit.
