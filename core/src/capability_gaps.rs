@@ -49,6 +49,11 @@ pub fn gap(request: &str, host: Option<&HostCapabilities>) -> Option<Gap> {
     if (has(&w, "alarm") || has(&w, "alarms") || has(&w, "wake me")) && !can_tap_in(host, CLOCK_PACKAGES) {
         let set = ["set", "create", "add", "make", "schedule", "wake me", "change", "turn on", "turn off", "delete", "remove"]
             .iter().any(|v| has(&w, v));
+        // An advertised set_alarm intent can create an alarm without taps; checking, changing or
+        // deleting alarms still needs the clock app's screens.
+        let creates = ["set", "create", "add", "make", "schedule", "wake me"].iter().any(|v| has(&w, v))
+            && !["change", "turn off", "delete", "remove"].iter().any(|v| has(&w, v));
+        if creates && !crate::operations::handlers(host, "set_alarm").is_empty() { return None; }
         return Some(Gap {
             answer: if set { "I can't set alarms on this phone yet." } else { "I can't check alarms on this phone yet." },
             needs: "taps in a granted clock app",
@@ -70,7 +75,7 @@ mod tests {
 
     fn host(operations: &[&str], grants: &[&str]) -> HostCapabilities {
         HostCapabilities { operations: operations.iter().map(|s| s.to_string()).collect(),
-            app_grants: grants.iter().map(|s| s.to_string()).collect(), observations: vec![], tool_grants: vec![] }
+            app_grants: grants.iter().map(|s| s.to_string()).collect(), observations: vec![], tool_grants: vec![], intents: vec![] }
     }
 
     #[test]

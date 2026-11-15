@@ -41,6 +41,7 @@ fn guard_key(action: &Action, view: &FilteredScreen) -> Option<GuardKey> {
     let (target, text) = match action {
         Action::Tap{target}|Action::LongPress{target} => (*target, None),
         Action::Type{target,text,..} => (*target, Some(text.clone())),
+        Action::Intent{operation,..} => return Some(GuardKey { package: format!("intent {operation}"), control: actions::describe(action), text: None }),
         _ => return None,
     };
     let e = view.element(target)?;
@@ -287,7 +288,7 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, optio
             let named:Vec<String>=task.tainted.iter().map(|v|format!("{:?} (source {})",v.value,reader::source_tag(&v.source))).collect();
             format!("Request values not from the owner: {}\n",named.join(", "))
         };
-        let system=format!("{RULES}\nAction schema: {}\n{}",actions::schema_for_prompt(),capabilities::planner_instructions(screen.capabilities.as_ref()));
+        let system=format!("{RULES}\nAction schema: {}\n{}",actions::schema_for_prompt(),crate::operations::planner_instructions(screen.capabilities.as_ref(),&apps));
         let (apps_line,rendered)=(json!(app_names).to_string(),screen_filter::render(&view));
         // The planner prompt for a context-guard trim: only history lines and old fact sets can
         // be left out; rules, schema, request, screen and this step's corrections never are.
@@ -312,6 +313,7 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, optio
             match actions::check_length(&completion.text,actions::PLANNER_TOKENS).and_then(|_|actions::parse_reply(&completion.text)).and_then(|r|{
                 actions::resolve(&r.action,&view,&screen,&apps)?;
                 if let Action::Answer{text}=&r.action { actions::answer_values(text,&view,request,task.tainted,&facts_values)?; }
+                crate::operations::check_request(&r.action,request,&screen,&apps)?;
                 Ok(r)
             }) {
                 Ok(reply)=> {
@@ -528,7 +530,7 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, optio
                 // the value and its source, whatever the target.
                 let taint=actions::tainted_values(&action,&view,request,task.tainted,&facts_values);
                 if !taint.is_empty() {
-                    let named=actions::taint_reason(&taint);
+                    let named=if matches!(action,Action::Intent{..}) {crate::operations::taint_reason(&taint)} else {actions::taint_reason(&taint)};
                     reason=Some(match reason { Some(r)=>format!("{r}; {named}"), None=>named });
                 }
                 let confirmation_required=reason.is_some();
@@ -553,7 +555,7 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, optio
                                 .tag_with(text,task.tainted,&Source::Model("planner".into())).into_iter()
                                 .map(|(f,source)|Tagged{value:f.raw,source}).collect()
                         },
-                        _=>vec![],
+                        _=>taint.clone(),
                     };
                     let words=judge::plain_words(&action,&view,&apps,&screen.package);
                     stop_if_cancelled!(step-1);
@@ -623,9 +625,11 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, optio
                         Ok(HandsResult::Ok)=> {
                             execution_status=ExecutionStatus::Executed;
                             step_execution_status=ExecutionStatus::Executed;
-                            task_status=if matches!(op,HandsOp::OpenApp{..}) {"opened_ui"} else {"pending"};
+                            let (status,said)=crate::operations::acknowledged(&op);
+                            task_status=status;
                             verification=Verification::default();
-                            outcome=if matches!(op,HandsOp::OpenApp{..}) {"opened_ui"} else {"host acknowledged input"}.into();
+                            outcome=said;
+                            typed.extend(crate::operations::prefilled(&op));
                             if let Some(note)=scroll_note.take() { outcome=format!("{outcome}; {note}"); }
                             if let Action::Type{text,target,..}=&action {
                                 typed.push(text.clone());
@@ -647,7 +651,8 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, optio
                                     Ok(fresh)=> { let b=readback::compare(&screen,&fresh,target_node(&action,&view)); next_screen=Some(fresh); b },
                                     Err(_)=> Readback::unreadable(),
                                 };
-                                outcome=format!("guarded input acknowledged; readback: {}",back.describe());
+                                outcome=if matches!(op,HandsOp::Intent{..}) {format!("{outcome}; readback: {}",back.describe())}
+                                    else {format!("guarded input acknowledged; readback: {}",back.describe())};
                                 readback_event=Some(back);
                                 if count>=GUARDED_REPEAT_LIMIT {
                                     outcome.push_str("; same guarded input acknowledged twice, stopped");

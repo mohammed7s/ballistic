@@ -113,6 +113,19 @@
       "execution_evidence": "host_acknowledgment",
       "completion_evidence": "fresh_screen_model_assessment; independent readback adapter pending",
       "retry": "replan_only_if_not_executed; stop_on_unknown"
+    },
+    {
+      "id": "intent",
+      "arguments": {
+        "package": "string",
+        "intent": "IntentOp (see intents)"
+      },
+      "app_scope": "advertised_handler_package",
+      "required_grant": "host_intent_grant (operation, package) and host_app_grant (package)",
+      "confirmation": "core_policy_exact_operation; set_timer/set_alarm always; any argument not from the owner's request needs a hard confirmation naming value and source",
+      "execution_evidence": "host_acknowledgment: the platform accepted the activity start in exactly that package",
+      "completion_evidence": "none from the intent itself: an opened editor is opened_ui, not a saved item; later Save/Send taps and the ordinary checks decide",
+      "retry": "replan_only_if_not_executed; stop_on_unknown"
     }
   ],
   "observations": [
@@ -126,6 +139,174 @@
       "required_grant": "host_app_grant",
       "semantics": "Actual foreground component freshly sampled within Screen.observe; positive strictly increasing sequence per host session; never inferred from notification ownership, node text, requested app or Hands acknowledgment.",
       "completion_scope": "Only an unambiguous exact installed app in the core launch-only owner grammar; no in-app postconditions."
+    }
+  ],
+  "intents": [
+    {
+      "id": "set_timer",
+      "arguments": {
+        "seconds": "integer 1-86400",
+        "label": "string|null"
+      },
+      "android": {
+        "action": "android.intent.action.SET_TIMER",
+        "extras": {
+          "android.intent.extra.alarm.LENGTH": "seconds",
+          "android.intent.extra.alarm.MESSAGE": "label",
+          "android.intent.extra.alarm.SKIP_UI": "false (always)"
+        },
+        "permission": "com.android.alarm.permission.SET_ALARM",
+        "docs": "https://developer.android.com/reference/android/provider/AlarmClock#ACTION_SET_TIMER"
+      },
+      "effect": "creates_state: always starts the timer",
+      "confirmation": "always"
+    },
+    {
+      "id": "set_alarm",
+      "arguments": {
+        "hour": "integer 0-23",
+        "minute": "integer 0-59",
+        "label": "string|null",
+        "days": "weekday list"
+      },
+      "android": {
+        "action": "android.intent.action.SET_ALARM",
+        "extras": {
+          "android.intent.extra.alarm.HOUR": "hour",
+          "android.intent.extra.alarm.MINUTES": "minute",
+          "android.intent.extra.alarm.MESSAGE": "label",
+          "android.intent.extra.alarm.DAYS": "Calendar day ints",
+          "android.intent.extra.alarm.SKIP_UI": "false (always)"
+        },
+        "permission": "com.android.alarm.permission.SET_ALARM",
+        "docs": "https://developer.android.com/reference/android/provider/AlarmClock#ACTION_SET_ALARM"
+      },
+      "effect": "creates_state: always enables the alarm",
+      "confirmation": "always"
+    },
+    {
+      "id": "create_event",
+      "arguments": {
+        "title": "string",
+        "begin": "YYYY-MM-DDTHH:MM local",
+        "end": "YYYY-MM-DDTHH:MM local",
+        "location": "string|null",
+        "description": "string|null"
+      },
+      "android": {
+        "action": "android.intent.action.INSERT",
+        "data": "content://com.android.calendar/events",
+        "extras": {
+          "beginTime": "epoch ms in the device zone",
+          "endTime": "epoch ms in the device zone",
+          "title": "title",
+          "eventLocation": "location",
+          "description": "description"
+        },
+        "docs": "https://developer.android.com/guide/topics/providers/calendar-provider (Calendar intents)"
+      },
+      "effect": "editor: nothing is saved until the editor's Save control is tapped",
+      "confirmation": "taint only"
+    },
+    {
+      "id": "compose_sms",
+      "arguments": {
+        "to": "phone digits, optional +",
+        "body": "string"
+      },
+      "android": {
+        "action": "android.intent.action.SENDTO",
+        "data": "smsto:<to>",
+        "extras": {
+          "sms_body": "body"
+        },
+        "docs": "https://developer.android.com/reference/android/content/Intent#ACTION_SENDTO"
+      },
+      "effect": "editor: nothing is sent until the compose screen's Send control is tapped (guarded)",
+      "confirmation": "taint only"
+    },
+    {
+      "id": "add_contact",
+      "arguments": {
+        "name": "string",
+        "phone": "phone|null",
+        "email": "email|null"
+      },
+      "android": {
+        "action": "android.intent.action.INSERT",
+        "type": "vnd.android.cursor.dir/raw_contact",
+        "extras": {
+          "name": "name",
+          "phone": "phone",
+          "email": "email"
+        },
+        "docs": "https://developer.android.com/reference/android/provider/ContactsContract.Intents.Insert"
+      },
+      "effect": "editor: nothing is saved until the editor's Save control is tapped",
+      "confirmation": "taint only"
+    },
+    {
+      "id": "open_settings",
+      "arguments": {
+        "page": "wifi|internet_panel|bluetooth|display|sound|notifications|apps|date"
+      },
+      "android": {
+        "actions": {
+          "wifi": "android.settings.WIFI_SETTINGS",
+          "internet_panel": "android.settings.panel.action.INTERNET_CONNECTIVITY",
+          "bluetooth": "android.settings.BLUETOOTH_SETTINGS",
+          "display": "android.settings.DISPLAY_SETTINGS",
+          "sound": "android.settings.SOUND_SETTINGS",
+          "notifications": "android.settings.ALL_APPS_NOTIFICATION_SETTINGS (API 33)",
+          "apps": "android.settings.APPLICATION_SETTINGS",
+          "date": "android.settings.DATE_SETTINGS"
+        },
+        "docs": "https://developer.android.com/reference/android/provider/Settings and https://developer.android.com/reference/android/provider/Settings.Panel"
+      },
+      "effect": "navigation",
+      "confirmation": "taint only (no values)"
+    },
+    {
+      "id": "open_camera",
+      "arguments": {
+        "mode": "photo|video"
+      },
+      "android": {
+        "actions": {
+          "photo": "android.media.action.STILL_IMAGE_CAMERA",
+          "video": "android.media.action.VIDEO_CAMERA"
+        },
+        "docs": "https://developer.android.com/reference/android/provider/MediaStore#INTENT_ACTION_STILL_IMAGE_CAMERA"
+      },
+      "effect": "navigation: the camera app's own shutter saves to its gallery as usual (not ACTION_IMAGE_CAPTURE, which returns the image to the caller)",
+      "confirmation": "taint only (no values)"
+    },
+    {
+      "id": "dial",
+      "arguments": {
+        "number": "phone digits, optional +"
+      },
+      "android": {
+        "action": "android.intent.action.DIAL",
+        "data": "tel:<number>",
+        "docs": "https://developer.android.com/reference/android/content/Intent#ACTION_DIAL"
+      },
+      "effect": "navigation: never ACTION_CALL; the call needs the dialer's own call control",
+      "confirmation": "taint only"
+    },
+    {
+      "id": "view_uri",
+      "arguments": {
+        "uri": "https://... or geo:lat,lng"
+      },
+      "android": {
+        "action": "android.intent.action.VIEW",
+        "category": "android.intent.category.BROWSABLE",
+        "data": "uri",
+        "docs": "https://developer.android.com/reference/android/content/Intent#ACTION_VIEW"
+      },
+      "effect": "navigation",
+      "confirmation": "taint only"
     }
   ]
 }

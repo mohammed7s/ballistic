@@ -19,13 +19,19 @@ pub const ACTIONS_SCHEMA: &str = include_str!("../schema/actions.json");
 /// half the bytes (a 4,096-token on-device context holds the prompt plus the reply).
 pub fn schema_for_prompt() -> &'static str {
     static COMPACT: std::sync::OnceLock<String> = std::sync::OnceLock::new();
-    COMPACT.get_or_init(|| serde_json::from_str::<Value>(ACTIONS_SCHEMA).expect("compiled action schema").to_string())
+    // The intent variant reaches the planner only with the operations a host advertises
+    // (`operations::planner_instructions`), so a host without any sends the same prompt as before.
+    COMPACT.get_or_init(|| {
+        let mut schema: Value = serde_json::from_str(ACTIONS_SCHEMA).expect("compiled action schema");
+        schema["oneOf"].as_array_mut().expect("variants").retain(|v| v["properties"]["action"]["const"] != "intent");
+        schema.to_string()
+    })
 }
 
 /// Every action name the planner may emit, in the order of §6.
 pub const ACTION_NAMES: &[&str] = &[
     "open_app", "tap", "long_press", "type", "scroll", "swipe", "back", "home", "wait", "read",
-    "answer", "done", "give_up",
+    "answer", "done", "give_up", "intent",
 ];
 
 /// How long `wait` waits.
@@ -312,6 +318,7 @@ pub fn example(action: &str) -> Option<&'static str> {
         "answer" => r#"{"action":"answer","text":"You have two events today.","why":"the owner asked"}"#,
         "done" => r#"{"action":"done","evidence":"the saved event shows the requested title","why":"finished"}"#,
         "give_up" => r#"{"action":"give_up","reason":"this app has no such setting","why":"unsupported"}"#,
+        "intent" => r#"{"action":"intent","operation":"open_settings","args":{"page":"bluetooth"},"why":"the owner asked about Bluetooth"}"#,
         _ => return None,
     })
 }
@@ -504,6 +511,7 @@ pub fn resolve(
         Action::Back => HandsOp::Back,
         Action::Home => HandsOp::Home,
         Action::Wait => HandsOp::Wait { millis: WAIT_MILLIS },
+        Action::Intent { operation, app, args } => crate::operations::resolve(operation, app.as_deref(), args, screen, apps)?,
         Action::Read { .. } | Action::Answer { .. } | Action::Done { .. } | Action::GiveUp { .. } => {
             return Ok(None)
         }
@@ -579,6 +587,7 @@ fn character_delete_key(e: &crate::screen_filter::Element) -> bool {
 pub fn confirmation_reason(action: &Action, view: &FilteredScreen) -> Option<String> {
     match action {
         Action::Type { submit: true, .. } => Some("type and submit".into()),
+        Action::Intent { .. } => crate::operations::confirmation_reason(action),
         Action::Tap { target } | Action::LongPress { target } => {
             let e = view.element(*target)?;
             if character_delete_key(e) {
@@ -625,8 +634,9 @@ pub fn confirmation_reason(action: &Action, view: &FilteredScreen) -> Option<Str
 /// owner or a label also has the value; anything else is the planner's own text
 /// (`model:planner`). Non-empty means a hard confirmation that names each value and source.
 pub fn tainted_values(action: &Action, view: &FilteredScreen, request: &str, carried: &[Tagged], facts: &[Tagged]) -> Vec<Tagged> {
-    let Action::Type { text, .. } = action else { return vec![] };
     let labels: Vec<&str> = view.elements.iter().filter_map(|e| e.label.as_deref()).collect();
+    if matches!(action, Action::Intent { .. }) { return crate::operations::tainted(action, request, &labels, carried, facts); }
+    let Action::Type { text, .. } = action else { return vec![] };
     let provenance = crate::values::Provenance::new(&[request], &labels, facts);
     provenance.tag_with(text, carried, &Source::Model("planner".into())).into_iter()
         .filter(|(_, source)| !source.is_owner())
@@ -681,6 +691,8 @@ pub fn describe(action: &Action) -> String {
         Action::Answer { .. } => "answer".into(),
         Action::Done { .. } => "done".into(),
         Action::GiveUp { reason } => format!("give_up {reason:?}"),
+        Action::Intent { operation, app, args } => format!("intent {operation}{} {}",
+            app.as_ref().map(|a| format!(" in {a:?}")).unwrap_or_default(), Value::Object(args.clone())),
     }
 }
 

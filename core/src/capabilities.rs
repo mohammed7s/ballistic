@@ -9,14 +9,21 @@ pub fn operation_id(op: &HandsOp) -> &'static str {
         HandsOp::LongPress { .. } => "long_press", HandsOp::Type { .. } => "type",
         HandsOp::Scroll { .. } => "scroll", HandsOp::Swipe { .. } => "swipe",
         HandsOp::Back => "back", HandsOp::Home => "home", HandsOp::Wait { .. } => "wait",
+        HandsOp::Intent { .. } => "intent",
     }
 }
 pub fn app_scope<'a>(op: &'a HandsOp, foreground: &'a str) -> &'a str {
-    match op { HandsOp::OpenApp { package, .. } => package, _ => foreground }
+    match op { HandsOp::OpenApp { package, .. } | HandsOp::Intent { package, .. } => package, _ => foreground }
 }
+/// An intent is permitted by its own advertised handler grant (operation and package), never by
+/// the generic `operations` list; every route still needs the app grant.
 pub fn permitted(op: &HandsOp, app: &str, host: Option<&HostCapabilities>) -> bool {
-    host.is_some_and(|h| h.operations.iter().any(|id| id == operation_id(op))
-        && h.app_grants.iter().any(|grant| grant == app))
+    let operation = match op {
+        HandsOp::Intent { package, intent } => package == app && host.is_some_and(|h| h.intents.iter()
+            .any(|g| g.operation == intent.id() && g.package == *package)),
+        _ => host.is_some_and(|h| h.operations.iter().any(|id| id == operation_id(op))),
+    };
+    operation && host.is_some_and(|h| h.app_grants.iter().any(|grant| grant == app))
 }
 
 /// Compact planner-facing subset. Coordinate arguments remain private to the Hands contract.
@@ -59,7 +66,7 @@ mod tests {
             let mut host=Host{calls:0};
             let req=ConfirmRequest{operation:HandsOp::Tap{x:1,y:2},app:"notes".into(),verb:"tap".into(),target:"delete".into(),values:vec![],hard:true,reason:"delete".into()};
             let approval=authorize(&mut host,&req).unwrap();
-            let grants=HostCapabilities{operations:vec!["tap".into()],app_grants:vec!["notes".into(),"messages".into()],tool_grants:vec![],observations:vec![]};
+            let grants=HostCapabilities{operations:vec!["tap".into()],app_grants:vec!["notes".into(),"messages".into()],tool_grants:vec![],observations:vec![],intents:vec![]};
             assert!(dispatch(&mut host,&op,app,Some(&grants),true,approval).is_err());
             assert_eq!(host.calls,0);
         }
@@ -67,7 +74,7 @@ mod tests {
     #[test]
     fn shipped_contracts_match_supported_operations() {
         let metadata:serde_json::Value=serde_json::from_str(CONTRACTS).unwrap();
-        let ops=[HandsOp::OpenApp{package:"p".into(),activity:None},HandsOp::Tap{x:0,y:0},HandsOp::LongPress{x:0,y:0},HandsOp::Type{x:0,y:0,text:"".into(),submit:false},HandsOp::Scroll{area:Bounds::default(),direction:Direction::Down},HandsOp::Swipe{area:Bounds::default(),direction:Direction::Down},HandsOp::Back,HandsOp::Home,HandsOp::Wait{millis:1}];
+        let ops=[HandsOp::OpenApp{package:"p".into(),activity:None},HandsOp::Tap{x:0,y:0},HandsOp::LongPress{x:0,y:0},HandsOp::Type{x:0,y:0,text:"".into(),submit:false},HandsOp::Scroll{area:Bounds::default(),direction:Direction::Down},HandsOp::Swipe{area:Bounds::default(),direction:Direction::Down},HandsOp::Back,HandsOp::Home,HandsOp::Wait{millis:1},HandsOp::Intent{package:"p".into(),intent:crate::operations::IntentOp::OpenCamera{mode:crate::operations::CameraMode::Photo}}];
         assert_eq!(metadata["operations"].as_array().unwrap().len(),ops.len());
         for op in ops { assert!(metadata["operations"].as_array().unwrap().iter().any(|v|v["id"]==operation_id(&op))); }
     }

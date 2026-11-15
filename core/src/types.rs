@@ -171,6 +171,16 @@ pub enum Action {
     Answer { text: String },
     Done { evidence: String },
     GiveUp { reason: String },
+    /// A typed operation the host advertises (`operations.rs`). Core validates `args`, picks
+    /// the advertised package (`app` chooses among several) and applies the same grants,
+    /// taint rule and confirmation as every other route.
+    Intent {
+        operation: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        app: Option<String>,
+        #[serde(default)]
+        args: serde_json::Map<String, serde_json::Value>,
+    },
 }
 
 /// The fixed shapes a reader answer may take (§7). Anything outside the shape is dropped.
@@ -245,6 +255,9 @@ pub enum HandsOp {
     Back,
     Home,
     Wait { millis: u32 },
+    /// Start the platform intent for one validated typed operation in exactly `package` (the
+    /// host sets it as the intent's package). Never submits: no skip-UI or auto-send extra.
+    Intent { package: String, intent: crate::operations::IntentOp },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -329,6 +342,9 @@ pub struct HostCapabilities {
     /// Owner grants for read-only tools (`tools.rs`). Absent: no tool may be called.
     #[serde(default)]
     pub tool_grants: Vec<crate::tools::ToolGrant>,
+    /// Typed operations (intents) the host resolved to a handler now (`operations.rs`).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub intents: Vec<crate::operations::IntentGrant>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

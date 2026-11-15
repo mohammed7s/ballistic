@@ -285,6 +285,31 @@
         "reason"
       ],
       "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "action": {
+          "const": "intent"
+        },
+        "why": {
+          "type": "string"
+        },
+        "operation": {
+          "type": "string"
+        },
+        "app": {
+          "type": "string"
+        },
+        "args": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "action",
+        "operation"
+      ],
+      "additionalProperties": false
     }
   ]
 }

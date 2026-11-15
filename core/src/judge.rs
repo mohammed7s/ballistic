@@ -28,7 +28,7 @@ pub enum Verdict {
 /// `give_up` do not reach the judge.
 pub fn state_changing(action: &Action) -> bool {
     matches!(action, Action::OpenApp { .. } | Action::Tap { .. } | Action::LongPress { .. }
-        | Action::Type { .. } | Action::Swipe { .. } | Action::Home)
+        | Action::Type { .. } | Action::Swipe { .. } | Action::Home | Action::Intent { .. })
 }
 
 /// What the target is, from code-owned facts only: its label, a reader pick, an owner match, or
