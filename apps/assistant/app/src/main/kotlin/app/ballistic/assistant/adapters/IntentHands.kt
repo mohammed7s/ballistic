@@ -132,6 +132,9 @@ class IntentHands(private val context: Context) : Hands {
         private const val MAX_WAIT_MS = 10_000
         private const val ALL_APPS_NOTIFICATIONS = "android.settings.ALL_APPS_NOTIFICATION_SETTINGS"
 
+        /** The events MIME type, given with the URI so resolution does not depend on asking the provider. */
+        private const val EVENT_TYPE = "vnd.android.cursor.dir/event"
+
         /** One representative operation per id, for [intentGrants]. */
         val PROBES: List<Pair<String, IntentOp>> = listOf(
             "set_timer" to IntentOp.SetTimer(60),
@@ -168,7 +171,7 @@ class IntentHands(private val context: Context) : Hands {
                 }
                 .putExtra(AlarmClock.EXTRA_SKIP_UI, false)
             // Calendar provider guide, "Use an intent to insert an event": opens the editor.
-            is IntentOp.CreateEvent -> Intent(Intent.ACTION_INSERT).setData(CalendarContract.Events.CONTENT_URI)
+            is IntentOp.CreateEvent -> Intent(Intent.ACTION_INSERT).setDataAndType(CalendarContract.Events.CONTENT_URI, EVENT_TYPE)
                 .putExtra(CalendarContract.EXTRA_EVENT_BEGIN_TIME, millis(op.begin, zone))
                 .putExtra(CalendarContract.EXTRA_EVENT_END_TIME, millis(op.end, zone))
                 .putExtra(CalendarContract.Events.TITLE, op.title)
