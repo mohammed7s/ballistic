@@ -429,27 +429,28 @@ fn datetime_in_request(request: &str, value: &str) -> bool {
     matches_request(request, date) && (matches_request(request, time) || matches_request(request, short))
 }
 
-/// Where a phone number came from, compared by its digits: a carried value, the request, a
-/// control label, a reader fact, else the planner.
-fn phone_source(raw: &str, request: &str, labels: &[&str], carried: &[Tagged], facts: &[Tagged]) -> Source {
+/// Where a recipient number came from, compared by its digits: a carried value, the request, a
+/// reader fact, else the planner. Control labels do not count: an app writes its own labels, and
+/// a recipient the owner did not give is confirmed whatever control shows it.
+fn phone_source(raw: &str, request: &str, carried: &[Tagged], facts: &[Tagged]) -> Source {
     let digits = |s: &str| s.chars().filter(char::is_ascii_digit).collect::<String>();
     let want = digits(raw);
     let has = |text: &str| crate::values::extract(text).iter()
         .any(|f| matches!(f.kind, ValueKind::Phone | ValueKind::Number) && digits(&f.raw) == want);
     if let Some(c) = carried.iter().find(|c| has(&c.value)) { return c.source.clone(); }
     if has(request) { return Source::OwnerRequest; }
-    if labels.iter().any(|l| has(l)) { return Source::ScreenLabel; }
     facts.iter().find(|f| has(&f.value)).map_or(Source::Model("planner".into()), |f| f.source.clone())
 }
 
-/// Every argument value whose source is not the owner's (request, owner data or a control
-/// label), with its source. Non-empty means a hard confirmation naming each one. `carried`
+/// Every argument value whose source is not the owner's (request, owner data or, for numbers
+/// and text, a control label), with its source. Recipients and links must be in the request. Non-empty means a hard confirmation naming each one. `carried`
 /// values keep their tags even inside the request (`agent::Task`); reader `facts` keep theirs.
 /// Fixed choices (page, mode, days) are code-owned and carry no value.
 pub fn tainted(action: &Action, request: &str, labels: &[&str], carried: &[Tagged], facts: &[Tagged]) -> Vec<Tagged> {
     let Action::Intent { operation, args, .. } = action else { return vec![] };
     let Some(spec) = spec(operation) else { return vec![] };
     let provenance = Provenance::new(&[request], labels, facts);
+    let identity = Provenance::new(&[request], &[], facts);
     let planner = Source::Model("planner".into());
     let mut out: Vec<Tagged> = Vec::new();
     let mut push = |t: Tagged| if !t.source.is_owner() && !out.contains(&t) { out.push(t) };
@@ -461,12 +462,12 @@ pub fn tainted(action: &Action, request: &str, labels: &[&str], carried: &[Tagge
         let embedded = provenance.tag_with(&raw, carried, &planner);
         match kind {
             Kind::Choice | Kind::Days => {}
-            Kind::Phone => push(Tagged { value: raw.clone(), source: phone_source(&raw, request, labels, carried, facts) }),
+            Kind::Phone => push(Tagged { value: raw.clone(), source: phone_source(&raw, request, carried, facts) }),
             Kind::Int => match &embedded[..] {
                 [(found, source)] => push(Tagged { value: found.raw.clone(), source: source.clone() }),
                 _ => push(Tagged { value: raw.clone(), source: planner.clone() }),
             },
-            Kind::Uri if raw.starts_with("https://") || raw.starts_with("HTTPS://") => match &embedded[..] {
+            Kind::Uri if raw.starts_with("https://") || raw.starts_with("HTTPS://") => match &identity.tag_with(&raw, carried, &planner)[..] {
                 [(found, source)] if found.raw == raw => push(Tagged { value: raw.clone(), source: source.clone() }),
                 _ => push(Tagged { value: raw.clone(), source: fact_or_planner(&raw) }),
             },

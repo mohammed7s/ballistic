@@ -4,6 +4,17 @@ package app.ballistic.assistant.core
 object AppAccess {
     fun canOpen(policy: AppPolicy): Boolean = policy.act != Act.None && policy.confirm != ConfirmMode.NeverAutomate
 
+    /**
+     * A typed operation in its handler app. Opening a page, the camera, a link or a filled-in
+     * dialer is navigation; a timer or alarm (created on start) or a pre-filled editor or compose
+     * screen acts in the app, so it needs the owner's full-action grant for that app.
+     */
+    fun canRun(policy: AppPolicy, op: IntentOp): Boolean = canOpen(policy) && when (op) {
+        is IntentOp.OpenSettings, is IntentOp.OpenCamera, is IntentOp.ViewUri, is IntentOp.Dial -> true
+        is IntentOp.SetTimer, is IntentOp.SetAlarm, is IntentOp.CreateEvent, is IntentOp.ComposeSms, is IntentOp.AddContact ->
+            policy.act == Act.Full
+    }
+
     fun canReadNotifications(policy: AppPolicy, local: Boolean): Boolean =
         policy.observe != Observe.None && (local || policy.route != Route.DeviceOnly)
 }
@@ -24,8 +35,9 @@ class PolicyHands(
             is HandsOp.Intent -> op.`package`
             else -> return HandsResult.NotExecuted("operation not supported by this host")
         }
+        val allowed = { p: AppPolicy -> if (op is HandsOp.Intent) AppAccess.canRun(p, op.intent) else AppAccess.canOpen(p) }
         val before = policy().forApp(target)
-        if (!AppAccess.canOpen(before)) return HandsResult.NotExecuted("app access is blocked in Ballistic settings")
+        if (!allowed(before)) return HandsResult.NotExecuted("app access is blocked in Ballistic settings")
         if (before.confirm == ConfirmMode.Always) {
             val verb = if (op is HandsOp.Intent) op.intent.operationId else "open"
             val approval = confirm.ask(ConfirmRequest(op, target, verb, target, hard = true,
@@ -33,7 +45,7 @@ class PolicyHands(
             if (approval != ConfirmResult.Approved) return HandsResult.NotExecuted("owner did not approve")
         }
         val after = policy().forApp(target)
-        if (!canDispatch() || after != before || !AppAccess.canOpen(after))
+        if (!canDispatch() || after != before || !allowed(after))
             return HandsResult.NotExecuted("task stopped or app access changed")
         return delegate.act(op)
     }

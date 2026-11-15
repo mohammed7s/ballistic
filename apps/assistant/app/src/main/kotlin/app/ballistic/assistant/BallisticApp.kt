@@ -145,8 +145,12 @@ class AppGraph(val app: Application) {
             val p = policy.forApp(it)
             AppAccess.canOpen(p)
         }
-        return HostCapabilities(operations = IntentHands.OPERATIONS, appGrants = granted,
-            intents = IntentHands(app).intentGrants(granted))
+        // Advertise a handler only where the owner's policy lets that operation run (AppAccess.canRun).
+        val probes = IntentHands.PROBES.toMap()
+        val intents = IntentHands(app).intentGrants(granted).filter { g ->
+            probes[g.operation]?.let { AppAccess.canRun(policy.forApp(g.`package`), it) } == true
+        }
+        return HostCapabilities(operations = IntentHands.OPERATIONS, appGrants = granted, intents = intents)
     }
 
     /**

@@ -251,6 +251,8 @@ fn an_advertised_alarm_intent_removes_the_early_refusal_only_for_creating() {
     assert!(ballistic_core::capability_gaps::gap("Set an alarm for 7am", Some(&caps(vec![]))).is_some());
     assert!(ballistic_core::capability_gaps::gap("Set an alarm for 7am", Some(&with)).is_none());
     assert!(ballistic_core::capability_gaps::gap("Delete my 7am alarm", Some(&with)).is_some(), "deleting still needs the screens");
+    assert_eq!(ballistic_core::capability_gaps::gap("Set an alarm for 7am and turn on airplane mode", Some(&with)).unwrap().needs,
+        "taps in Settings or Quick Settings", "the other checks still apply to a compound request");
 }
 
 // ---- execution status and the hand-off to the screen loop ----------------------------------

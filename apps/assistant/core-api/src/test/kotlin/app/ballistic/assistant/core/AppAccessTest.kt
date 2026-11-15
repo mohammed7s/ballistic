@@ -65,12 +65,15 @@ class AppAccessTest {
         val op = HandsOp.Intent("clock", IntentOp.SetTimer(60))
         assertIs<HandsResult.NotExecuted>(hands.act(op), "no grant for the handler app")
         file = file.with("clock", AppPolicy(act = Act.Navigate))
+        assertIs<HandsResult.NotExecuted>(hands.act(op), "a timer acts in the app: navigation is not enough")
+        assertEquals(HandsResult.Ok, hands.act(HandsOp.Intent("clock", IntentOp.OpenCamera(CameraMode.Photo))), "navigation is")
+        file = file.with("clock", AppPolicy(act = Act.Full))
         assertEquals(HandsResult.Ok, hands.act(op))
-        file = file.with("clock", AppPolicy(act = Act.Navigate, confirm = ConfirmMode.Always))
+        file = file.with("clock", AppPolicy(act = Act.Full, confirm = ConfirmMode.Always))
         assertIs<HandsResult.NotExecuted>(hands.act(op), "denied")
         assertEquals("set_timer", asked.single().verb)
         assertEquals(op, asked.single().operation)
-        assertEquals(1, calls)
+        assertEquals(2, calls)
     }
 
     @Test fun unsupportedOperationsNeverReachTheDelegate() {
