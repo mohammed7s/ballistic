@@ -602,6 +602,10 @@ pub fn confirmation_reason(action: &Action, view: &FilteredScreen) -> Option<Str
                     return Some(format!("activate an element the reader chose whose content mentions {w:?}"));
                 }
             }
+            // A control that places a call is guarded like Send (`calls.rs`).
+            if crate::calls::places_call(e.label.as_deref(), e.resource_id.as_deref()) {
+                return Some("activate a control that places a phone call".into());
+            }
             // The recorded keyboard action key can submit the same draft as Send. Its
             // caption may say Enter, Send, or something else; do not infer its effect.
             if matches!(e.resource_id.as_deref(),

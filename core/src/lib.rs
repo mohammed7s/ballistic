@@ -29,6 +29,7 @@ pub mod verification;
 pub mod launch_completion;
 pub mod postcondition;
 pub mod operations;
+pub mod calls;
 
 #[cfg(feature = "uniffi")]
 pub mod ffi;

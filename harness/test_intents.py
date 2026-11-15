@@ -81,7 +81,7 @@ class OutcomeTest(unittest.TestCase):
         grants = intents.grants(shell, {"com.google.android.deskclock", "com.simplemobiletools.smsmessenger", "com.google.android.apps.messaging"}, handlers)
         self.assertEqual(grants, [{"operation": "set_timer", "package": "com.google.android.deskclock"},
                                   {"operation": "compose_sms", "package": "com.simplemobiletools.smsmessenger"}])
-        self.assertNotIn("dial", intents.EMULATOR_HANDLERS, "no dial on a host that can tap the call control")
+        self.assertEqual(intents.PROBES["dial"][0], "android.intent.action.DIAL", "ACTION_DIAL only, never ACTION_CALL")
 
 
 class CoreHostTest(unittest.TestCase):

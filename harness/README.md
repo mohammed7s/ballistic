@@ -233,15 +233,15 @@ documented action, data, type and extras and `-p <package>`. `adb shell` re-pars
 on the device, so every argument is `shlex.quote`d from a list; `test_intents.py` round-trips
 hostile values through that parsing. `am start` "unable to resolve" or a permission denial is
 `not_executed`; any other error is `error` (unknown; core stops). Event times are converted with
-the device's `persist.sys.timezone`. `dial` is never advertised here: this host can tap, and the
-dialer's call control is not on core's confirmation list. The run JSON records `intents` and
-`intent_grants`.
+the device's `persist.sys.timezone`. `dial` is `ACTION_DIAL` only (never `ACTION_CALL`): the
+call is a tap on the dialer's call control, which core guards like Send (`core/src/calls.rs`).
+The run JSON records `intents` and `intent_grants`.
 
 `EMULATOR_HANDLERS` (expected handlers on the AndroidWorld image; **not yet checked on the
 emulator**): set_timer and set_alarm → Clock (`com.google.android.deskclock`), create_event →
 Simple Calendar Pro, compose_sms → Simple SMS Messenger, add_contact → Contacts
 (`com.google.android.contacts`), open_settings → Settings, open_camera → Camera
-(`com.android.camera2`), view_uri → Chrome. Each entry stays only after one emulator check that
+(`com.android.camera2`), view_uri → Chrome, dial → Phone (`com.google.android.dialer`). Each entry stays only after one emulator check that
 the activity opens with the values filled in and nothing is submitted.
 
 ## Known rough edges (first run, 5 Nov 2026)

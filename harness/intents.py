@@ -13,9 +13,9 @@ values through the same parsing.
 
 Advertising: a (operation, package) pair is advertised only if (1) the device resolves the probe
 intent to that package now (`cmd package query-activities`), and (2) the pair is in
-`EMULATOR_HANDLERS`, the handlers checked on the AndroidWorld emulator image. `dial` is not
-advertised here: on this host core can tap, and the dialer's call control is not on core's
-confirmation list, so a pre-filled dialer would be one unconfirmed tap from a call.
+`EMULATOR_HANDLERS`, the handlers checked on the AndroidWorld emulator image. `dial` is
+ACTION_DIAL only: it fills the dialer, and the call is a tap on the dialer's call control, which
+core guards like Send (core/src/calls.rs).
 """
 
 from __future__ import annotations
@@ -41,6 +41,7 @@ EMULATOR_HANDLERS: dict[str, tuple[str, ...]] = {
     "open_settings": ("com.android.settings",),
     "open_camera": ("com.android.camera2",),
     "view_uri": ("com.android.chrome",),
+    "dial": ("com.google.android.dialer",),
 }
 
 ALARM = "android.intent.extra.alarm."

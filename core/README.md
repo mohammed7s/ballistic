@@ -385,7 +385,7 @@ form; with none advertised the prompt is byte-for-byte what it was (`schema_for_
 | `add_contact` | `name`, `phone?`, `email?` | `ContactsContract.Intents.Insert`, `RawContacts.CONTENT_TYPE` | opens the editor pre-filled |
 | `open_settings` | `page`: wifi, internet_panel, bluetooth, display, sound, notifications, apps, date | the documented `Settings.ACTION_*` / `Settings.Panel` action | navigation |
 | `open_camera` | `mode`: photo, video | `MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA` / `VIDEO_CAMERA` | navigation (the camera's own shutter saves to its gallery; not `ACTION_IMAGE_CAPTURE`, which returns the image to the caller) |
-| `dial` | `number` | `ACTION_DIAL tel:` (never `ACTION_CALL`) | navigation |
+| `dial` | `number` | `ACTION_DIAL tel:` (never `ACTION_CALL`) | navigation; the call is the dialer's call control, guarded like Send |
 | `view_uri` | `uri`: `https://` with a host and no user part, or `geo:lat,lng` | `ACTION_VIEW`, `CATEGORY_BROWSABLE` | navigation |
 
 Rules, all in code: unknown operations or arguments, wrong types (a number as a string, a
@@ -401,6 +401,18 @@ value that is not in the owner's request, owner data or a control label (a reade
 value, or the planner's own text such as a converted duration or a computed date) needs a hard
 confirmation that names each value and source. The judge sees intents with those sources.
 Identical confirmed operations count under the guarded-repeat limit like any guarded input.
+Recipients (`to`, `number`, `phone`) and links must be in the owner's request (or a carried or
+fact value, confirmed with its source); a control label does not source them, since an app writes
+its own labels.
+
+**Calls are guarded on every route (`src/calls.rs`).** A tap or long press on a control whose
+label starts with "call" ("Call", "Call back", "Call Ana") or names a voice or video call, whose
+label is the AOSP dialpad button's "dial", or whose resource id names a call button
+(`dialpad_voice_call_button`, `call_action`) needs the owner's confirmation like Send. Call
+navigation ("Call history", `tab_call_history`, "Call settings") stays unguarded. No recorded
+screen yet shows a real dialpad call button, so the labels on the emulator image are unverified;
+a row that calls when tapped without a call-labelled control (some call-log layouts) is not
+recognized.
 
 No operation submits: there is no skip-UI, send or save field, and `IntentOp` rejects unknown
 fields on both sides. After the host acknowledges the start, `task_status` is `opened_ui` for an
