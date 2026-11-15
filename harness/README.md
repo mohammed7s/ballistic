@@ -223,6 +223,27 @@ Ollama is configured by `setup_emulator.sh`'s systemd override with `OLLAMA_CONT
 (AndroidWorld prompts exceed the 4k default), `OLLAMA_KEEP_ALIVE=1h`, and listening on all
 interfaces so another machine can use it over Tailscale.
 
+### Typed operations (intents) (`intents.py`, 15 Nov 2026)
+
+Off by default. `run_task.py --intents` (suite: `CORE_INTENTS=1 bash harness/run_suite.sh ...`)
+advertises typed operations to core: a handler is advertised only if `cmd package
+query-activities` resolves its probe intent to that package now, the package has an app grant,
+and it is listed in `intents.EMULATOR_HANDLERS`. The `intent` HandsOp runs `am start` with the
+documented action, data, type and extras and `-p <package>`. `adb shell` re-parses its arguments
+on the device, so every argument is `shlex.quote`d from a list; `test_intents.py` round-trips
+hostile values through that parsing. `am start` "unable to resolve" or a permission denial is
+`not_executed`; any other error is `error` (unknown; core stops). Event times are converted with
+the device's `persist.sys.timezone`. `dial` is never advertised here: this host can tap, and the
+dialer's call control is not on core's confirmation list. The run JSON records `intents` and
+`intent_grants`.
+
+`EMULATOR_HANDLERS` (expected handlers on the AndroidWorld image; **not yet checked on the
+emulator**): set_timer and set_alarm → Clock (`com.google.android.deskclock`), create_event →
+Simple Calendar Pro, compose_sms → Simple SMS Messenger, add_contact → Contacts
+(`com.google.android.contacts`), open_settings → Settings, open_camera → Camera
+(`com.android.camera2`), view_uri → Chrome. Each entry stays only after one emulator check that
+the activity opens with the values filled in and nothing is submitted.
+
 ## Known rough edges (first run, 5 Nov 2026)
 
 - A 2-core 2017 laptop CPU is the bottleneck: software GPU rendering + model inference push

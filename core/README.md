@@ -367,6 +367,52 @@ The planner prompt carries `schema/actions.json` without whitespace (`actions::s
 the same JSON in about half the bytes, roughly 880 fewer estimated tokens per planner call); the
 file itself stays pretty-printed for hosts.
 
+### Typed operations (intents) (`src/operations.rs`, 15 Nov 2026)
+
+**Implemented and tested in core with scripted ports; emulator behaviour of each handler not yet
+checked.** A host may advertise typed operations: `HostCapabilities.intents`, a list of
+`{operation, package}` handlers it resolved on the device now. Only then does the planner prompt
+gain one line per advertised operation (with the apps that answer it) and the `intent` action
+form; with none advertised the prompt is byte-for-byte what it was (`schema_for_prompt` drops the
+`intent` variant). The planner is told to prefer an operation when it fits the request exactly.
+
+| Operation | Arguments (checked in code) | Android intent (hosts) | By itself |
+|---|---|---|---|
+| `set_timer` | `seconds` 1–86400, `label?` | `AlarmClock.ACTION_SET_TIMER`, `EXTRA_SKIP_UI=false` | creates **and starts** a timer: always confirmed |
+| `set_alarm` | `hour` 0–23, `minute` 0–59, `label?`, `days?` weekdays | `AlarmClock.ACTION_SET_ALARM`, `EXTRA_SKIP_UI=false` | creates an enabled alarm: always confirmed |
+| `create_event` | `title`, `begin` `YYYY-MM-DDTHH:MM`, `end` or `duration_minutes` (≤ 31 days), `location?`, `description?` | `ACTION_INSERT` on `CalendarContract.Events.CONTENT_URI` | opens the editor pre-filled |
+| `compose_sms` | `to` phone, `body` | `ACTION_SENDTO smsto:` + `sms_body` | opens compose pre-filled |
+| `add_contact` | `name`, `phone?`, `email?` | `ContactsContract.Intents.Insert`, `RawContacts.CONTENT_TYPE` | opens the editor pre-filled |
+| `open_settings` | `page`: wifi, internet_panel, bluetooth, display, sound, notifications, apps, date | the documented `Settings.ACTION_*` / `Settings.Panel` action | navigation |
+| `open_camera` | `mode`: photo, video | `MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA` / `VIDEO_CAMERA` | navigation (the camera's own shutter saves to its gallery; not `ACTION_IMAGE_CAPTURE`, which returns the image to the caller) |
+| `dial` | `number` | `ACTION_DIAL tel:` (never `ACTION_CALL`) | navigation |
+| `view_uri` | `uri`: `https://` with a host and no user part, or `geo:lat,lng` | `ACTION_VIEW`, `CATEGORY_BROWSABLE` | navigation |
+
+Rules, all in code: unknown operations or arguments, wrong types (a number as a string, a
+fraction), out-of-range values, invalid dates, `*`/`#` in numbers, control or bidirectional
+characters and other URI schemes are corrections, never guesses. The operation goes only to an
+advertised package that also has an app grant (`capabilities::permitted` checks the exact
+operation and package); `app` chooses among several handlers, and with several and none named the
+planner must name one. Requested-app preservation (`check_request`): an installed app named in the
+owner's request that handles the operation must be the one used; if the owner named apps and none
+handles it, the operation is refused and the planner uses that app's screens (opening a Settings
+page is exempt from this second rule only). Every argument value is tagged with its source; a
+value that is not in the owner's request, owner data or a control label (a reader fact, a carried
+value, or the planner's own text such as a converted duration or a computed date) needs a hard
+confirmation that names each value and source. The judge sees intents with those sources.
+Identical confirmed operations count under the guarded-repeat limit like any guarded input.
+
+No operation submits: there is no skip-UI, send or save field, and `IntentOp` rejects unknown
+fields on both sides. After the host acknowledges the start, `task_status` is `opened_ui` for an
+editor or navigation and `pending` for a timer or alarm; the history says nothing is saved or sent
+until the screen's Save or Send control is tapped, and the strings the intent filled in count as
+typed (shown as `(typed)` in fields). The loop then observes the opened screen; Save, Send and
+similar taps go through the ordinary confirmation path, and typed postconditions decide
+completion as before (`tests/operations.rs` drives compose_sms → guarded Send → sent-row check on
+recorded screens). A host that did not start the intent returns `not_executed`; an error is
+`unknown` and stops the run. A run that used an intent is not recorded as a skill. Contracts:
+`schema/capabilities.json` (`intents`, with the Android documentation for each).
+
 ## 7. Planner, reader and provenance
 
 **Planner prompt**, assembled by core, never by the model:
