@@ -97,7 +97,8 @@ class CoreHostTest(unittest.TestCase):
         self.assertEqual(result, {"result": "ok"})
         sent = adb.issue_generic_request.call_args[0][0]
         self.assertEqual(sent[0], "shell")
-        self.assertEqual(shlex.split(" ".join(sent[1:]))[-1], HOSTILE[0])
+        self.assertEqual(sent[-1], "2>&1", "stderr is read: am start reports unresolved intents there")
+        self.assertEqual(shlex.split(" ".join(sent[1:-1]))[-1], HOSTILE[0])
         self.assertTrue(host._input_since_observation)
 
     def test_intents_are_off_by_default(self):

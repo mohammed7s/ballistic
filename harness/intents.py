@@ -60,12 +60,15 @@ CAMERA_ACTIONS = {"photo": "android.media.action.STILL_IMAGE_CAMERA", "video": "
 CALENDAR_DAYS = {"sunday": 1, "monday": 2, "tuesday": 3, "wednesday": 4, "thursday": 5, "friday": 6, "saturday": 7}
 CALENDAR_EVENTS = "content://com.android.calendar/events"
 RAW_CONTACT_TYPE = "vnd.android.cursor.dir/raw_contact"
+EVENT_TYPE = "vnd.android.cursor.dir/event"
 
 # One probe intent per operation: (action, data, mime type). What `query-activities` resolves.
 PROBES: dict[str, tuple[str, Optional[str], Optional[str]]] = {
     "set_timer": ("android.intent.action.SET_TIMER", None, None),
     "set_alarm": ("android.intent.action.SET_ALARM", None, None),
-    "create_event": ("android.intent.action.INSERT", CALENDAR_EVENTS, None),
+    # `am start` and `cmd package query-activities` do not ask the provider for the URI's type,
+    # so the documented events type is given with the events URI (checked on the emulator).
+    "create_event": ("android.intent.action.INSERT", CALENDAR_EVENTS, EVENT_TYPE),
     "compose_sms": ("android.intent.action.SENDTO", "smsto:5550100", None),
     "add_contact": ("android.intent.action.INSERT", None, RAW_CONTACT_TYPE),
     "open_settings": (SETTINGS_ACTIONS["wifi"], None, None),
@@ -142,6 +145,12 @@ def shell_words(args: list[str]) -> list[str]:
     return [shlex.quote(a) for a in args]
 
 
+def device_command(args: list[str]) -> list[str]:
+    """`adb shell` words: the quoted arguments, then a constant `2>&1`. `am start` reports
+    "unable to resolve" on stderr (seen on the emulator); without it that would read as ok."""
+    return [*shell_words(args), "2>&1"]
+
+
 def outcome(output: str) -> dict[str, Any]:
     """Map `am start` output to a HandsResult. Not resolved or refused: nothing started."""
     text = output.strip()
@@ -208,7 +217,7 @@ def act(shell: Callable[[list[str]], str], op: dict[str, Any], zone: str) -> dic
 def adb_shell(controller: Any, adb_utils: Any) -> Callable[[list[str]], str]:
     """`adb shell` through AndroidWorld's controller, arguments quoted for the device shell."""
     def run(args: list[str]) -> str:
-        response = adb_utils.issue_generic_request(["shell", *shell_words(args)], controller, timeout_sec=10)
+        response = adb_utils.issue_generic_request(["shell", *device_command(args)], controller, timeout_sec=10)
         ok = getattr(type(response), "OK", None)
         if ok is not None and getattr(response, "status", ok) != ok:
             raise RuntimeError("adb request failed")  # unknown: core stops, never retries
