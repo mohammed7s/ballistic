@@ -1,15 +1,15 @@
 # Computer Control emulator evaluation
 
-Status: 22 November 2026. Pilot test driver built; no compatible image or live test run yet.
+Status: 22 November 2026. Pilot test driver built; compatible image build running; no live test yet.
 
 The Pixel has the compatible APK installed, but owner setup and live session validation remain
 pending. Its adapter reads accessibility/UI trees; screenshot-based model observation is not
-implemented. The ThinkPad has only the API-33 SDK system image. No compatible emulator image
-was found or built during this audit.
+implemented. The existing downloaded OS artifacts are Pixel `blazer` images, not emulator
+images. A separate compatible image build has now started on Contabo using the existing source.
 
 ## Platform deliverable
 
-The OS track must supply a separate virtual-device build from the pinned Android 17 source
+The OS recipe supplies a separate virtual-device build from the pinned Android 17 source
 with the installed-assistant Computer Control patches. The ARM64 Pixel factory/OTA image is
 not an emulator image. Use a supported virtual-device target from that source tree; Cuttlefish
 x86_64 is a candidate, not yet validated against this GrapheneOS pin. Record target, release
@@ -105,10 +105,12 @@ ThinkPad's `suite_core_20261115-204902.tsv` and recorded in
 The pinned manifest includes Goldfish at `160f9d95c50827b12e5ab1c49faa5d6502511e0b`.
 Its `AndroidProducts.mk` declares `sdk_phone64_x86_64`, device `emu64x`. This is the first
 candidate because it runs in the SDK emulator used by AndroidWorld (including its gRPC server),
-whereas Cuttlefish would also need an environment-launcher adaptation. This is source evidence,
-not a successful lunch/build/boot. Validate the release configuration and resulting CC-v5 flags,
-library and consent packaging before choosing it. Build with a separate output directory; retain
-the Pixel outputs and do not run the Pixel vendor-extraction/factory-image script for this target.
+whereas Cuttlefish would also need an environment-launcher adaptation. On 22 November the owner
+authorized this session to use Contabo. `lunch sdk_phone64_x86_64-cur-userdebug` passed and
+`RELEASE_PACKAGE_COMPUTER_CONTROL` returned `true`. A persistent systemd build now targets
+`emu_img_zip` and the public compile stub, using a separate output directory and retaining Pixel
+outputs. Compilation, effective runtime flags, boot and consent remain unverified. Live log paths,
+source checks and recipe: [OS build record](../../ballistic-os/docs/log/2026-11-22-emulator-build.md).
 
 Sources: [pinned manifest](https://raw.githubusercontent.com/GrapheneOS/platform_manifest/2026110200/default.xml),
 [product declarations](https://raw.githubusercontent.com/GrapheneOS/device_generic_goldfish/160f9d95c50827b12e5ab1c49faa5d6502511e0b/AndroidProducts.mk),

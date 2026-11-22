@@ -9,13 +9,17 @@ compiled and its manifest was inspected. Nothing was installed on the phone duri
 and no live Computer Control test or model call occurred. The driver preserves ordinary app
 approval and system consent and never substitutes ADB input for session input.
 
-The pinned source declares a Goldfish `sdk_phone64_x86_64` product, a candidate for retaining
-the SDK emulator/gRPC environment. Build, boot and API-37 AndroidWorld compatibility are not
-established. The ThinkPad still has only the API-33 system image. The original 30 task names
+The pinned source accepts Goldfish `sdk_phone64_x86_64-cur-userdebug`, retaining the SDK
+emulator/gRPC environment. The owner authorized this session to build it on Contabo. The build
+job is running from the existing patched source in a separate output directory, after patch
+verification and a successful check that Computer Control packaging is enabled. Compilation,
+boot and API-37 AndroidWorld compatibility are not established. The original 30 task names
 are recovered, but protected Settings cases must be classified rather than bypassed. Details,
 artifacts, fixed pilot budget and next requirements: [evaluation guide](COMPUTER_CONTROL_EVALUATION.md).
-OS build/server responsibility was asked separately because the original session scope reserved
-that work for the OS session; no build-server access or OS mutation was made while awaiting it.
+OS recipe and live build paths: [emulator build record](../../ballistic-os/docs/log/2026-11-22-emulator-build.md).
+The earlier build-server scope question is resolved for this emulator work. No phone changes
+were made. A stock API-37 SDK image download is also in progress on the ThinkPad for inspection;
+it is not evidence that stock Computer Control or our owner Settings flow works there.
 
 Updated 7 November 2026. This file holds current decisions and the next work, not the run diary.
 Read [README](../README.md), [SPEC](../SPEC.md), then this page. The complete earlier handoff is
