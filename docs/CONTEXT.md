@@ -260,3 +260,23 @@ The Pixel advertises com.android.extensions.computercontrol, but ACCESS_COMPUTER
 remains internal|privileged. The proposed role-based permission grant for an ordinary
 installed assistant still requires OS implementation/build validation; no OS files were
 changed by this status audit.
+
+## OS upgraded; app integration pending — 22 November 2026
+
+Read-only ADB verification on Pixel 56181FDCH0070R confirms build `2026112100`, the
+Computer Control shared library, and `ACCESS_COMPUTER_CONTROL` protection
+`internal|privileged|role`. The selected assistant role has no holder. The installed Ballistic
+APK is still the f33ce37 artifact identified above (same full SHA-256, last update
+15 November); it does not request Computer Control permission or include its adapters.
+The OS update did not update the APK. Privileged preinstallation is no longer the intended
+requirement: the new OS contract supports a qualifying ordinary installed assistant selected
+by the owner, followed by assistant/target switches and system target consent.
+
+The unmerged b046a7b app prototype is a starting point, not a compatible release claim.
+Before delivery, reconcile it with the OS-generated public compile-only stubs, version-5
+session contract and centralized Settings flow. One concrete source mismatch: its ongoing
+notification does not call `setRequestPromotedOngoing(true)`, required by the new integration
+contract. Rebuild/sign with the existing app identity, then validate real tree acquisition,
+input, Stop and revocation through owner-granted access. No app installation, grants or session
+execution occurred in this audit. Platform contract:
+[ordinary assistant integration](../../ballistic-os/docs/assistant-integration.md).
