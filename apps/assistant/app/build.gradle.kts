@@ -28,6 +28,8 @@ android {
         } }
         versionCode = 1
         versionName = "0.1.0"
+        // Separate test APK only: drives the real app on explicitly selected virtual devices.
+        testInstrumentationRunner = "app.ballistic.assistant.benchmark.ComputerControlBenchmark"
         // Shown in Local AI's technical details; the catalogue is the single source.
         buildConfigField("String", "LITERTLM_VERSION", "\"${libs.versions.litertlm.get()}\"")
         buildConfigField("String", "LITERT_NPU_GOOGLE_TENSOR_VERSION", "\"${libs.versions.litert.npu.google.tensor.get()}\"")

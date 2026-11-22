@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "source": "ThinkPad ballistic_runs/suite_core_20261115-204902.tsv, task-column recovery on 2026-11-22",
+  "status": "Task identities frozen; API-37 compatibility, generated goals and eligibility not yet validated",
+  "seed": 0,
+  "practice": [
+    "ContactsAddContact", "ClockTimerEntry", "ClockStopWatchRunning", "OpenAppTaskEval",
+    "SystemWifiTurnOff", "SystemBluetoothTurnOn", "SystemBrightnessMax", "TurnOnWifiAndOpenApp",
+    "SimpleSmsSend", "SimpleSmsReplyMostRecent", "SimpleCalendarAddOneEvent", "SimpleCalendarEventsOnDate",
+    "MarkorCreateNote", "MarkorDeleteNote", "MarkorCreateFolder", "ExpenseAddSingle",
+    "ExpenseDeleteSingle", "RecipeAddSingleRecipe", "FilesDeleteFile", "CameraTakePhoto"
+  ],
+  "rotation": [
+    "ClockStopWatchPausedVerify", "MarkorEditNote", "MarkorCreateNoteFromClipboard", "MarkorMoveNote",
+    "ExpenseDeleteMultiple2", "SimpleCalendarDeleteOneEvent", "SimpleCalendarNextMeetingWithPerson",
+    "NotesIsTodo", "RetroPlayingQueue", "SimpleSmsReply"
+  ],
+  "eligibility_notes": {
+    "protected_settings_target": ["SystemWifiTurnOff", "SystemBluetoothTurnOn", "SystemBrightnessMax", "TurnOnWifiAndOpenApp"],
+    "generated_target_requires_check": ["OpenAppTaskEval"],
+    "rule": "Do not waive protected-target restrictions or silently substitute tasks to increase the pass rate."
+  }
+}

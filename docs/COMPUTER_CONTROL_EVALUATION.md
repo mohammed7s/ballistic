@@ -1,6 +1,6 @@
 # Computer Control emulator evaluation
 
-Status: 22 November 2026. Preparation requirements, not a completed image or test run.
+Status: 22 November 2026. Pilot test driver built; no compatible image or live test run yet.
 
 The Pixel has the compatible APK installed, but owner setup and live session validation remain
 pending. Its adapter reads accessibility/UI trees; screenshot-based model observation is not
@@ -50,3 +50,66 @@ Pixel Tensor G5 NPU performance. Screenshots/vision remain separate future imple
 References: [OS integration contract](../../ballistic-os/docs/assistant-integration.md),
 [AndroidWorld](https://github.com/google-research/android_world),
 [AOSP virtual-device build](https://source.android.com/docs/setup/start).
+
+## Pilot driver implemented, 22 November 2026
+
+`harness/apk_control.py` provides read-only `preflight` and a single-goal `run`. The separate
+`androidTest` APK contains `ComputerControlBenchmark`; no test endpoint or approval bypass
+is added to the production application. Both host and instrumented code refuse physical devices.
+The driver requires API 37, the extension library, installed APK/test runner and assistant role,
+then checks app policy and real session availability. It uses the ordinary AppGraph/PromptSession
+and real Rust engine, with the existing model and approval ports. No ADB input is used for the
+agent. Starting instrumentation restarts the app: complete setup beforehand, including owner
+consent. A consent-needed result stops without accepting the prompt. A session is closed at exit.
+
+The pilot keeps the app's current **15-step** limit and conversation routing. Each run clears
+the test emulator's conversation history, but retains policy and models. Results distinguish
+finished/error/timeout and include the core report and steps; `finished` is not a success verdict.
+Independent state remains `not_checked`. This is not yet the 30-task AndroidWorld suite driver,
+and its fixed budget is not directly comparable with the prior complexity-based task budgets.
+The test instrument does not simulate fingerprints; requested action approvals still need the
+owner. A host timeout force-stops only the already-verified emulator app, records uncertainty,
+and never automatically repeats an action.
+
+Build the target app and its separate instrumentation APK with the same signing identity:
+
+```bash
+cd apps/assistant
+./gradlew :app:assembleDebug :app:assembleDebugAndroidTest
+```
+
+After installing both APKs on a compatible virtual device and completing normal owner setup:
+
+```bash
+python3 harness/apk_control.py preflight --serial emulator-5554
+python3 harness/apk_control.py run --serial emulator-5554 \
+  --goal 'Open Clock and show the Stopwatch tab. Do not start it.'
+```
+
+Five host driver tests passed (physical-device/API-33 refusal, shell quoting, preflight semantics,
+and bounded timeout without retry). The instrumentation APK compiled on the ThinkPad using the
+existing freshly rebuilt core/native artifacts. A read-only preflight against the Pixel confirmed
+that run eligibility is refused; no test was installed or executed on the phone. No live session,
+model call, AndroidWorld checker, or OS image build is implied by these checks.
+
+Built test APK: `ballistic_runs/cc_emulator_20261122/app-debug-androidTest.apk`, SHA-256
+`f5d41851c448c69461ca09134927ea08d84d104b64bdd89fab4486037773d64f`.
+Its inspected manifest targets `app.ballistic.assistant` and registers the expected custom
+instrumentation runner. Final test-APK build passed in seven seconds after the metadata update.
+The existing signed Pixel APK is unchanged. The original 30 task names were recovered from the
+ThinkPad's `suite_core_20261115-204902.tsv` and recorded in
+`harness/suites/computer_control_30.json`; generated requests and API-37 eligibility remain to check.
+
+## Image target identified
+
+The pinned manifest includes Goldfish at `160f9d95c50827b12e5ab1c49faa5d6502511e0b`.
+Its `AndroidProducts.mk` declares `sdk_phone64_x86_64`, device `emu64x`. This is the first
+candidate because it runs in the SDK emulator used by AndroidWorld (including its gRPC server),
+whereas Cuttlefish would also need an environment-launcher adaptation. This is source evidence,
+not a successful lunch/build/boot. Validate the release configuration and resulting CC-v5 flags,
+library and consent packaging before choosing it. Build with a separate output directory; retain
+the Pixel outputs and do not run the Pixel vendor-extraction/factory-image script for this target.
+
+Sources: [pinned manifest](https://raw.githubusercontent.com/GrapheneOS/platform_manifest/2026110200/default.xml),
+[product declarations](https://raw.githubusercontent.com/GrapheneOS/device_generic_goldfish/160f9d95c50827b12e5ab1c49faa5d6502511e0b/AndroidProducts.mk),
+[x86_64 phone product](https://raw.githubusercontent.com/GrapheneOS/device_generic_goldfish/160f9d95c50827b12e5ab1c49faa5d6502511e0b/64bitonly/product/sdk_phone64_x86_64.mk).

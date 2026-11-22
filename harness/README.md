@@ -1,5 +1,11 @@
 # Harness (step 1): emulator + AndroidWorld + local models
 
+Computer Control pilot: `apk_control.py` drives the actual app through a separate test APK on
+API-37 virtual devices. It does not use the old ADB action adapter and refuses physical phones.
+The patched virtual-device image and full AndroidWorld integration are still pending. See
+[setup, limits and evidence](../docs/COMPUTER_CONTROL_EVALUATION.md). The recovered practice-20
+plus rotation-10 identities are in `suites/computer_control_30.json`; this is not a completed run.
+
 Plain-language walkthrough (interactive prompt, tasks, suite, baseline): `docs/guide/emulator.html`.
 
 Runs on any Ubuntu machine with KVM (a 32 GB laptop works). Everything is

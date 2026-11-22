@@ -1,5 +1,22 @@
 # Ballistic: current decisions and handoff
 
+## Computer Control emulator preparation — 22 November 2026
+
+The owner requested starting the compatible emulator and evaluation work. The app now has a
+separate, emulator-only instrumentation test APK and a host preflight/single-goal driver that
+uses its real Rust engine and Computer Control ports. Five driver tests pass; the test APK
+compiled and its manifest was inspected. Nothing was installed on the phone during this work,
+and no live Computer Control test or model call occurred. The driver preserves ordinary app
+approval and system consent and never substitutes ADB input for session input.
+
+The pinned source declares a Goldfish `sdk_phone64_x86_64` product, a candidate for retaining
+the SDK emulator/gRPC environment. Build, boot and API-37 AndroidWorld compatibility are not
+established. The ThinkPad still has only the API-33 system image. The original 30 task names
+are recovered, but protected Settings cases must be classified rather than bypassed. Details,
+artifacts, fixed pilot budget and next requirements: [evaluation guide](COMPUTER_CONTROL_EVALUATION.md).
+OS build/server responsibility was asked separately because the original session scope reserved
+that work for the OS session; no build-server access or OS mutation was made while awaiting it.
+
 Updated 7 November 2026. This file holds current decisions and the next work, not the run diary.
 Read [README](../README.md), [SPEC](../SPEC.md), then this page. The complete earlier handoff is
 preserved in the [log](log/2026-11-07-before-reorganization-context.md).
