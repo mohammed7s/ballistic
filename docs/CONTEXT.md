@@ -20,6 +20,9 @@ OS recipe and live build paths: [emulator build record](../../ballistic-os/docs/
 The earlier build-server scope question is resolved for this emulator work. No phone changes
 were made. A stock API-37 SDK image download is also in progress on the ThinkPad for inspection;
 it is not evidence that stock Computer Control or our owner Settings flow works there.
+Status checked at 17:15 UTC: the previous custom build had failed at 10:43 UTC in Soong path
+validation, before producing an image. Resume 2 corrects the external output path to a dedicated
+source-relative directory. The ThinkPad is reachable again. Image build/boot and tests remain pending.
 
 Updated 7 November 2026. This file holds current decisions and the next work, not the run diary.
 Read [README](../README.md), [SPEC](../SPEC.md), then this page. The complete earlier handoff is
