@@ -8,6 +8,7 @@
 
 package app.ballistic.assistant.core
 
+import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -42,12 +43,27 @@ enum class ConfirmMode {
     @SerialName("never_automate") NeverAutomate,
 }
 
+/**
+ * Computer Control for one app (computercontrol/CcState.kt, ScreenControlRules): the app may be a
+ * session target, its screen tree may be read and input may be sent to it, still subject to the
+ * other fields. Separate from [Observe]/[Act] on purpose: files written before Computer Control
+ * existed may hold `tree`/`full`, which were shown to the owner as "no extra access".
+ */
+@Serializable
+enum class ScreenControl {
+    @SerialName("off") Off,
+    @SerialName("on") On,
+}
+
 @Serializable
 data class AppPolicy(
     val observe: Observe = Observe.None,
     val act: Act = Act.None,
     val route: Route = Route.DeviceOnly,
     val confirm: ConfirmMode = ConfirmMode.DefaultList,
+    /** Absent in older files, so it defaults to off; written only when on. */
+    @EncodeDefault(EncodeDefault.Mode.NEVER)
+    @SerialName("screen_control") val screenControl: ScreenControl = ScreenControl.Off,
 )
 
 /**

@@ -280,3 +280,28 @@ contract. Rebuild/sign with the existing app identity, then validate real tree a
 input, Stop and revocation through owner-granted access. No app installation, grants or session
 execution occurred in this audit. Platform contract:
 [ordinary assistant integration](../../ballistic-os/docs/assistant-integration.md).
+
+## App version-5 integration — 22 November 2026
+
+The previous prototype's app components are integrated with the current typed-intent source.
+Session requests now require v5 and a visible Activity, use promoted ongoing notification
+metadata with Stop, and reject stale callbacks after cancellation. Owner Activity destruction,
+closure and blocking terminate the session and task; no automatic restart. Each run keeps its
+original display route after revocation. Typed intents remain available outside CC and fail
+closed during it. App policy defaults screen control off, requires explicit tree reading, and
+separates navigation from full input. Normal Settings selection, system assistant/target switches
+and owner target consent are required; no shell grants or OS changes are part of app delivery.
+
+Delivered artifacts lacked the generated public stubs jar. Compile-only headers now derive from
+the exact pinned public signature; a Gradle property accepts the real public jar when available.
+See [platform details](PLATFORM.md#computer-control-app-integration--22-november-2026) and the
+[dated build/install record](log/2026-11-22-computer-control-app.md). Runtime session evidence must
+be read from that record, separately from host tests and APK compilation.
+
+The compatible APK is now installed in place on Pixel `56181FDCH0070R`, replacing the
+15 November artifact. Installed SHA-256 is
+`9ab7e84b652f7fe2ef08fc28d15180b7aac1f52fd457d621811f49ec10bb37bb`; the original signing
+certificate, first-install time, saved settings and both downloaded models are preserved.
+Fresh Rust/native build completed; 452 Rust tests passed and 192 JVM tests report zero failures,
+3 optional skips. App launch passed. Owner setup and live session checks are tracked in the
+dated record and are not established by these build/install checks.

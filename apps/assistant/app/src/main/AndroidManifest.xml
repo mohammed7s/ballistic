@@ -1,15 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Ballistic as an ordinary, unprivileged app (PLAN step 3). No privileged permission is declared;
-  Computer Control, the assistant role and priv-app status come with the gates (docs/PLATFORM.md).
-  Every permission below is install-time "normal" or runtime-granted by the owner:
+  Ballistic installs and runs as an ordinary app (PLAN step 3). Every permission below except
+  ACCESS_COMPUTER_CONTROL is install-time "normal" or runtime-granted by the owner:
     INTERNET              model endpoints (subject to GrapheneOS's Network toggle)
-    POST_NOTIFICATIONS    the "approval needed" notification when the window cannot be raised
+    POST_NOTIFICATIONS    the "approval needed" notification when the window cannot be raised;
+                          also required by Computer Control's requestSession
     USE_BIOMETRIC         command gate and hard confirmations
     HIDE_OVERLAY_WINDOWS  the confirmation window hides other apps' overlays (SPEC §7.1)
     SET_ALARM             required by AlarmClock.ACTION_SET_ALARM and ACTION_SET_TIMER (IntentHands, typed operations)
+    ACCESS_COMPUTER_CONTROL  Android 17 Computer Control (adapters/ComputerControlPlatform.kt).
+                          internal|privileged|role on the supported OS. Owner selection as the
+                          digital assistant grants this requested permission; separate Screen
+                          automation gates and target consent still apply. The app checks
+                          the grant at run time and behaves the same whichever way it arrived.
 -->
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -19,6 +25,8 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.HIDE_OVERLAY_WINDOWS" />
     <uses-permission android:name="com.android.alarm.permission.SET_ALARM" />
+    <uses-permission android:name="android.permission.ACCESS_COMPUTER_CONTROL"
+        tools:ignore="ProtectedPermissions" />
 
     <!-- Package visibility for launchable apps (installed_apps, open_app) and the intents
          IntentHands sends. No QUERY_ALL_PACKAGES. -->
@@ -110,6 +118,14 @@
         <uses-native-library android:name="libOpenCL.so" android:required="false" />
         <uses-native-library android:name="libedgetpu_client.google.so" android:required="false" />
 
+        <!-- Android 17 Computer Control's agent API (ComputerControlExtensions /
+             ComputerControlSession), a shared library in /system_ext on phones that ship it.
+             required="false": without it the app installs and keeps its unprivileged adapters.
+             Compiled against :computercontrol-stubs, never packaged. -->
+        <uses-library android:name="com.android.extensions.computercontrol" android:required="false" />
+
+        <receiver android:name=".ScreenControlStopReceiver" android:exported="false" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -117,6 +133,15 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!-- Qualifies Ballistic for the assistant role (RoleManager.ROLE_ASSISTANT), which
+                 Computer Control requires of the session owner. PermissionController's
+                 AssistantRoleBehavior accepts an exported activity resolving ACTION_ASSIST with
+                 MATCH_DEFAULT_ONLY, hence CATEGORY_DEFAULT. The assist gesture then opens
+                 Ballistic; the command gate still applies (adapters/AssistantRole.kt). -->
+            <intent-filter>
+                <action android:name="android.intent.action.ASSIST" />
+                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
 

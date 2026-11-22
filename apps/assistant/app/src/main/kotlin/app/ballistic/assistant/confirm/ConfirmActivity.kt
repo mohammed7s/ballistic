@@ -12,6 +12,11 @@
 //    fallback) bound to a per-operation key that signs the exact request (OperationKey).
 //  - Leaving the window does not decide; the request stays pending until the owner returns,
 //    Stop, or the broker's timeout. Finishing the window without a decision denies.
+//  - Owner's display only. ConfirmBroker starts the window on Display.DEFAULT_DISPLAY, and no
+//    touch is accepted and nothing is approved while the window is on any other display.
+//    Computer Control injects its taps and keys through virtual devices into its own virtual
+//    display, where only the session's target apps run (never Ballistic); the filter also
+//    rejects events from another display and from Computer Control's input devices.
 
 package app.ballistic.assistant.confirm
 
@@ -21,6 +26,7 @@ import android.hardware.biometrics.BiometricPrompt
 import android.os.Bundle
 import android.os.CancellationSignal
 import android.os.SystemClock
+import android.view.Display
 import android.view.KeyCharacterMap
 import android.view.KeyEvent
 import android.view.MotionEvent
@@ -118,6 +124,10 @@ class ConfirmActivity : ComponentActivity() {
     override fun dispatchTouchEvent(event: MotionEvent): Boolean {
         // No display yet means the window is not shown; nothing can be approved.
         val displayId = window.decorView.display?.displayId ?: return true
+        if (displayId != Display.DEFAULT_DISPLAY) {
+            status = "Ignored input: this window is not on the phone's own screen"
+            return true
+        }
         // ACTION_MOVE is not verified: the input layer batches move samples and may append a
         // predicted one, so the signature over the event no longer matches and
         // verifyInputEvent() fails for real fingers. A move inside a gesture whose DOWN passed
@@ -161,6 +171,10 @@ class ConfirmActivity : ComponentActivity() {
     private fun recentVerifiedTouch() = SystemClock.uptimeMillis() - lastVerifiedUp < CLICK_WINDOW_MS
 
     private fun approve(pending: ConfirmBroker.Pending) {
+        if (window.decorView.display?.displayId != Display.DEFAULT_DISPLAY) {
+            status = "Approve works only on the phone's own screen"
+            return
+        }
         if (!recentVerifiedTouch()) {
             status = "Approve needs a touch on the screen"
             return

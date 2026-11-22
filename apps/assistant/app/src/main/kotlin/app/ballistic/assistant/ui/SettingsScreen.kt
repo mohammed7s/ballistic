@@ -55,6 +55,10 @@ import app.ballistic.assistant.core.AppPolicy
 import app.ballistic.assistant.core.ConfirmMode
 import app.ballistic.assistant.core.Observe
 import app.ballistic.assistant.core.Route
+import app.ballistic.assistant.core.ScreenControl
+import app.ballistic.assistant.computercontrol.CcReason
+import app.ballistic.assistant.computercontrol.ScreenControlRules
+import app.ballistic.assistant.core.PolicyFile
 import app.ballistic.assistant.debug.DebugTools
 import app.ballistic.assistant.models.Endpoint
 import app.ballistic.assistant.models.ModelsConfig
@@ -81,8 +85,16 @@ fun SettingsScreen(graph: AppGraph, activity: Activity, onOpen: (Screen) -> Unit
     val allowed = apps.count { AppAccess.canOpen(policy.forApp(it.`package`)) || policy.forApp(it.`package`).observe != Observe.None }
     fun idleAndUnlocked() = graph.gate.canAcceptCommands() && graph.session.state.value.canSubmit &&
         graph.session.state.value.pendingRequest == null && !graph.localAi.busy.value
+    // The platform takes at most six target apps per Computer Control session.
+    fun tooManyScreenTargets(file: PolicyFile) =
+        ScreenControlRules.targetProblem(ScreenControlRules.targets(file, activity.packageName)) == CcReason.TooManyTargets
+    val tooManyMessage = "Screen control can be on for at most ${ScreenControlRules.MAX_TARGETS} apps. Turn it off for another app first."
     fun saveRule(pkg: String, label: String, before: AppPolicy, changed: AppPolicy) {
         if (!idleAndUnlocked() || approving) return
+        if (tooManyScreenTargets(graph.policyStore.load().with(pkg, changed))) {
+            accessMessage = tooManyMessage
+            return
+        }
         val strong = BiometricManager.Authenticators.BIOMETRIC_STRONG
         if (activity.getSystemService(BiometricManager::class.java).canAuthenticate(strong) != BiometricManager.BIOMETRIC_SUCCESS) {
             accessMessage = "Changing app access requires an enrolled strong biometric. Set this up in phone security settings."
@@ -90,7 +102,7 @@ fun SettingsScreen(graph: AppGraph, activity: Activity, onOpen: (Screen) -> Unit
         }
         approving = true
         accessMessage = null
-        val description = "Read: ${policyLabel(changed.observe)}\nAct: ${policyLabel(changed.act)}\nAI route: ${policyLabel(changed.route)}\nApproval: ${policyLabel(changed.confirm)}"
+        val description = "Read: ${policyLabel(changed.observe)}\nAct: ${policyLabel(changed.act)}\nAI route: ${policyLabel(changed.route)}\nApproval: ${policyLabel(changed.confirm)}\nScreen control: ${policyLabel(changed.screenControl)}"
         BiometricPrompt.Builder(activity).setTitle("Save access rules")
             .setSubtitle("$label · $pkg").setDescription(description)
             .setAllowedAuthenticators(strong).setConfirmationRequired(true)
@@ -108,6 +120,10 @@ fun SettingsScreen(graph: AppGraph, activity: Activity, onOpen: (Screen) -> Unit
                     }
                     try {
                         val next = latest.with(pkg, changed)
+                        if (tooManyScreenTargets(next)) {
+                            accessMessage = tooManyMessage
+                            return
+                        }
                         graph.policyStore.save(next)
                         policy = next
                         accessMessage = "Rules saved for $label."
@@ -176,10 +192,13 @@ fun SettingsScreen(graph: AppGraph, activity: Activity, onOpen: (Screen) -> Unit
                     }
                     if (expanded) Column(Modifier.padding(bottom = Space.s2)) {
                         Text(app.`package`, style = LocalBallisticExtras.current.monoSmall, color = c.onSurfaceVariant)
-                        Choice("Read", draft.observe, listOf(Observe.None, Observe.Notifications), canEdit) { draft = draft.copy(observe = it) }
-                        Choice("Act", draft.act, listOf(Act.None, Act.Navigate), canEdit) { draft = draft.copy(act = it) }
+                        Choice("Read", draft.observe, listOf(Observe.None, Observe.Notifications, Observe.Tree), canEdit) { draft = draft.copy(observe = it) }
+                        Choice("Act", draft.act, Act.entries, canEdit) { draft = draft.copy(act = it) }
                         Choice("AI route", draft.route, Route.entries, canEdit) { draft = draft.copy(route = it) }
                         Choice("Approval", draft.confirm, ConfirmMode.entries, canEdit) { draft = draft.copy(confirm = it) }
+                        // Computer Control target: read this app's screen and act in it during a
+                        // session, within Read/Act/route above. Needs the OS grant (Can do here).
+                        Choice("Screen control", draft.screenControl, ScreenControl.entries, canEdit) { draft = draft.copy(screenControl = it) }
                         BButton("Save with fingerprint", { saveRule(app.`package`, app.label, p, draft) }, Modifier.fillMaxWidth(),
                             enabled = canEdit && draft != p, emphasis = true)
                     }
@@ -194,6 +213,8 @@ fun SettingsScreen(graph: AppGraph, activity: Activity, onOpen: (Screen) -> Unit
             if (open == Group.Permissions) Column(Modifier.padding(start = Space.s3, bottom = Space.s2), verticalArrangement = Arrangement.spacedBy(Space.s2)) {
                 Text("Android controls Ballistic's access to phone resources. App rules restrict what Ballistic may do within those permissions; they cannot grant system access.",
                     style = MaterialTheme.typography.bodySmall, color = c.onSurfaceVariant)
+                BButton("Choose digital assistant", { activity.startActivity(Intent(Settings.ACTION_VOICE_INPUT_SETTINGS)) })
+                Text("For screen control, also enable Ballistic and targets in Android Settings › Apps › Special app access › Screen automation, then start a session in Can do here.", style = MaterialTheme.typography.bodySmall)
                 BButton("Open Android settings for Ballistic", {
                     activity.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${activity.packageName}")))
                 })
@@ -250,7 +271,8 @@ private fun ruleSummary(p: AppPolicy): String {
     val open = if (p.act == Act.None) "Can't open" else "Can open"
     val read = if (p.observe == Observe.None) "reads nothing" else "reads notifications"
     val route = if (p.route == Route.DeviceOnly) "this phone only" else "selected AI"
-    return "$open · $read · $route"
+    val screen = if (p.screenControl == ScreenControl.On) " · screen control" else ""
+    return "$open · $read · $route$screen"
 }
 
 
@@ -290,15 +312,17 @@ private fun <T : Enum<T>> Choice(name: String, value: T, options: List<T>, enabl
 private fun policyLabel(value: Enum<*>): String = when (value) {
     Observe.None -> "Nothing"
     Observe.Notifications -> "Notifications"
-    Observe.Tree, Observe.TreeScreenshot -> "Notifications (old rule; no extra access)"
+    Observe.Tree, Observe.TreeScreenshot -> "Notifications and screen tree (screen control required)"
     Act.None -> "Nothing"
-    Act.Navigate -> "Open the app"
-    Act.Full -> "Open the app (old rule; no extra access)"
+    Act.Navigate -> "Open, scroll and go back"
+    Act.Full -> "Full actions (including taps and typing)"
     Route.DeviceOnly -> "This phone only"
     Route.Default -> "Selected AI (may leave the phone)"
     ConfirmMode.DefaultList -> "Sensitive actions"
     ConfirmMode.Always -> "Every action"
     ConfirmMode.NeverAutomate -> "Never act"
+    ScreenControl.Off -> "Off"
+    ScreenControl.On -> "On: read its screen and act in it (Computer Control)"
     else -> value.name
 }
 

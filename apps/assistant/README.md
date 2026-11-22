@@ -6,8 +6,39 @@ logic (core/README.md §15, rule 1). Pass 2 puts the real Rust core behind the p
 libballistic_core runs in-process through UniFFI whenever a model is configured, and the UI says
 which engine takes the run.
 
-Package and application id: `app.ballistic.assistant`. It runs as an ordinary app with no
-privileged permission.
+Package and application id: `app.ballistic.assistant`. It runs as an ordinary installed app.
+On the supported OS the owner-selected assistant receives its requested Computer Control
+permission through the role; separate OS gates and target consent still apply.
+
+## Computer Control integration — 22 November 2026
+
+The app now includes version-5 Computer Control Screen/Hands adapters. See
+[platform contract and compile-only API provenance](../../docs/PLATFORM.md#computer-control-app-integration--22-november-2026)
+and the [dated delivery evidence](../../docs/log/2026-11-22-computer-control-app.md).
+Installed in place on Pixel `56181FDCH0070R` on 22 November with matching signing identity;
+model and settings hashes were preserved. The dated record separates live checks from the
+successful build, 192 JVM tests (3 optional skips) and 452 Rust tests.
+Older device/build evidence below describes earlier APKs, not this integration's runtime validation.
+
+Owner setup on the supported OS:
+
+1. Choose Ballistic in Android Settings › Apps › Default apps › Digital assistant app.
+   Ballistic's Settings and Can do here pages open this normal system selection screen.
+2. In Android Settings › Apps › Special app access › Screen automation, enable Ballistic and
+   each intended target. Allow Ballistic's notifications normally.
+3. In Ballistic Settings › App rules, explicitly enable Screen control for up to six targets,
+   choose screen-tree reading and suitable actions/AI route, and save with fingerprint.
+   Old saved rules gain no screen access automatically. Navigate allows open/scroll/Back;
+   Full allows arbitrary taps and typing too. The default route keeps content on the phone.
+4. Keep Ballistic visible, open Can do here, and Start screen control. Review app consent
+   opens the OS target consent UI; only the owner can allow it. Ask then uses the session.
+5. Stop in the app or screen-control notification ends the session and current task. Activity
+   destruction, OS closure and blocking also stop it; restart requires a deliberate new request.
+
+Ordinary typed intents remain available outside screen control. During it they are disabled
+because they launch on the owner's display, outside the observed virtual display. This version
+supplies trees and input, not screenshots, Home or AppFunctions. No live model call is needed to
+install or inspect the app. Build/host-test success alone does not prove phone automation works.
 
 ## Layout
 

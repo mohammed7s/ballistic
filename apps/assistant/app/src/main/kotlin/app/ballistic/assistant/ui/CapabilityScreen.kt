@@ -5,6 +5,14 @@
 
 package app.ballistic.assistant.ui
 
+import android.app.Activity
+import android.content.Intent
+import android.provider.Settings
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.compose.runtime.DisposableEffect
+import app.ballistic.assistant.MainActivity
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -16,9 +24,16 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import app.ballistic.assistant.AppGraph
+import app.ballistic.assistant.computercontrol.CcPlatform
+import app.ballistic.assistant.computercontrol.CcReason
+import app.ballistic.assistant.computercontrol.CcState
+import app.ballistic.assistant.computercontrol.ScreenControlRules
 import app.ballistic.assistant.adapters.InstalledApps
 import app.ballistic.assistant.adapters.NotificationScreenService
 import app.ballistic.assistant.core.AppAccess
@@ -38,14 +53,46 @@ private val OPERATION_WORDS = linkedMapOf(
     "home" to "Go to the home screen",
 )
 
+/** One line for the platform's Computer Control preconditions, in the order the owner fixes them. */
+private fun platformLine(p: CcPlatform): String = when (p.missing) {
+    null -> "Available (extension version ${p.version})."
+    CcReason.NoLibrary -> "Not on this phone: the OS has no Computer Control library."
+    CcReason.NoPermission -> "The OS has not granted Ballistic Computer Control access."
+    CcReason.NoNotifications -> "Allow Ballistic's notifications first; Computer Control requires them."
+    CcReason.NotAssistant -> "Make Ballistic the digital assistant app: Settings › Apps › Default apps."
+    CcReason.NotAllowed -> "The OS does not allow Ballistic to start a session."
+    else -> p.missing!!.message
+}
+
+private fun sessionLine(s: CcState): String = when (s) {
+    is CcState.Idle -> s.reason?.takeIf { it != CcReason.NotStarted }?.let { "Not running. Last: ${it.message}." } ?: "Not running."
+    CcState.Requesting -> "Asking the system…"
+    is CcState.ConsentNeeded -> "Waiting for your consent for these apps."
+    is CcState.Starting -> "Starting."
+    is CcState.Active -> "Running. Apps open on a hidden screen; the notification shows it is on."
+    is CcState.Blocked -> s.reason.message + "."
+}
+
 @Composable
 fun CapabilityScreen(graph: AppGraph) {
     val c = MaterialTheme.colorScheme
     val selection by graph.localAi.selection.collectAsState()
     val local by graph.localModels.state.collectAsState()
-    val caps = remember { graph.capabilities() }
+    val cc by graph.computerControl.state.collectAsState()
+    val unlocked by graph.gate.unlocked.collectAsState()
+    val activity = LocalContext.current as? Activity
+    var ccMessage by remember { mutableStateOf<String?>(null) }
+    var resumeCount by remember { mutableStateOf(0) }
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    DisposableEffect(lifecycle) {
+        val observer = LifecycleEventObserver { _, event -> if (event == Lifecycle.Event.ON_RESUME) resumeCount++ }
+        lifecycle.addObserver(observer)
+        onDispose { lifecycle.removeObserver(observer) }
+    }
+    val platform = remember(cc, resumeCount) { graph.computerControl.platform() }
+    val caps = remember(cc, resumeCount) { graph.capabilities() }
     val apps = remember { InstalledApps.list(graph.app) }
-    val policy = remember { graph.policyStore.load() }
+    val policy = remember(resumeCount) { graph.policyStore.load() }
     val label = { pkg: String -> apps.firstOrNull { it.`package` == pkg }?.label ?: pkg }
     val opens = caps.appGrants.map(label)
     val onPhone = selection.backend == ModelBackend.Local
@@ -54,6 +101,8 @@ fun CapabilityScreen(graph: AppGraph) {
     val realEngine = graph.engine.current is UniffiCoreEngine
     val modelReady = realEngine && (!onPhone || local.metadata != null)
     val missing = OPERATION_WORDS.keys.filter { it !in caps.operations }
+    val screenTargets = ScreenControlRules.targets(policy, graph.app.packageName)
+    val targetProblem = ScreenControlRules.targetProblem(screenTargets)
 
     @Composable
     fun Entry(title: String, detail: String) {
@@ -80,12 +129,47 @@ fun CapabilityScreen(graph: AppGraph) {
             else if (!realEngine) "Not in this build: only the demo engine is available." else "After you load a model in Local AI.")
         Entry("Check local AI speed", if (local.metadata != null) "Short and ~2K checks in Local AI" else "After you load a model in Local AI")
 
+        SectionHeading("Screen control (Computer Control)")
+        Entry("This phone", platformLine(platform))
+        BButton("Choose digital assistant", {
+            activity?.startActivity(Intent(Settings.ACTION_VOICE_INPUT_SETTINGS))
+        }, Modifier.fillMaxWidth())
+        Entry("System Screen automation", "In Android Settings › Apps › Special app access › Screen automation, enable Ballistic and each target. These system switches are separate from Ballistic's App rules and the target consent dialog.")
+        BButton("Open Android Apps settings", {
+            activity?.startActivity(Intent(Settings.ACTION_APPLICATION_SETTINGS))
+        }, Modifier.fillMaxWidth())
+        if (!platform.notifications) BButton("Allow notifications", {
+            (activity as? MainActivity)?.requestNotificationPermission()
+        }, Modifier.fillMaxWidth())
+        Entry("Apps with Screen control on", when (targetProblem) {
+            CcReason.NoTargets -> "None. Turn it on for up to six apps in Settings › App rules."
+            CcReason.TooManyTargets -> "More than six apps; the system allows six. Turn some off in Settings › App rules."
+            else -> screenTargets.map(label).joinToString()
+        })
+        Entry("Session", sessionLine(cc))
+        ccMessage?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+        when (cc) {
+            is CcState.Idle -> BButton("Start screen control", {
+                ccMessage = if (activity == null) "Keep Ballistic visible to start." else graph.startComputerControl(activity)?.message
+            }, Modifier.fillMaxWidth(), enabled = activity != null && unlocked && platform.missing == null && targetProblem == null)
+            is CcState.ConsentNeeded -> BButton("Review app consent", {
+                if (activity == null || !graph.computerControl.reviewConsent(activity)) ccMessage = "The consent screen could not be opened."
+            }, Modifier.fillMaxWidth(), emphasis = true)
+            else -> BButton("End screen control", { graph.stop() }, Modifier.fillMaxWidth())
+        }
+        if (cc is CcState.ConsentNeeded) BButton("Cancel screen control", { graph.stop() }, Modifier.fillMaxWidth())
+        if (cc is CcState.Active) Entry("Read and act in these apps", "On the hidden screen only, within each app's rules; ${screenTargets.map(label).joinToString()}.")
+
         SectionHeading("Not on this phone yet")
         if (missing.isNotEmpty()) Entry(
             missing.joinToString { OPERATION_WORDS.getValue(it).lowercase() }.replaceFirstChar { it.uppercase() } + " inside other apps",
-            "Needs platform support (Computer Control) that this phone setup doesn't provide.")
-        Entry("Read another app's screen", "Only notifications from apps you allow can be read.")
-        Entry("Set alarms, send messages, make calls, reply to notifications", "Not available to the assistant in this build.")
+            if (cc is CcState.Active) "Computer Control offers no home action."
+            else "Needs a running Computer Control session (Screen control above).")
+        if (cc !is CcState.Active) Entry("Read another app's screen", "Only notifications from apps you allow can be read, until screen control runs.")
+        Entry("Typed app operations", if (cc !is CcState.Idle)
+            "Unavailable during screen control: ordinary intents open on your screen, outside the controlled display. End screen control to use them."
+            else if (caps.intents.isEmpty()) "No handlers allowed by App rules. Supported handlers can open composers, the dialer and other pages; opening is not completion."
+            else caps.intents.map { it.operation }.distinct().joinToString())
 
         SectionHeading("Never")
         Entry("Log in or make payments for you", "Not part of Ballistic's design.")

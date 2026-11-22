@@ -8,12 +8,14 @@
 
 package app.ballistic.assistant.confirm
 
+import android.app.ActivityOptions
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.view.Display
 import app.ballistic.assistant.R
 import app.ballistic.assistant.core.ConfirmClass
 import app.ballistic.assistant.core.ConfirmRequest
@@ -77,17 +79,23 @@ class ConfirmBroker(private val context: Context) {
      * Starts the window and posts a notification that opens it. Android blocks activity starts
      * from the background (Ballistic is in the background whenever IntentHands has opened another
      * app), so the notification is the path that always works; the direct start is best effort.
+     *
+     * Both starts name the default display: the owner's real screen. A Computer Control session
+     * injects input only into its own virtual display, and Ballistic is never one of its target
+     * apps, so the window must never be placed there (ConfirmActivity also refuses to approve
+     * from any other display).
      */
     private fun raiseWindow(pending: Pending) {
         val intent = Intent(context, ConfirmActivity::class.java)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-        runCatching { context.startActivity(intent) }
+        val ownerDisplay = ActivityOptions.makeBasic().setLaunchDisplayId(Display.DEFAULT_DISPLAY).toBundle()
+        runCatching { context.startActivity(intent, ownerDisplay) }
 
         val manager = context.getSystemService(NotificationManager::class.java)
         manager.createNotificationChannel(
             NotificationChannel(CHANNEL, context.getString(R.string.confirm_channel), NotificationManager.IMPORTANCE_HIGH),
         )
-        val open = PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+        val open = PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT, ownerDisplay)
         val kind = if (pending.required == ConfirmClass.Hard) "fingerprint approval" else "approval"
         manager.notify(
             NOTIFICATION_ID,

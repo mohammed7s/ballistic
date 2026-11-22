@@ -3,13 +3,25 @@
 
 package app.ballistic.assistant
 
+import android.app.Activity
 import android.app.Application
+import app.ballistic.assistant.computercontrol.CcRunRoute
 import android.content.Intent
 import androidx.core.content.ContextCompat
 import app.ballistic.assistant.adapters.BiometricConfirm
+import app.ballistic.assistant.adapters.ComputerControlPlatform
 import app.ballistic.assistant.adapters.InstalledApps
 import app.ballistic.assistant.adapters.IntentHands
 import app.ballistic.assistant.adapters.NotificationScreen
+import app.ballistic.assistant.computercontrol.CcCapabilities
+import app.ballistic.assistant.computercontrol.CcReason
+import app.ballistic.assistant.computercontrol.ComputerControlHands
+import app.ballistic.assistant.computercontrol.ComputerControlScreen
+import app.ballistic.assistant.computercontrol.HostHands
+import app.ballistic.assistant.computercontrol.HostScreen
+import app.ballistic.assistant.computercontrol.ScreenControlRules
+import app.ballistic.assistant.computercontrol.UiPolicyHands
+import app.ballistic.assistant.computercontrol.ownsScreen
 import app.ballistic.assistant.confirm.ConfirmBroker
 import app.ballistic.assistant.core.AppAccess
 import app.ballistic.assistant.core.PolicyHands
@@ -116,28 +128,75 @@ class AppGraph(val app: Application) {
     )
 
     private val operationConfirm = BiometricConfirm(broker, policyStore)
-    val hands = PolicyHands(policyStore::load, IntentHands(app), operationConfirm) {
-        session.state.value.canStop && session.state.value.runs.lastOrNull()?.stopRequested != true
+
+    /**
+     * Android 17 Computer Control (adapters/ComputerControlPlatform.kt). While a session owns the
+     * screen, core observes and acts on its virtual display (computercontrol/ in :core-api);
+     * otherwise the unprivileged adapters below serve exactly as before.
+     */
+    val computerControl: ComputerControlPlatform = ComputerControlPlatform(app,
+        onEnded = {
+            if (session.state.value.canStop && session.state.value.runs.lastOrNull()?.stopRequested != true) session.stop()
+            broker.denyPending("screen control ended")
+        },
+        mayInput = { pkg, full ->
+            val p = policyStore.load().forApp(pkg)
+            canDispatch() && ScreenControlRules.mayAct(p) && (!full || p.act == Act.Full)
+        },
+    )
+    private val ccRunRoute = CcRunRoute()
+    private val ccOwnsScreen = {
+        val run = session.state.value
+        ccRunRoute.ownsScreen(run.runs.lastOrNull()?.id?.takeIf { run.canStop }, computerControl.state.value.ownsScreen)
     }
+    private val ccHands = ComputerControlHands({ computerControl.view })
+    private fun canDispatch() =
+        session.state.value.canStop && session.state.value.runs.lastOrNull()?.stopRequested != true
+
+    /** UiPolicyHands (session input) in front of PolicyHands (open_app, wait) in front of the routed adapter. */
+    val hands = UiPolicyHands(
+        policy = policyStore::load,
+        ownsScreen = ccOwnsScreen,
+        frontPackage = { computerControl.view?.frontPackage() },
+        ui = ccHands,
+        other = PolicyHands(policyStore::load, HostHands(ccOwnsScreen, ccHands, IntentHands(app)), operationConfirm, ::canDispatch),
+        confirm = operationConfirm,
+        canDispatch = ::canDispatch,
+    )
+
+    private val notificationScreen = NotificationScreen(app, installedApps = {
+        val policy = policyStore.load()
+        InstalledApps.list(app).filter { AppAccess.canOpen(policy.forApp(it.`package`)) }
+    }, capabilities = ::capabilities, mayRead = { pkg ->
+        AppAccess.canReadNotifications(policyStore.load().forApp(pkg), localAi.selection.value.backend == ModelBackend.Local)
+    }, needsNotificationAccess = {
+        policyStore.load().apps.values.any { AppAccess.canReadNotifications(it, localAi.selection.value.backend == ModelBackend.Local) }
+    })
+
+    private val ccScreen = ComputerControlScreen(
+        session = { computerControl.view },
+        mayRead = { pkg -> ScreenControlRules.mayRead(policyStore.load().forApp(pkg), localAi.selection.value.backend == ModelBackend.Local) },
+        installedApps = {
+            val openable = CcCapabilities.openable(computerControl.state.value, policyStore.load())
+            InstalledApps.list(app).filter { it.`package` in openable }
+        },
+        capabilities = ::capabilities,
+    )
 
     val ports = HostPorts(
-        screen = NotificationScreen(app, installedApps = {
-            val policy = policyStore.load()
-            InstalledApps.list(app).filter { AppAccess.canOpen(policy.forApp(it.`package`)) }
-        }, capabilities = ::capabilities, mayRead = { pkg ->
-            AppAccess.canReadNotifications(policyStore.load().forApp(pkg), localAi.selection.value.backend == ModelBackend.Local)
-        }, needsNotificationAccess = {
-            policyStore.load().apps.values.any { AppAccess.canReadNotifications(it, localAi.selection.value.backend == ModelBackend.Local) }
-        }),
+        screen = HostScreen(ccOwnsScreen, ccScreen, notificationScreen),
         hands = hands,
         models = CountedModels(routedModels),
         confirm = operationConfirm,
     )
 
     /**
-     * What this host can execute now, and in which apps (SPEC.md §5.5). Operations are only the
-     * ones IntentHands performs unprivileged; grants are installed apps the owner's policy lets
-     * the assistant act in; typed operations are the handlers that resolve now among those apps.
+     * What this host can execute now, and in which apps (SPEC.md §5.5). Without a Computer
+     * Control session: only the operations IntentHands performs unprivileged, in installed apps
+     * the owner's policy lets the assistant open, and typed operations for the handlers that
+     * resolve now among those apps. With an active session: the session's operations in its
+     * targets the owner still allows, and no typed operations (they would open on the owner's
+     * display, outside the observed one; CcCapabilities). While it starts or is paused, nothing.
      */
     fun capabilities(): HostCapabilities {
         val policy = policyStore.load()
@@ -145,12 +204,24 @@ class AppGraph(val app: Application) {
             val p = policy.forApp(it)
             AppAccess.canOpen(p)
         }
+        val state = computerControl.state.value
+        if (ccOwnsScreen()) return CcCapabilities.compute(state, policy, HostCapabilities(emptyList(), emptyList()))
         // Advertise a handler only where the owner's policy lets that operation run (AppAccess.canRun).
         val probes = IntentHands.PROBES.toMap()
         val intents = IntentHands(app).intentGrants(granted).filter { g ->
             probes[g.operation]?.let { AppAccess.canRun(policy.forApp(g.`package`), it) } == true
         }
         return HostCapabilities(operations = IntentHands.OPERATIONS, appGrants = granted, intents = intents)
+    }
+
+    /**
+     * Owner-initiated from a visible Ballistic screen (the platform requires one): one session
+     * for exactly the apps with Screen control on. Null when the request went out.
+     */
+    fun startComputerControl(activity: Activity): CcReason? {
+        if (!gate.canAcceptCommands()) return CcReason.Locked
+        if (!session.state.value.canSubmit || localAi.busy.value) return CcReason.Busy
+        return computerControl.start(activity, ScreenControlRules.targets(policyStore.load(), app.packageName))
     }
 
     /**
@@ -246,6 +317,8 @@ class AppGraph(val app: Application) {
         session.stop()
         localAi.stop()
         broker.denyPending("stopped by owner")
+        // Stop ends screen control too; the owner starts a new session to continue.
+        computerControl.close()
     }
 }
 

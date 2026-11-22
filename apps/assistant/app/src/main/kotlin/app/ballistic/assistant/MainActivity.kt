@@ -48,6 +48,11 @@ class MainActivity : ComponentActivity() {
         graph.gate.refresh()
     }
 
+    override fun onDestroy() {
+        graph.computerControl.ownerDestroyed(this)
+        super.onDestroy()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
