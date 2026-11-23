@@ -1,5 +1,9 @@
 # First APK Computer Control pilot, 23 November 2026
 
+Follow-up: the owner authorized Flash Lite. Its pilot exposed an OS initialization race; see
+[the separate results and correction status](2026-11-23-flash-lite-computer-control.md).
+The original Pro evidence below remains unchanged.
+
 Environment: ThinkPad visible `BallisticControlApi37`, `emulator-5554`, custom API-37 build
 `2026112200`. See [boot evidence](2026-11-23-computer-control-emulator.md). No phone changes.
 

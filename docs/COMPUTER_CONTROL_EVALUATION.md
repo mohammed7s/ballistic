@@ -3,8 +3,12 @@
 Status: 23 November 2026. Pilot test driver and compatible image built; image delivered with a
 matching checksum. The visible AVD booted, APKs installed and assistant-role permission grant
 verified. Clock policy/consent and six live adapter checks passed. The first model-driven APK run
-stopped before any action with Gemini Pro HTTP 429; its quota is zero. No agent performance score
-or 30-task result is available. See the [pilot record](log/2026-11-23-computer-control-pilot.md).
+stopped before any action with Gemini Pro HTTP 429; its quota is zero. The owner then authorized
+Flash Lite. A warm tab request completed, but a fresh stopwatch task and a model-free adapter
+check failed with empty observations. An OS accessibility-proxy initialization race was reproduced;
+the focused emulator fix is building, not yet validated. No 30-task result is available. See the
+[pilot record](log/2026-11-23-computer-control-pilot.md) and
+[Flash Lite findings](log/2026-11-23-flash-lite-computer-control.md).
 
 The Pixel has the compatible APK installed, but owner setup and live session validation remain
 pending. Its adapter reads accessibility/UI trees; screenshot-based model observation is not

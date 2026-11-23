@@ -2,6 +2,17 @@
 
 ## Computer Control emulator preparation — updated 23 November 2026
 
+**Latest: Flash Lite authorized and tested; platform fix building.** Pro's zero-quota response
+led the owner to authorize `gemini-flash-lite-latest`. The APK completed a warm Stopwatch-tab
+request in 15.879 seconds, but that tab was already selected. A fresh “Run the stopwatch” request
+failed in 22.263 seconds with no running stopwatch. A subsequent zero-model adapter reproduction
+also received an empty tree. The OS log shows a null accessibility proxy in the active callback;
+source inspection confirms that the callback was published before the proxy was initialized.
+OS patch 0009 reorders initialization and adds a regression test. Its incremental emulator image
+build started on Contabo at 11:06:17 UTC; compilation and runtime validation are pending.
+No 30-task result or controlled model comparison is available. See the
+[Flash Lite findings](log/2026-11-23-flash-lite-computer-control.md).
+
 The owner requested starting the compatible emulator and evaluation work. The app now has a
 separate, emulator-only instrumentation test APK and a host preflight/single-goal driver that
 uses its real Rust engine and Computer Control ports. Five driver tests pass; the test APK
