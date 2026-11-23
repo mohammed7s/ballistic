@@ -1,6 +1,6 @@
 # Ballistic: current decisions and handoff
 
-## Computer Control emulator preparation — 22 November 2026
+## Computer Control emulator preparation — updated 23 November 2026
 
 The owner requested starting the compatible emulator and evaluation work. The app now has a
 separate, emulator-only instrumentation test APK and a host preflight/single-goal driver that
@@ -11,18 +11,19 @@ approval and system consent and never substitutes ADB input for session input.
 
 The pinned source accepts Goldfish `sdk_phone64_x86_64-cur-userdebug`, retaining the SDK
 emulator/gRPC environment. The owner authorized this session to build it on Contabo. The build
-job is running from the existing patched source in a separate output directory, after patch
-verification and a successful check that Computer Control packaging is enabled. Compilation,
-boot and API-37 AndroidWorld compatibility are not established. The original 30 task names
+completed successfully at 05:46:51 UTC on 23 November: 162,044 actions, 12:23:10 build duration,
+with wrapper/XML checks passed. The approximately 1.5 GiB image is being transferred to the
+ThinkPad with SHA-256 verification before final rename. Boot and API-37 AndroidWorld compatibility
+are not established. The original 30 task names
 are recovered, but protected Settings cases must be classified rather than bypassed. Details,
 artifacts, fixed pilot budget and next requirements: [evaluation guide](COMPUTER_CONTROL_EVALUATION.md).
 OS recipe and live build paths: [emulator build record](../../ballistic-os/docs/log/2026-11-22-emulator-build.md).
 The earlier build-server scope question is resolved for this emulator work. No phone changes
 were made. A stock API-37 SDK image download is also in progress on the ThinkPad for inspection;
 it is not evidence that stock Computer Control or our owner Settings flow works there.
-Status checked at 17:15 UTC: the previous custom build had failed at 10:43 UTC in Soong path
-validation, before producing an image. Resume 2 corrects the external output path to a dedicated
-source-relative directory. The ThinkPad is reachable again. Image build/boot and tests remain pending.
+Earlier attempts failed in build-tool/output path handling. Successful resume 2 uses a dedicated
+source-relative output directory. The ThinkPad is reachable again; no emulator was running at
+06:44 UTC on 23 November. Image delivery, boot and tests remain pending.
 
 Updated 7 November 2026. This file holds current decisions and the next work, not the run diary.
 Read [README](../README.md), [SPEC](../SPEC.md), then this page. The complete earlier handoff is
