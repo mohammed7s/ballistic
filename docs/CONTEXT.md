@@ -13,9 +13,17 @@ The pinned source accepts Goldfish `sdk_phone64_x86_64-cur-userdebug`, retaining
 emulator/gRPC environment. The owner authorized this session to build it on Contabo. The build
 completed successfully at 05:46:51 UTC on 23 November: 162,044 actions, 12:23:10 build duration,
 with wrapper/XML checks passed. The approximately 1.5 GiB image reached the ThinkPad with a
-matching SHA-256. Extraction started and a separate `BallisticControlApi37` AVD was created;
-SSH then stopped responding, so extraction completion is unverified. Boot and API-37 AndroidWorld compatibility
-are not established. The original 30 task names
+matching SHA-256. Extraction completed and the separate, visible `BallisticControlApi37` AVD
+booted on the ThinkPad. API 37, build `2026112200`, the Computer Control feature/shared library,
+and APK/test-APK installation were verified. Selecting Ballistic through Android's assistant UI
+granted `ACCESS_COMPUTER_CONTROL` through the role. Screen automation appeared with all
+switches initially off. Assistant/Clock switches were tapped; persisted state still needs checking.
+Test PIN and simulated fingerprint enrollment completed, onboarding finished, and task notifications
+were allowed through Android UI. The existing Gemini key listed Pro models; the emulator is
+configured for `gemini-3.1-pro-preview` and shows the real Rust engine. Clock app-rule editing is
+unfinished. SSH dropped intermittently from 07:33 UTC, again preventing access at 08:17 UTC;
+no session or model inference call has run.
+API-37 AndroidWorld compatibility is not established. The original 30 task names
 are recovered, but protected Settings cases must be classified rather than bypassed. Details,
 artifacts, fixed pilot budget and next requirements: [evaluation guide](COMPUTER_CONTROL_EVALUATION.md).
 OS recipe and live build paths: [emulator build record](../../ballistic-os/docs/log/2026-11-22-emulator-build.md).
@@ -23,8 +31,10 @@ The earlier build-server scope question is resolved for this emulator work. No p
 were made. A stock API-37 SDK image download is also in progress on the ThinkPad for inspection;
 it is not evidence that stock Computer Control or our owner Settings flow works there.
 Earlier attempts failed in build-tool/output path handling. Successful resume 2 uses a dedicated
-source-relative output directory. No emulator was started during preparation. Image delivery is
-complete; the owner was asked to reconnect the ThinkPad for extraction checks, boot and testing.
+source-relative output directory. Image delivery, extraction and boot are complete; app policy,
+target consent, tree/input, Stop and revocation remain pending. Emulator setup uses normal Android
+UI with simulated test authentication, not evidence of physical biometric security. See the
+[runtime record](log/2026-11-23-computer-control-emulator.md).
 
 Updated 7 November 2026. This file holds current decisions and the next work, not the run diary.
 Read [README](../README.md), [SPEC](../SPEC.md), then this page. The complete earlier handoff is

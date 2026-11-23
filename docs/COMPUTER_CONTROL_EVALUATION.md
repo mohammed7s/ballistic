@@ -1,8 +1,11 @@
 # Computer Control emulator evaluation
 
 Status: 23 November 2026. Pilot test driver and compatible image built; image delivered with a
-matching checksum. AVD configured, extraction completion unverified after SSH interruption;
-no boot or live test yet.
+matching checksum. The visible AVD booted, APKs installed and assistant-role permission grant
+verified. Test authentication/onboarding completed; app policy/consent setup is incomplete after
+intermittent SSH interruptions;
+no live Computer Control task or model call yet. See the
+[runtime record](log/2026-11-23-computer-control-emulator.md).
 
 The Pixel has the compatible APK installed, but owner setup and live session validation remain
 pending. Its adapter reads accessibility/UI trees; screenshot-based model observation is not
@@ -112,8 +115,9 @@ authorized this session to use Contabo. `lunch sdk_phone64_x86_64-cur-userdebug`
 `RELEASE_PACKAGE_COMPUTER_CONTROL` returned `true`. A persistent systemd build now targets
 `emu_img_zip` and the public compile stub, using a separate output directory and retaining Pixel
 outputs. That build completed successfully on 23 November at 05:46:51 UTC after two earlier
-build-path failures. Transfer and SHA-256 checking passed. Effective runtime flags, boot
-and consent remain unverified. Live log paths,
+build-path failures. Transfer, SHA-256 checking, extraction and boot passed. The runtime exposes
+the extension feature/library and role permission grant; session availability and consent remain
+unverified. Live log paths,
 source checks and recipe: [OS build record](../../ballistic-os/docs/log/2026-11-22-emulator-build.md).
 
 Sources: [pinned manifest](https://raw.githubusercontent.com/GrapheneOS/platform_manifest/2026110200/default.xml),
