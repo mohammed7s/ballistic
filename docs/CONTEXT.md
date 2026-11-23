@@ -12,8 +12,9 @@ approval and system consent and never substitutes ADB input for session input.
 The pinned source accepts Goldfish `sdk_phone64_x86_64-cur-userdebug`, retaining the SDK
 emulator/gRPC environment. The owner authorized this session to build it on Contabo. The build
 completed successfully at 05:46:51 UTC on 23 November: 162,044 actions, 12:23:10 build duration,
-with wrapper/XML checks passed. The approximately 1.5 GiB image is being transferred to the
-ThinkPad with SHA-256 verification before final rename. Boot and API-37 AndroidWorld compatibility
+with wrapper/XML checks passed. The approximately 1.5 GiB image reached the ThinkPad with a
+matching SHA-256. Extraction started and a separate `BallisticControlApi37` AVD was created;
+SSH then stopped responding, so extraction completion is unverified. Boot and API-37 AndroidWorld compatibility
 are not established. The original 30 task names
 are recovered, but protected Settings cases must be classified rather than bypassed. Details,
 artifacts, fixed pilot budget and next requirements: [evaluation guide](COMPUTER_CONTROL_EVALUATION.md).
@@ -22,8 +23,8 @@ The earlier build-server scope question is resolved for this emulator work. No p
 were made. A stock API-37 SDK image download is also in progress on the ThinkPad for inspection;
 it is not evidence that stock Computer Control or our owner Settings flow works there.
 Earlier attempts failed in build-tool/output path handling. Successful resume 2 uses a dedicated
-source-relative output directory. The ThinkPad is reachable again; no emulator was running at
-06:44 UTC on 23 November. Image delivery, boot and tests remain pending.
+source-relative output directory. No emulator was started during preparation. Image delivery is
+complete; the owner was asked to reconnect the ThinkPad for extraction checks, boot and testing.
 
 Updated 7 November 2026. This file holds current decisions and the next work, not the run diary.
 Read [README](../README.md), [SPEC](../SPEC.md), then this page. The complete earlier handoff is
