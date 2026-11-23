@@ -147,3 +147,19 @@ identifies `scripted_adapter_fixture`, `model_calls: 0` and individual checks. T
 the same Screen adapter, not an independent AndroidWorld state checker. Keep these results
 separate from agent runs. Host tests: seven passed, including physical-device refusal for both
 modes, unknown-mode refusal and bounded timeout cleanup.
+
+## Independent stopwatch pilot check, 23 November 2026
+
+`python3 -m harness.apk_clock_pilot --serial emulator-5554 --out-dir PATH` resets only the
+disposable emulator's Clock data, submits the frozen “Run the stopwatch.” goal to the real APK,
+and checks Clock's device-encrypted preferences from the host afterward. It requires the existing
+virtual-device preflight plus a userdebug build and checker access before resetting data.
+It cannot run on the Pixel. It never supplies checker state to the app, retries an action,
+changes a grant or approves a prompt.
+
+The pinned AOSP Clock source defines missing `sw_state` as reset and ordinal 1 as running.
+The supplemental record keeps agent done, independent state and combined pass separate;
+malformed/unknown state is a checker error. This is an adapted state check, not the original
+AndroidWorld UI checker or a side-effect audit. Twelve host tests pass across the APK driver and
+this checker. Live execution of this new combined driver is pending the repaired emulator image
+and restored ThinkPad SSH connectivity; earlier preference checks were manual.
