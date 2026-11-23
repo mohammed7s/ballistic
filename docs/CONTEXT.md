@@ -2,14 +2,15 @@
 
 ## Computer Control emulator preparation — updated 23 November 2026
 
-**Latest: Flash Lite authorized and tested; platform fix building.** Pro's zero-quota response
+**Latest: Flash Lite authorized and tested; repaired image built.** Pro's zero-quota response
 led the owner to authorize `gemini-flash-lite-latest`. The APK completed a warm Stopwatch-tab
 request in 15.879 seconds, but that tab was already selected. A fresh “Run the stopwatch” request
 failed in 22.263 seconds with no running stopwatch. A subsequent zero-model adapter reproduction
 also received an empty tree. The OS log shows a null accessibility proxy in the active callback;
 source inspection confirms that the callback was published before the proxy was initialized.
 OS patch 0009 reorders initialization and adds a regression test. Its incremental emulator image
-build started on Contabo at 11:06:17 UTC; compilation and runtime validation are pending.
+build completed on Contabo at 11:26:22 UTC (19:09 build duration). Delivery to the ThinkPad has
+started but stopped when the ThinkPad disconnected; runtime validation is pending.
 No 30-task result or controlled model comparison is available. See the
 [Flash Lite findings](log/2026-11-23-flash-lite-computer-control.md).
 
@@ -20,9 +21,9 @@ independent Clock state checker; the test APK compiled and ran on the emulator. 
 installed on the phone during this work. The driver preserves ordinary app
 approval and system consent and never substitutes ADB input for session input.
 
-The independent Clock driver is implemented but not yet run live. ThinkPad SSH timed out again
-after the initial pilot; the owner has been asked to restore connectivity. The Contabo build is
-independent of that connection and remains active.
+The independent Clock driver is implemented but not yet run live. ThinkPad SSH recovered after
+the initial pilot, allowing the transfer to start, then both SSH and Tailscale ping failed. The repaired image
+has not yet booted. The OS regression-test module is compiling separately on Contabo.
 
 The pinned source accepts Goldfish `sdk_phone64_x86_64-cur-userdebug`, retaining the SDK
 emulator/gRPC environment. The owner authorized this session to build it on Contabo. The build

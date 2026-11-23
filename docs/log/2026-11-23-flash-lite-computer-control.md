@@ -67,3 +67,8 @@ the independent preference check, keeping its supplemental verdict separate from
 All twelve host tests passed. This combined driver has not run live: the corrected image is still
 building and ThinkPad SSH began timing out again. The owner was asked to keep the ThinkPad awake
 and connected. The persistent Contabo build continues independently.
+
+The repaired image subsequently built successfully at 11:26:22 UTC (19:09 build duration).
+Transfer began when ThinkPad SSH recovered, then stopped with exit 255 when the connection was
+lost again. The partial ZIP is unverified and the old emulator image remains in use. The OS
+regression-test package is compiling separately; no further live agent result is available.

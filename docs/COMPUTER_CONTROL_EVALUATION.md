@@ -6,7 +6,8 @@ verified. Clock policy/consent and six live adapter checks passed. The first mod
 stopped before any action with Gemini Pro HTTP 429; its quota is zero. The owner then authorized
 Flash Lite. A warm tab request completed, but a fresh stopwatch task and a model-free adapter
 check failed with empty observations. An OS accessibility-proxy initialization race was reproduced;
-the focused emulator fix is building, not yet validated. No 30-task result is available. See the
+the focused emulator fix built successfully, but transfer stopped on ThinkPad disconnection and
+runtime validation remains pending. No 30-task result is available. See the
 [pilot record](log/2026-11-23-computer-control-pilot.md) and
 [Flash Lite findings](log/2026-11-23-flash-lite-computer-control.md).
 
