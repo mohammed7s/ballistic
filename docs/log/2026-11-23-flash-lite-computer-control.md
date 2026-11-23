@@ -61,3 +61,9 @@ After the repaired image boots, repeat cold and warm model-free checks, then the
 Lite Clock pilot with independent state verification. Complete API-37 task setup/checker adaptation
 before the frozen 30-task suite; preserve protected Settings classifications. Full app Stop,
 OS revocation and sensitive-action approvals require their own tests. No full-suite score exists.
+
+Follow-up preparation: `harness/apk_clock_pilot.py` now combines the fresh stopwatch task with
+the independent preference check, keeping its supplemental verdict separate from the agent JSON.
+All twelve host tests passed. This combined driver has not run live: the corrected image is still
+building and ThinkPad SSH began timing out again. The owner was asked to keep the ThinkPad awake
+and connected. The persistent Contabo build continues independently.

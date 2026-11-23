@@ -15,10 +15,14 @@ No 30-task result or controlled model comparison is available. See the
 
 The owner requested starting the compatible emulator and evaluation work. The app now has a
 separate, emulator-only instrumentation test APK and a host preflight/single-goal driver that
-uses its real Rust engine and Computer Control ports. Five driver tests pass; the test APK
-compiled and its manifest was inspected. Nothing was installed on the phone during this work,
-and no live Computer Control test or model call occurred. The driver preserves ordinary app
+uses its real Rust engine and Computer Control ports. Twelve host tests pass, including the new
+independent Clock state checker; the test APK compiled and ran on the emulator. Nothing was
+installed on the phone during this work. The driver preserves ordinary app
 approval and system consent and never substitutes ADB input for session input.
+
+The independent Clock driver is implemented but not yet run live. ThinkPad SSH timed out again
+after the initial pilot; the owner has been asked to restore connectivity. The Contabo build is
+independent of that connection and remains active.
 
 The pinned source accepts Goldfish `sdk_phone64_x86_64-cur-userdebug`, retaining the SDK
 emulator/gRPC environment. The owner authorized this session to build it on Contabo. The build
