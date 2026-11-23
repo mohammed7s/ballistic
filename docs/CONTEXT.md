@@ -23,7 +23,8 @@ approval and system consent and never substitutes ADB input for session input.
 
 The independent Clock driver is implemented but not yet run live. ThinkPad SSH recovered after
 the initial pilot, allowing the transfer to start, then both SSH and Tailscale ping failed. The repaired image
-has not yet booted. The OS regression-test module is compiling separately on Contabo.
+has not yet booted. The OS regression-test module compiled successfully on Contabo at 11:49:09
+UTC (20:17 build duration), but its tests have not run. ThinkPad SSH still times out.
 
 The pinned source accepts Goldfish `sdk_phone64_x86_64-cur-userdebug`, retaining the SDK
 emulator/gRPC environment. The owner authorized this session to build it on Contabo. The build
