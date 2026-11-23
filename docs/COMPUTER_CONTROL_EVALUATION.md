@@ -2,10 +2,9 @@
 
 Status: 23 November 2026. Pilot test driver and compatible image built; image delivered with a
 matching checksum. The visible AVD booted, APKs installed and assistant-role permission grant
-verified. Test authentication/onboarding completed; app policy/consent setup is incomplete after
-intermittent SSH interruptions;
-no live Computer Control task or model call yet. See the
-[runtime record](log/2026-11-23-computer-control-emulator.md).
+verified. Clock policy/consent and six live adapter checks passed. The first model-driven APK run
+stopped before any action with Gemini Pro HTTP 429; its quota is zero. No agent performance score
+or 30-task result is available. See the [pilot record](log/2026-11-23-computer-control-pilot.md).
 
 The Pixel has the compatible APK installed, but owner setup and live session validation remain
 pending. Its adapter reads accessibility/UI trees; screenshot-based model observation is not
@@ -116,10 +115,31 @@ authorized this session to use Contabo. `lunch sdk_phone64_x86_64-cur-userdebug`
 `emu_img_zip` and the public compile stub, using a separate output directory and retaining Pixel
 outputs. That build completed successfully on 23 November at 05:46:51 UTC after two earlier
 build-path failures. Transfer, SHA-256 checking, extraction and boot passed. The runtime exposes
-the extension feature/library and role permission grant; session availability and consent remain
-unverified. Live log paths,
+the extension feature/library and role permission grant; session availability and consent are now
+verified through an active Clock session. Broader runtime behavior still requires testing. Live log paths,
 source checks and recipe: [OS build record](../../ballistic-os/docs/log/2026-11-22-emulator-build.md).
 
 Sources: [pinned manifest](https://raw.githubusercontent.com/GrapheneOS/platform_manifest/2026110200/default.xml),
 [product declarations](https://raw.githubusercontent.com/GrapheneOS/device_generic_goldfish/160f9d95c50827b12e5ab1c49faa5d6502511e0b/AndroidProducts.mk),
 [x86_64 phone product](https://raw.githubusercontent.com/GrapheneOS/device_generic_goldfish/160f9d95c50827b12e5ab1c49faa5d6502511e0b/64bitonly/product/sdk_phone64_x86_64.mk).
+
+## Adapter fixture without a model, 23 November 2026
+
+Build/install the matching test APK before selecting `--mode adapter-smoke`. The fixed fixture
+runs in the emulator app process using production ComputerControlPlatform/Screen/Hands adapters.
+It launches only Clock and taps Stopwatch, retaining existing app read/action rules and normal OS
+grants/consent. It never starts or resets the stopwatch, calls a model, grants access or answers
+approval prompts. Test setup requires Clock tree/full-input access and the default sensitive-action
+approval mode already saved. The fixture uses its own bounded test lifecycle, so it does not test
+core decisions, UiPolicyHands, hard confirmations, full AppGraph Stop or OS permission revocation.
+
+```bash
+python3 harness/apk_control.py run --serial emulator-5554 --mode adapter-smoke \
+  --goal 'Fixed Clock adapter fixture; no model calls' --timeout 90
+```
+
+The goal is only a record label in this mode; it cannot change the fixed operations. The result
+identifies `scripted_adapter_fixture`, `model_calls: 0` and individual checks. Tree readback uses
+the same Screen adapter, not an independent AndroidWorld state checker. Keep these results
+separate from agent runs. Host tests: seven passed, including physical-device refusal for both
+modes, unknown-mode refusal and bounded timeout cleanup.

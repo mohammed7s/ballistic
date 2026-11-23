@@ -62,9 +62,16 @@ class ComputerControlBenchmark : Instrumentation() {
             require(timeout in 10..1800) { "invalid_timeout" }
             requestFile.delete()
             output.put("goal", goal)
+            val mode = request.optString("mode", "agent")
+            require(mode in setOf("agent", "adapter-smoke")) { "invalid_mode" }
+            output.put("mode", mode)
             activity = startActivitySync(Intent(targetContext, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
             val g = (activity.application as BallisticApp).graph
             graph = g
+            if (mode == "adapter-smoke") {
+                ComputerControlAdapterSmoke(this, activity as MainActivity, g).run(output)
+                return
+            }
             require(g.engine.current is UniffiCoreEngine) { "real_core_required" }
             require(g.session.state.value.canSubmit && !g.localAi.busy.value) { "app_busy" }
             require(onMain { g.gate.canAcceptCommands() }) { "owner_unlock_required" }

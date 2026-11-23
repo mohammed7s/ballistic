@@ -28,6 +28,18 @@ class FakeAdb:
 
 
 class ApkControlTest(unittest.TestCase):
+    def test_adapter_smoke_also_refuses_physical_phone(self):
+        device = FakeAdb(hardware="blazer")
+        with self.assertRaisesRegex(RuntimeError, "virtual_device"):
+            run_goal(device, "adapter fixture", 30, Path("unused"), "adapter-smoke")
+        self.assertFalse(any(c[0] in ("run-as", "am") for c in device.calls))
+
+    def test_unknown_mode_rejected_before_device_access(self):
+        device = FakeAdb()
+        with self.assertRaisesRegex(ValueError, "unknown test mode"):
+            run_goal(device, "test", 30, Path("unused"), "unknown")
+        self.assertEqual(device.calls, [])
+
     def test_physical_phone_cannot_be_used_for_run(self):
         device = FakeAdb(hardware="blazer")
         with self.assertRaisesRegex(RuntimeError, "virtual_device"):

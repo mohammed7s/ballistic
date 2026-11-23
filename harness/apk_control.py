@@ -57,7 +57,9 @@ def preflight(adb: Adb) -> dict:
             "note": "Owner switches, app rules, model setup and target consent are checked inside the app."}
 
 
-def run_goal(adb: Adb, goal: str, timeout: int, out_dir: Path) -> dict:
+def run_goal(adb: Adb, goal: str, timeout: int, out_dir: Path, mode: str = "agent") -> dict:
+    if mode not in ("agent", "adapter-smoke"):
+        raise ValueError("unknown test mode")
     if not goal.strip() or len(goal) > 8000:
         raise ValueError("goal must contain 1–8000 characters")
     if not 10 <= timeout <= 1800:
@@ -69,7 +71,7 @@ def run_goal(adb: Adb, goal: str, timeout: int, out_dir: Path) -> dict:
     request_id = uuid.uuid4().hex
     directory = "files/cc_benchmark"
     adb.shell("run-as", PACKAGE, "mkdir", "-p", directory)
-    request = json.dumps({"goal": goal, "timeout_seconds": timeout})
+    request = json.dumps({"goal": goal, "timeout_seconds": timeout, "mode": mode})
     # UUID and fixed path only; goal and other request data travel over stdin, never shell code.
     adb.shell("run-as", PACKAGE, "sh", "-c", f"cat > {directory}/{request_id}.request.json", data=request)
     try:
@@ -83,6 +85,8 @@ def run_goal(adb: Adb, goal: str, timeout: int, out_dir: Path) -> dict:
     result = json.loads(raw)
     if result.get("request_id") != request_id or result.get("transport") != "apk_computer_control":
         raise RuntimeError("mismatched benchmark result")
+    if result.get("mode", "agent") != mode:
+        raise RuntimeError("test APK does not support the requested mode; install the matching test APK")
     result["preflight"] = report
     out_dir.mkdir(parents=True, exist_ok=True)
     path = out_dir / f"cc_{request_id}.json"
@@ -96,6 +100,8 @@ def main() -> None:
     parser.add_argument("--serial", required=True, help="explicit virtual-device serial; never auto-selects a phone")
     parser.add_argument("--adb", default=os.path.expanduser("~/Android/Sdk/platform-tools/adb"))
     parser.add_argument("--goal", help="request for the real app; no checker information")
+    parser.add_argument("--mode", choices=["agent", "adapter-smoke"], default="agent",
+                        help="adapter-smoke is a fixed Clock adapter test with zero model calls, not an agent benchmark")
     parser.add_argument("--timeout", type=int, default=300)
     parser.add_argument("--out-dir", type=Path, default=Path.home() / "ballistic_runs")
     args = parser.parse_args()
@@ -105,7 +111,7 @@ def main() -> None:
     else:
         if args.goal is None:
             parser.error("run requires --goal")
-        result = run_goal(adb, args.goal, args.timeout, args.out_dir)
+        result = run_goal(adb, args.goal, args.timeout, args.out_dir, args.mode)
     print(json.dumps(result, indent=2))
 
 

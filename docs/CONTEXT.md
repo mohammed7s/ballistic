@@ -19,10 +19,17 @@ and APK/test-APK installation were verified. Selecting Ballistic through Android
 granted `ACCESS_COMPUTER_CONTROL` through the role. Screen automation appeared with all
 switches initially off. Assistant/Clock switches were tapped; persisted state still needs checking.
 Test PIN and simulated fingerprint enrollment completed, onboarding finished, and task notifications
-were allowed through Android UI. The existing Gemini key listed Pro models; the emulator is
-configured for `gemini-3.1-pro-preview` and shows the real Rust engine. Clock app-rule editing is
-unfinished. SSH dropped intermittently from 07:33 UTC, again preventing access at 08:17 UTC;
-no session or model inference call has run.
+were allowed through Android UI. Clock's tree/full-input/connected-route rule was saved using the
+simulated fingerprint, and normal Android target consent was completed. The real APK created an
+active session. The first `gemini-3.1-pro-preview` agent run stopped at its first chat-model request:
+HTTP 429 after 1.34 seconds, zero actions. A diagnostic response reports zero free-tier request and
+token quota for this Pro model. No automatic model fallback was made.
+
+A separate test-APK adapter fixture passed six checks in 9.57 seconds with zero model calls:
+session creation, Clock tree, Stopwatch tab tap/readback, non-target rejection, closed-session
+input rejection and retained-session input rejection. These are adapter checks, not an agent
+success score or validation of the full app Stop/approval/revocation flow. See the
+[pilot result](log/2026-11-23-computer-control-pilot.md).
 API-37 AndroidWorld compatibility is not established. The original 30 task names
 are recovered, but protected Settings cases must be classified rather than bypassed. Details,
 artifacts, fixed pilot budget and next requirements: [evaluation guide](COMPUTER_CONTROL_EVALUATION.md).
@@ -31,8 +38,8 @@ The earlier build-server scope question is resolved for this emulator work. No p
 were made. A stock API-37 SDK image download is also in progress on the ThinkPad for inspection;
 it is not evidence that stock Computer Control or our owner Settings flow works there.
 Earlier attempts failed in build-tool/output path handling. Successful resume 2 uses a dedicated
-source-relative output directory. Image delivery, extraction and boot are complete; app policy,
-target consent, tree/input, Stop and revocation remain pending. Emulator setup uses normal Android
+source-relative output directory. Image delivery, extraction, boot, Clock policy/consent and basic
+tree/input are complete; model-driven tasks, full Stop and OS revocation remain pending. Emulator setup uses normal Android
 UI with simulated test authentication, not evidence of physical biometric security. See the
 [runtime record](log/2026-11-23-computer-control-emulator.md).
 
