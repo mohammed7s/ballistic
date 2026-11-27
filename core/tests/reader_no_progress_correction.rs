@@ -138,10 +138,14 @@ fn corrected_navigation_resets_queries_only_with_existing_fresh_observation_path
 }
 
 #[test]
-fn summary_remains_terminal_even_after_element_budget_exhaustion() {
-    let (r,c)=run_bridge(vec![json!(screen()),query(),text("none"),read("Which item?",&["c1"]),text("none"),read("Which row?",&["c2"]),text("none"),action(json!({"action":"read","targets":["c1"],"question":"summary","shape":"summary"}))],6);
-    assert_eq!(r["owner_output"]["status"],"unsupported"); assert_eq!(r["steps"],4);
-    assert_eq!(count(&c,"role","planner"),4); assert_eq!(count(&c,"role","reader"),3);
+fn unsolicited_summary_after_element_budget_exhaustion_reaches_no_reader() {
+    // Loop 3: a request that did not ask for a summary gets a correction for a summary read
+    // (it used to end the run as unsupported); repeating it ends the run as invalid output.
+    let summary=action(json!({"action":"read","targets":["c1"],"question":"summary","shape":"summary"}));
+    let (r,c)=run_bridge(vec![json!(screen()),query(),text("none"),read("Which item?",&["c1"]),text("none"),read("Which row?",&["c2"]),text("none"),summary.clone(),summary],6);
+    assert!(r["owner_output"].is_null(),"{r}"); assert_eq!(r["steps"],4); assert_eq!(r["done"],false);
+    assert!(r["reason"].as_str().unwrap().contains("shape summary is only for"),"{r}");
+    assert_eq!(count(&c,"role","planner"),5); assert_eq!(count(&c,"role","reader"),3);
     assert_eq!(count(&c,"ask","act"),0);
 }
 

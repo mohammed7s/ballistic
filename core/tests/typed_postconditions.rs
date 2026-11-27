@@ -146,7 +146,8 @@ fn brightness_swipe_then_back_completes_without_a_done_claim() {
     assert_eq!((planner_calls(&calls), verifier_calls(&calls)), (2, 0));
     // After the swipe the planner learns where the level is read (Haiku 3 kept swiping).
     let first = calls.iter().find(|c| c["ask"] == "log").unwrap();
-    assert!(first["event"]["outcome"].as_str().unwrap().contains("core check: the brightness level is read on Settings > Display"), "{first}");
+    // Loop 3: on the slider's own dialog the note also says to press back.
+    assert!(first["event"]["outcome"].as_str().unwrap().contains("press back: Settings > Display shows the level"), "{first}");
 }
 
 #[test]

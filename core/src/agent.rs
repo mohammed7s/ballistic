@@ -4,7 +4,7 @@
 use std::io::{BufRead, Write};
 use std::time::Instant;
 use serde_json::{json, Value};
-use crate::{capabilities, capability_gaps, context::{self, Room, Sent, Trim}, verification, postcondition::{self, Effect}, actions, bridge::Bridge, ports::*, run::{Host, Options},
+use crate::{capabilities, capability_gaps, fields, context::{self, Room, Sent, Trim}, verification, postcondition::{self, Effect}, actions, bridge::Bridge, ports::*, run::{Host, Options},
     readback::{self, Readback}, reader::{self, summary, ElementAnswer, ReaderPick}, judge::{self, Verdict}, values, skills,
     screen_filter::{self, FilterContext, FilteredScreen}, types::*};
 
@@ -78,6 +78,14 @@ fn shows(view: &FilteredScreen, name: &str) -> bool {
 /// previous time it was planned (readback.rs, in code). Scrolling one target down and up (or
 /// left and right) twice ends where it began whatever the screens show, so that alternation
 /// counts without the screen comparison. The result names only core's own action descriptions.
+/// The fixed feedback when a run that entered text has not entered every value the request lists
+/// (fields.rs), or None. The values named are the owner's own words.
+fn field_gap(owner_fields: &[fields::Field], typed: &[String], effects: &[Effect], fresh: &ScreenState) -> Option<String> {
+    if owner_fields.is_empty() || typed.is_empty() { return None; }
+    let missing=fields::missing(owner_fields,typed,effects,Some(fresh));
+    (!missing.is_empty()).then(|| fields::feedback(&missing))
+}
+
 pub fn repeated_inputs(effects: &[Effect]) -> Option<String> {
     let said=|e:&Effect| actions::describe(&e.action);
     let unchanged=|a:&Effect,b:&Effect| readback::compare(&a.before,&b.before,None).outcome==readback::ReadbackOutcome::Unchanged;
@@ -148,6 +156,8 @@ pub(crate) fn drive<H: Host>(host: &mut H, request:&str, max_steps:u32) -> PortR
 
 pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, options:&Options) -> PortResult<Value> {
     let request=task.request;
+    // Field values the request lists (fields.rs): each must be entered exactly before done.
+    let owner_fields=fields::owner_fields(request);
     // Typed reader-fact values seen in this run, each with its source (reader facts, §7).
     let mut facts_values: Vec<Tagged> = Vec::new();
     let mut fact_sets: Vec<reader::facts::Facts> = Vec::new();
@@ -313,6 +323,12 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, optio
             match actions::check_length(&completion.text,actions::PLANNER_TOKENS).and_then(|_|actions::parse_reply(&completion.text)).and_then(|r|{
                 actions::resolve(&r.action,&view,&screen,&apps)?;
                 if let Action::Answer{text}=&r.action { actions::answer_values(text,&view,request,task.tainted,&facts_values)?; }
+                // The owner-only summary channel ends the run; a request that did not opt in gets a
+                // correction, not a terminal stop (loop 3: two runs ended verifying their own work).
+                if matches!(&r.action, Action::Read{shape:ReadShape::Summary,..}) && !summary::requested(request) {
+                    return Err(actions::ActionError::BadArguments{action:"read".into(),
+                        detail:"shape summary is only for a request that asks to summarize content or asks a question, and it ends the run; to check content, read with shape facts or element".into()});
+                }
                 crate::operations::check_request(&r.action,request,&screen,&apps)?;
                 Ok(r)
             }) {
@@ -393,12 +409,20 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, optio
                 };
                 stop_if_cancelled!(step-1);
                 verification=assessment.verification;
+                outcome=assessment.feedback.into();
+                // Owner field values (fields.rs): whatever said verified, every value the request
+                // lists must have been entered exactly in this run. Checked in code.
+                if verification.status==VerificationStatus::Verified {
+                    if let Some(gap)=field_gap(&owner_fields,&typed,&effects,&fresh) {
+                        verification=Verification::default();
+                        outcome=gap;
+                    }
+                }
                 done=verification.status == VerificationStatus::Verified;
                 let stops=goal.as_ref().is_some_and(postcondition::Goal::stops_on_failed_done);
                 terminal=done || stops;
                 if done {task_status="completed";}
                 else if stops {task_status="pending";}
-                outcome=assessment.feedback.into();
                 if !done {
                     failure_category=Some("verification");
                     // The next plan should inspect the same fresh evidence that was checked.
@@ -670,7 +694,11 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, optio
                                     let fresh=match next_screen.take() { Some(s)=>Some(s), None=>host.observe().ok() };
                                     if let Some(fresh)=fresh {
                                         let check=postcondition::assess(&goal,&effects,&screen,&fresh,foreground_high_water,&apps);
-                                        if check.verification.status==VerificationStatus::Verified {
+                                        let gap=(check.verification.status==VerificationStatus::Verified)
+                                            .then(|| field_gap(&owner_fields,&typed,&effects,&fresh)).flatten();
+                                        if let Some(gap)=gap {
+                                            outcome=format!("{outcome}; core check: {gap}");
+                                        } else if check.verification.status==VerificationStatus::Verified {
                                             verification=check.verification;
                                             done=true; terminal=true; task_status="completed"; failure_category=None;
                                             outcome=format!("{outcome}; core checked the result: {}",check.feedback);

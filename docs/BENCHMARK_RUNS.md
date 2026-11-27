@@ -32,6 +32,40 @@ setup and gaps and is not the sum in this table. Errors and early failed stops r
 time. These runs do **not** establish a speedup or a controlled latency comparison.
 Prompt means include only usage-bearing calls; failed-call usage is unknown.
 
+## Loop 3 — 16–27 November 2026 (code changed; live run not yet made)
+
+**No live run in this loop yet.** The ThinkPad emulator is held for ballistic-os validation (the
+Android 17 BallisticControlApi37 image), and the AndroidWorld API-33 AVD must not run beside it, so
+the practice-20 + rotation-10 Haiku measurement (`CORE_INTENTS=1`, label `loop3_haiku`, budget ≤ $1)
+waits for an emulator slot. Loop 3 API cost so far **$0**; the per-task table against loop 2,
+false-done count, tokens and cost are added when that run exists. Everything below is offline:
+diagnosis from the recorded run JSONs and tests on their recorded screens.
+
+Branch `worktree-agent-a54dcba87e3f64513`, rebased on master `0e28b8a`. Core tests 466 passing
+(`cargo test -j 4`); harness modules pass run one at a time (the two APK modules from the repo
+root; `test_injection_checks` not run: it is live).
+
+### Diagnosis and fixes
+
+| Run (loop 2 Haiku unless noted) | State | What the recording shows | Fix (all generic; `core/README.md` §7, §10) | Offline evidence |
+|---|---|---|---|---|
+| RecipeAddSingleRecipe, intents run (**false done**) | failed | `servings: 1 serving` typed as `1`; Save; the verifier accepted the details screen (`servings 1`) | Owner field values gate (`fields.rs`): no done until each listed value was entered exactly; planner rule to type owner values exactly, units included | replaying the recorded run: core's step-20 done is rejected naming `servings "1 serving"`; `tests/entry_fields.rs` |
+| ExpenseAddSingle | passed | every value entered (`179.68` for `$179.68`, the Transportation chip), SAVE at step 9; then facts reads until the budget ran out | EntrySaved typed check after each input | recorded steps complete at the SAVE with `code_validated_saved_entry`, no verifier call; variants without the chip, with another amount, without Save, a pre-existing name |
+| RecipeAddSingleRecipe (loop 2) | failed | all fields typed; a `read` with shape summary to check the title ended the run as unsupported | unsolicited summary reads are a correction, not terminal | `tests/owner_summary.rs`, `tests/reader_no_progress_correction.rs` |
+| SimpleSmsReply | passed | `Reply to +1… with message: … in Simple SMS Messenger`; Send confirmed, row shown, six done claims rejected | MessageSent recognizes reply-to-number, app clause before or after the body | recorded steps complete on the done readback with `code_validated_sent_row`; another thread's number is not done |
+| ClockStopWatchPausedVerify | passed | Stopwatch tab showed Start and no Pause; the verifier would not accept "not running"; gave up | RunState typed check | completes at step 2 with `code_validated_run_state`; ClockStopWatchRunning completes at Start |
+| MarkorEditNote | passed | text appended and saved (Save disabled); facts reads, a rejected done, then a summary read ended the run | NoteAppended typed check, and the summary correction | completes at the Save with `code_validated_appended_note`; changed original or other text is not done |
+| SimpleCalendarAddOneEvent, intents run | passed | `create_event` filled the editor, Save at step 3; every done rejected because the list shows no year; gave up at step 19 | EventSaved typed check | completes at the Save (step 2 of the script) with `code_validated_saved_event`; the computed begin stays confirmed; other begin, length, title, end time or an input before Save is not done |
+| SystemBrightnessMax | passed | the dialog slider shows no value; three swipes read back unchanged; gave up instead of going back | the check's note on a slider screen says it shows no value and to press back to Settings > Display | `tests/loop3_recognition.rs`, `tests/typed_postconditions.rs`; whether Haiku follows the note is not measured |
+| SimpleCalendarDeleteOneEvent | passed | event long-pressed, Delete confirmed; done claims rejected | **not changed**: RowsDeleted checks names only, and this request also names a date and time; accepting a title gone from one list could pass on a same-titled event on another date | none (declined, see below) |
+
+Not addressed in this loop: the Markor and Files list/editor navigation cluster (priority 3), and
+SimpleCalendarDeleteOneEvent. **Declined for safety:** a deletion check that ignores the requested
+date and time (possible false done); treating the verifier's model judgement more leniently for
+missing years or "not running" states (the fixes above are code checks on recorded structure);
+any task-name or checker logic. The planner still sees no app content: the new checks compare raw
+strings in code, and their feedback names only the owner's own values and fixed words.
+
 ## Haiku 5.5 with typed operations (intents) — 15 November 2026 (practice 20)
 
 **With typed operations (intents).** One seed-0 run of the practice 20 with `CORE_INTENTS=1`, compared with

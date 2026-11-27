@@ -179,8 +179,14 @@ fn summary_never_completes_a_compound_action_request() {
 #[test]
 fn unrelated_action_request_cannot_obtain_an_unsolicited_summary() {
     let h=host(screen("example.notes",&["Venue is Hall C."]),Ok(answer("Venue is Hall C.")));
-    let r=drive(&h,"Delete this note."); assert_eq!(r["owner_output"]["status"],"unsupported");
-    assert_eq!(h.0.borrow().calls.len(),1); assert_eq!(r["done"],false); boundary(&h);
+    // Loop 3 (16 Nov 2026): a summary read the request did not ask for is a correction, not a
+    // terminal stop. The scripted planner then gives up; no reader call, no input, no output.
+    let r=drive(&h,"Delete this note."); assert!(r["owner_output"].is_null(),"{r}");
+    assert_eq!(r["reason"],"planner gave up"); assert_eq!(r["done"],false);
+    let s=h.0.borrow();
+    assert!(s.calls.iter().all(|c| c.0==ModelRole::Planner));
+    assert!(serde_json::to_string(&s.calls[1].1).unwrap().contains("shape summary is only for"));
+    assert_eq!((s.acts,s.confirms,s.tools),(0,0,0)); assert!(!r.to_string().contains("Venue is Hall C."));
 }
 
 // Revised 8 Nov 2026 when `answer` gained provenance checks (core/README.md §7): a planner

@@ -16,6 +16,10 @@
 //!                owner-confirmed input followed, and the same page lists its other rows without them
 //!   NoteSaved    "create a new note in Markor named n.txt with the following text: …": the
 //!                editor held the text with Save disabled, then the file list shows n.txt
+//!   Loop 3 (16 Nov 2026): EntrySaved (one record of owner field values entered and saved),
+//!   RunState (pause/start the <noun> on its own page), NoteAppended (Markor note edited at the
+//!   end and saved), EventSaved (a create_event editor saved as filled), and "reply to <number>"
+//!   for MessageSent
 //!
 //! Recognition is a full-string grammar over the owner's words; anything else (other wording,
 //! compound requests) is not recognized and keeps the ordinary verifier. Checks read the raw
@@ -41,6 +45,22 @@ pub enum Goal {
     /// held exactly the owner's text with Save disabled (saved), then Markor's file list shows a
     /// file row titled exactly <name> that no list showed before the text was typed.
     NoteSaved { name: String, text: String },
+    /// "add the following <things> into <app>:" with one record of owner field values (fields.rs):
+    /// every value entered in this run, then a Save-like tap that closed the form, and a screen
+    /// of the same app showing the record's first value that no screen before the entry showed.
+    EntrySaved { fields: Vec<crate::fields::Field> },
+    /// "pause the stopwatch" / "run the stopwatch": the app's selected tab or page is named
+    /// <noun>, and its own controls offer only the opposite action (Start shown and no Pause
+    /// means it is not running). A state that already held counts: it is shown on the screen.
+    RunState { noun: String, running: bool },
+    /// "edit <name> in Markor. add to the bottom of the note <text>": a `type` into that file's
+    /// editor, then the editor shows its earlier text unchanged followed by exactly <text>
+    /// (whitespace between them only), with Save disabled.
+    NoteAppended { name: String, text: String },
+    /// "create a calendar event on 2023-10-27 at 13h with the title 'T' [and the description 'D'].
+    /// [The event should last for N mins.]": a create_event operation with exactly these values
+    /// opened an editor showing them, the next input was its Save, and the app's list then shows T.
+    EventSaved { begin: String, minutes: Option<i64>, title: String, description: Option<String> },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -76,7 +96,7 @@ impl Goal {
     pub fn verifier_fallback(&self) -> bool {
         // A saved file is not visible in an editor: a verifier citing typed text was the
         // MarkorCreateNote rejection path, and accepting it would be a guess.
-        !matches!(self, Goal::Launch { .. } | Goal::Brightness { .. } | Goal::NoteSaved { .. })
+        !matches!(self, Goal::Launch { .. } | Goal::Brightness { .. } | Goal::NoteSaved { .. } | Goal::NoteAppended { .. })
     }
 }
 
@@ -93,14 +113,28 @@ fn strip_any<'a>(s: &'a str, prefixes: &[&str]) -> Option<&'a str> {
 }
 
 pub fn recognize(request: &str, apps: &[AppEntry]) -> Option<Goal> {
-    if request.chars().any(char::is_control) { return None; }
+    // Line breaks belong only to a list of field values; every other form is one line.
+    if request.chars().any(|c| c.is_control() && c != '\n') { return None; }
+    if request.trim().contains('\n') {
+        let w = words(request);
+        return entry_saved(w.strip_prefix("please ").unwrap_or(&w), request);
+    }
     if let Some((goal, popups, launch_request)) = launch_completion::recognize_with_popups(request, apps) {
         return Some(Goal::Launch { goal, popups, launch_request });
     }
     let w = words(request);
     let w = w.strip_prefix("please ").unwrap_or(&w);
-    brightness(w).or_else(|| photo(w)).or_else(|| message(request, apps)).or_else(|| rows_deleted(request))
-        .or_else(|| note_saved(request, apps))
+    brightness(w).or_else(|| photo(w)).or_else(|| run_state(w)).or_else(|| message(request, apps)).or_else(|| rows_deleted(request))
+        .or_else(|| note_saved(request, apps)).or_else(|| note_appended(request, apps)).or_else(|| event_saved(request))
+        .or_else(|| entry_saved(w, request))
+}
+
+/// "add|create the following …:" whose remaining lines are one record of field values.
+fn entry_saved(w: &str, request: &str) -> Option<Goal> {
+    let first = request.trim().lines().next()?.trim();
+    if strip_any(w, &["add ", "create "]).is_none() || !first.ends_with(':') { return None; }
+    let fields = crate::fields::owner_fields(request);
+    crate::fields::single_record(&fields).then_some(Goal::EntrySaved { fields })
 }
 
 /// A name the owner gave for a row: short, one line, not a sentence break or a list.
@@ -176,6 +210,14 @@ fn brightness(w: &str) -> Option<Goal> {
     matches!(tail, "" | " value" | " level" | " setting").then_some(Goal::Brightness { percent })
 }
 
+/// "pause|stop the <noun>" and "start|run|resume the <noun>", the noun one or two plain words.
+fn run_state(w: &str) -> Option<Goal> {
+    let (rest, running) = if let Some(r) = strip_any(w, &["pause the ", "stop the "]) { (r, false) }
+        else { (strip_any(w, &["start the ", "run the ", "resume the "])?, true) };
+    let ok = !rest.is_empty() && rest.split(' ').count() <= 2 && rest.chars().all(|c| c.is_ascii_alphabetic() || c == ' ');
+    ok.then(|| Goal::RunState { noun: rest.to_string(), running })
+}
+
 fn photo(w: &str) -> Option<Goal> {
     let rest = strip_any(w, &["take one ", "take a single ", "take a ", "take 1 "])?;
     let rest = strip_any(rest, &["photo", "picture"])?;
@@ -198,30 +240,47 @@ fn message(request: &str, apps: &[AppEntry]) -> Option<Goal> {
     } else if let Some(r) = strip_any(rest, &["reply to the most recent text message ", "reply to the most recent message ",
         "reply to the latest text message ", "reply to the newest text message ", "reply to the most recent sms "]) {
         rest = r; true
+    } else if let Some(r) = rest.strip_prefix("reply to ").filter(|r| r.starts_with(|c: char| c == '+' || c.is_ascii_digit())) {
+        // "reply to <number> with message: …": the thread with that number (loop 3).
+        rest = r; false
     } else { return None; };
+    let replying_to_number = !matches!(l.strip_prefix("please ").unwrap_or(&l).split_whitespace().next(), Some("send"));
     // Optional app clause naming an installed app with the known thread layout.
-    for prep in ["using ", "with ", "in ", "via ", "on "] {
-        let Some(after) = rest.strip_prefix(prep) else { continue };
-        let named = apps.iter().filter(|a| a.package == SMS && !a.label.is_empty()).find_map(|a| {
+    let app_clause = |rest: &'_ str| -> Option<usize> {
+        let prep = ["using ", "with ", "in ", "via ", "on "].into_iter().find(|p| rest.starts_with(p))?;
+        let after = &rest[prep.len()..];
+        apps.iter().filter(|a| a.package == SMS && !a.label.is_empty()).find_map(|a| {
             let label = a.label.to_ascii_lowercase();
             after.strip_prefix(&format!("{label} app ")).or_else(|| after.strip_prefix(&format!("the {label} app ")))
                 .or_else(|| after.strip_prefix(&format!("{label} ")))
-        });
-        if let Some(after) = named { rest = after; }
-        break;
-    }
+        }).map(|r| rest.len() - r.len())
+    };
+    if let Some(n) = app_clause(rest) { rest = &rest[n..]; }
     let to = if reply { Recipient::MostRecent } else {
-        let after = rest.strip_prefix("to ")?;
+        let after = if replying_to_number { rest } else { rest.strip_prefix("to ")? };
         let (number, after) = after.split_once(' ')?;
         let digits: String = number.chars().filter(|c| !"()-".contains(*c)).collect();
         let plain = digits.strip_prefix('+').unwrap_or(&digits);
         if !(6..=15).contains(&plain.len()) || !plain.bytes().all(|b| b.is_ascii_digit()) { return None; }
         rest = after;
+        if replying_to_number { if let Some(n) = app_clause(rest) { rest = &rest[n..]; } }
         Recipient::Number(digits)
     };
     let rest_body = strip_any(rest, &["with message: ", "with the message: ", "with message ", "with the message ", "saying: ", "saying "])?;
     // Same byte offset in the original text: the prefix consumed only ASCII.
-    let body = t[t.len() - rest_body.len()..].trim();
+    let mut body = t[t.len() - rest_body.len()..].trim();
+    // An app clause after the body ("… with message: Hi. in Simple SMS Messenger") names the
+    // installed SMS app exactly; it is not part of the message.
+    for a in apps.iter().filter(|a| a.package == SMS && !a.label.is_empty()) {
+        for prep in [" in ", " using ", " with ", " via ", " on "] {
+            for suffix in ["", " app"] {
+                let clause = format!("{prep}{}{suffix}", a.label.to_ascii_lowercase());
+                let lower = body.to_ascii_lowercase();
+                let lower = lower.strip_suffix('.').unwrap_or(&lower);
+                if lower.ends_with(&clause) { body = body[..lower.len() - clause.len()].trim(); }
+            }
+        }
+    }
     if body.is_empty() || body.chars().count() > 400 { return None; }
     Some(Goal::MessageSent { to, body: body.to_string() })
 }
@@ -263,8 +322,12 @@ pub fn assess(goal: &Goal, effects: &[Effect], before: &ScreenState, fresh: &Scr
         Goal::Brightness { percent } => brightness_level(fresh, *percent),
         Goal::MessageSent { to, body } => message_sent(effects, fresh, to, body),
         Goal::Photo => photo_taken(effects, fresh),
+        Goal::RunState { noun, running } => run_state_shown(fresh, noun, *running),
         Goal::RowsDeleted { names } => rows_gone(effects, fresh, names),
         Goal::NoteSaved { name, text } => note_in_list(effects, fresh, name, text),
+        Goal::NoteAppended { name, text } => note_appended_saved(effects, fresh, name, text),
+        Goal::EventSaved { begin, minutes, title, description } => event_in_list(effects, fresh, begin, *minutes, title, description.as_deref()),
+        Goal::EntrySaved { fields } => entry_in_app(effects, fresh, fields),
     }
 }
 
@@ -366,6 +429,50 @@ fn saved_editor(s: &ScreenState, name: &str, text: &str) -> bool {
         && title.text.as_deref().is_some_and(|t| t == name || t == stem)
 }
 
+/// "edit <name> in <Markor label>[ app]. add to the bottom|end of the note|file[:] <text>".
+fn note_appended(request: &str, apps: &[AppEntry]) -> Option<Goal> {
+    let t = request.trim();
+    let lower = t.to_ascii_lowercase();
+    let rest = lower.strip_prefix("please ").unwrap_or(&lower).strip_prefix("edit ")?;
+    let (name, rest) = rest.split_once(' ')?;
+    let rest = rest.strip_prefix("in ")?;
+    let rest = apps.iter().filter(|a| a.package == MARKOR && !a.label.is_empty()).find_map(|a| {
+        let label = a.label.to_ascii_lowercase();
+        rest.strip_prefix(&format!("{label} app. ")).or_else(|| rest.strip_prefix(&format!("{label}. ")))
+    })?;
+    let text = strip_any(rest, &["add to the bottom of the note ", "add to the end of the note ", "add to the bottom of the file ",
+        "add to the end of the file ", "add to the bottom of the note: ", "add to the end of the note: "])?;
+    let name = &t[lower.len() - lower.strip_prefix("please ").unwrap_or(&lower).len() + 5..][..name.len()];
+    let text = t[t.len() - text.len()..].trim();
+    let name_ok = !name.is_empty() && name.chars().count() <= 100 && !name.contains('/');
+    if !name_ok || text.is_empty() || text.chars().count() > 2000 { return None; }
+    Some(Goal::NoteAppended { name: name.to_string(), text: text.to_string() })
+}
+
+/// The one shown node of a Markor id on an editor screen of `name` (title is the name or its stem).
+fn markor_editor_of<'a>(s: &'a ScreenState, name: &str) -> Option<(&'a Node, &'a Node)> {
+    if s.package != MARKOR || s.activity != MARKOR_EDITOR { return None; }
+    let one = |id: &str| { let v: Vec<&Node> = s.nodes.iter().filter(|n| rid(n) == Some(&markor_id(id)) && shown(n)).collect(); if v.len() == 1 { Some(v[0]) } else { None } };
+    let (editor, save, title) = (one("document__fragment__edit__highlighting_editor")?, one("action_save")?, one("note__activity__text_note_title")?);
+    let stem = name.rsplit_once('.').map_or(name, |(s, _)| s);
+    (editor.flags.editable && title.text.as_deref().is_some_and(|t| t == name || t == stem)).then_some((editor, save))
+}
+
+fn note_appended_saved(effects: &[Effect], fresh: &ScreenState, name: &str, text: &str) -> Assessment {
+    const NOT_YET: &str = "core checks an appended note: the note's editor shows its earlier text followed by exactly the requested text, with Save disabled (tap Save)";
+    // The first type into this file's editor in this run: the text before it is the original.
+    let Some(original) = effects.iter().find_map(|e| {
+        let (editor, _) = markor_editor_of(&e.before, name)?;
+        (matches!(e.action, Action::Type { .. }) && e.target == Some(editor.id)).then(|| editor.text.clone().unwrap_or_default())
+    }) else { return unknown(NOT_YET); };
+    let Some((editor, save)) = markor_editor_of(fresh, name) else { return unknown(NOT_YET); };
+    let now = editor.text.as_deref().unwrap_or("");
+    let ok = now.strip_prefix(original.as_str()).and_then(|r| r.trim_end().strip_suffix(text))
+        .is_some_and(|between| between.trim().is_empty()) && !save.flags.enabled && original.trim() != now.trim();
+    if !ok { return unknown(NOT_YET); }
+    verified("code_validated_appended_note", fresh, "the note's editor shows its earlier text followed by the requested text, with nothing unsaved")
+}
+
 fn note_in_list(effects: &[Effect], fresh: &ScreenState, name: &str, text: &str) -> Assessment {
     const NOT_YET: &str = "core checks a saved note: the editor shows exactly the requested text with Save disabled (tap Save), then Markor's file list shows the new file's full name";
     let Some(typed) = effects.iter().position(|e| matches!(&e.action, Action::Type { text: t, .. } if t == text)
@@ -379,9 +486,90 @@ fn note_in_list(effects: &[Effect], fresh: &ScreenState, name: &str, text: &str)
     verified("code_validated_saved_file", fresh, "the editor held the requested text with nothing unsaved, and Markor's file list shows the new file")
 }
 
+// ---- entry saved (owner field values) ----------------------------------------------------------
+
+/// Words of a field key or label, lower case: `preparationTime` → preparation, time.
+fn key_words(s: &str) -> Vec<String> {
+    let mut out = Vec::new();
+    let mut cur = String::new();
+    for c in s.chars() {
+        if c.is_ascii_uppercase() && !cur.is_empty() && cur.chars().last().is_some_and(|p| p.is_ascii_lowercase()) {
+            out.push(std::mem::take(&mut cur));
+        }
+        if c.is_alphabetic() { cur.push(c.to_ascii_lowercase()); } else if !cur.is_empty() { out.push(std::mem::take(&mut cur)); }
+    }
+    if !cur.is_empty() { out.push(cur); }
+    out.retain(|w| w.chars().count() >= 3);
+    out
+}
+
+fn words_meet(a: &[String], b: &[String]) -> bool {
+    a.iter().any(|x| b.iter().any(|y| x == y || (x.len().min(y.len()) >= 4 && (x.starts_with(y.as_str()) || y.starts_with(x.as_str())))))
+}
+
+/// The label of the field an effect typed into, from the planner's own view of that screen.
+fn field_label(e: &Effect) -> Option<String> {
+    let view = screen_filter::filter(&e.before, &screen_filter::FilterContext { request: "", typed: &[] });
+    let t = e.target?;
+    view.elements.iter().find(|x| x.node == t)?.label.clone()
+}
+
+const SAVE_WORDS: &[&str] = &["save", "done", "add", "create", "submit", "confirm", "ok"];
+
+fn save_control(n: &Node) -> bool {
+    !n.flags.editable && [n.label.as_deref(), n.text.as_deref()].into_iter().flatten().any(|t| {
+        let t = t.trim().to_ascii_lowercase();
+        SAVE_WORDS.contains(&t.as_str()) || t.strip_prefix("save ").is_some_and(|r| r.split_whitespace().count() <= 2)
+    })
+}
+
+fn shows_display(s: &ScreenState, value: &str) -> bool {
+    s.nodes.iter().any(|n| shown(n) && !n.flags.editable && [n.label.as_deref(), n.text.as_deref()].into_iter().flatten()
+        .any(|t| crate::fields::norm(t) == value))
+}
+
+fn entry_in_app(effects: &[Effect], fresh: &ScreenState, fields: &[crate::fields::Field]) -> Assessment {
+    use crate::fields::{entered, Entered};
+    const NOT_YET: &str = "core checks a new entry: every value in the request entered exactly, a Save control tapped, and the app then showing the new entry's name";
+    let mut first = usize::MAX;
+    let mut last = 0;
+    for f in fields {
+        let Some(how) = entered(&f.value, &[], effects) else { return unknown(NOT_YET); };
+        let Some(at) = how.at() else { return unknown(NOT_YET); };
+        // A value typed into a field whose label names another key went to the wrong field.
+        if let Entered::Typed(Some(i)) = how {
+            if let Some(label) = field_label(&effects[i]) {
+                let lw = key_words(&label);
+                let own = words_meet(&key_words(&f.key), &lw);
+                let other = fields.iter().any(|g| g.key != f.key && words_meet(&key_words(&g.key), &lw));
+                if !own && other { return unknown(NOT_YET); }
+            }
+        }
+        first = first.min(at);
+        last = last.max(at);
+    }
+    let Some(save) = effects[last + 1..].iter().rev().find(|e| matches!(e.action, Action::Tap { .. })
+        && e.target.and_then(|t| node(&e.before, t)).is_some_and(save_control)) else { return unknown(NOT_YET); };
+    if !about(fresh, &save.before.package) { return unknown(NOT_YET); }
+    // The form closed: its Save control is gone and no field still holds an entered value.
+    let save_node = save.target.and_then(|t| node(&save.before, t)).expect("save target");
+    let same_control = |n: &Node| n.resource_id == save_node.resource_id && n.label == save_node.label && n.text == save_node.text && shown(n);
+    if fresh.activity == save.before.activity && fresh.nodes.iter().any(same_control) { return unknown(NOT_YET); }
+    if fresh.nodes.iter().any(|n| n.flags.editable && shown(n) && n.text.as_deref()
+        .is_some_and(|t| fields.iter().any(|f| crate::fields::norm(t) == f.value))) { return unknown(NOT_YET); }
+    let name = &fields[0].value;
+    if !shows_display(fresh, name) || effects[..=first].iter().any(|e| shows_display(&e.before, name)) { return unknown(NOT_YET); }
+    verified("code_validated_saved_entry", fresh, "every value in the request was entered exactly, a Save control was tapped, the form closed and the app shows the new entry's name")
+}
+
 const SETTINGS: &str = "com.android.settings";
 
 fn brightness_level(fresh: &ScreenState, percent: u8) -> Assessment {
+    // Loop 2 Haiku (SystemBrightnessMax, state passed): three swipes on the dialog's slider read
+    // back "screen unchanged" and the planner gave up there, never returning to the Display page.
+    if !about(fresh, SETTINGS) && fresh.nodes.iter().any(|n| n.role == Role::Slider && shown(n)) {
+        return unknown("this slider does not show its value, so an unchanged screen does not mean a swipe failed; after swiping, press back: Settings > Display shows the level in its Brightness level row");
+    }
     if !about(fresh, SETTINGS) {
         return unknown("the brightness level is read on Settings > Display (Brightness level row); the slider does not show its value");
     }
@@ -501,6 +689,118 @@ fn entered_from_top_conversation(effects: &[Effect], title: &str) -> bool {
         .and_then(|k| k.text.as_deref()).is_some_and(|address| address.trim() == title.trim())
 }
 
+// ---- event saved from a create_event editor -------------------------------------------------------
+
+/// "[in <app words>, ]create a [new ]calendar event|an event on YYYY-MM-DD at <H>h[<M>m]|<H>:<MM>
+/// with the title '<T>'[ and the description '<D>'][.][ The event should last for <N> min(s|utes).]"
+fn event_saved(request: &str) -> Option<Goal> {
+    let t = request.trim();
+    let l = t.to_ascii_lowercase();
+    let mut rest = l.strip_prefix("please ").unwrap_or(&l);
+    if let Some(r) = rest.strip_prefix("in ") {
+        let (app, after) = r.split_once(", ")?;
+        if app.split(' ').count() > 4 || !app.chars().all(|c| c.is_ascii_alphanumeric() || c == ' ') { return None; }
+        rest = after;
+    }
+    rest = strip_any(rest, &["create a calendar event on ", "create a new calendar event on ", "create an event on ", "create a new event on "])?;
+    let (date, after) = rest.split_once(" at ")?;
+    let (time, after) = after.split_once(' ')?;
+    let date_ok = date.len() == 10 && date.bytes().enumerate().all(|(i, b)| if i == 4 || i == 7 { b == b'-' } else { b.is_ascii_digit() });
+    let (h, m) = if let Some((h, m)) = time.split_once(':') { (h, m) }
+        else { let x = time.strip_suffix('m').unwrap_or(time); x.split_once('h').map_or((x, ""), |(h, m)| (h, m)) };
+    let h: i64 = h.strip_suffix('h').unwrap_or(h).parse().ok()?;
+    let m: i64 = if m.is_empty() { 0 } else { m.parse().ok()? };
+    if !date_ok || !(0..24).contains(&h) || !(0..60).contains(&m) { return None; }
+    let begin = format!("{date}T{h:02}:{m:02}");
+    crate::operations::local_minutes("begin", &begin).ok()?;
+    let after = after.strip_prefix("with the title '")?;
+    // Duration sentence at the end, if any.
+    let (body, minutes) = match after.rfind(" the event should last for ") {
+        Some(i) => {
+            let n = after[i + " the event should last for ".len()..].trim_end_matches('.');
+            let (num, unit) = n.split_once(' ')?;
+            if !matches!(unit, "min" | "mins" | "minute" | "minutes") { return None; }
+            let num: i64 = num.parse().ok().filter(|n| (1..=1440).contains(n))?;
+            (&after[..i], Some(num))
+        },
+        None => (after, None),
+    };
+    let body = body.trim_end().strip_suffix('.').unwrap_or(body.trim_end());
+    let body = body.strip_suffix('\'')?;
+    let (title, description) = match body.find("' and the description '") {
+        Some(i) => (&body[..i], Some(&body[i + "' and the description '".len()..])),
+        None => (body, None),
+    };
+    if title.is_empty() || title.chars().count() > 400 || title.contains('\'')
+        || description.is_some_and(|d| d.is_empty() || d.chars().count() > 2000) { return None; }
+    // Back to the owner's own case: same byte offsets (the prefixes are ASCII).
+    let start = t.len() - after.len();
+    let title = t[start..start + title.len()].to_string();
+    let description = description.map(|d| { let s = start + (d.as_ptr() as usize - after.as_ptr() as usize); t[s..s + d.len()].to_string() });
+    Some(Goal::EventSaved { begin, minutes, title, description })
+}
+
+/// Clock time `HH:MM` of a local date-time string.
+fn clock(at: &str) -> &str { at.get(11..16).unwrap_or("") }
+
+const MONTHS: [&str; 12] = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
+
+fn event_in_list(effects: &[Effect], fresh: &ScreenState, begin: &str, minutes: Option<i64>, title: &str, description: Option<&str>) -> Assessment {
+    use crate::operations::{self, IntentOp};
+    const NOT_YET: &str = "core checks a new event: a create_event with exactly the requested values, its editor showing them saved with Save as the next input, then the calendar showing the title";
+    // The latest create_event whose values are exactly the request's.
+    let Some(i) = effects.iter().rposition(|e| {
+        let Action::Intent { operation, args, .. } = &e.action else { return false };
+        let Ok(IntentOp::CreateEvent { title: t, begin: b, end, description: d, location, .. }) = operations::parse(operation, args) else { return false };
+        let length = operations::local_minutes("end", &end).ok().zip(operations::local_minutes("begin", &b).ok()).map(|(e, s)| e - s);
+        t == title && b == begin && d.as_deref() == description && location.is_none() && minutes.is_none_or(|m| length == Some(m))
+    }) else { return unknown(NOT_YET); };
+    let Ok(IntentOp::CreateEvent { end, .. }) = (match &effects[i].action { Action::Intent { operation, args, .. } => operations::parse(operation, args), _ => unreachable!() }) else { return unknown(NOT_YET); };
+    // The very next input: a tap on Save, planned on the editor the operation opened.
+    let Some(save) = effects.get(i + 1) else { return unknown(NOT_YET); };
+    let editor = &save.before;
+    let is_save = matches!(save.action, Action::Tap { .. }) && save.target.and_then(|t| node(editor, t))
+        .is_some_and(|n| n.label.as_deref().or(n.text.as_deref()).is_some_and(|l| l.trim().eq_ignore_ascii_case("save")));
+    let field = |v: &str| editor.nodes.iter().any(|n| n.flags.editable && shown(n) && n.text.as_deref().map(str::trim) == Some(v));
+    let text = |v: &str| editor.nodes.iter().any(|n| shown(n) && !n.flags.editable && n.text.as_deref().map(str::trim) == Some(v));
+    let month = begin.get(5..7).and_then(|m| m.parse::<usize>().ok()).and_then(|m| MONTHS.get(m - 1)).copied().unwrap_or("");
+    let day = begin.get(8..10).and_then(|d| d.parse::<u32>().ok()).unwrap_or(0).to_string();
+    let date_shown = editor.nodes.iter().any(|n| shown(n) && n.text.as_deref().is_some_and(|t| {
+        let t = t.to_ascii_lowercase();
+        t.split(|c: char| !c.is_ascii_alphanumeric()).any(|w| w == month) && t.split(|c: char| !c.is_ascii_alphanumeric()).any(|w| w == day)
+    }));
+    if !is_save || editor.package != fresh.package || !field(title) || description.is_some_and(|d| !field(d))
+        || !text(clock(begin)) || !text(clock(&end)) || !date_shown { return unknown(NOT_YET); }
+    // The editor closed and the app shows the title as an item.
+    if fresh.activity == editor.activity || !about(fresh, &editor.package)
+        || !fresh.nodes.iter().any(|n| shown(n) && !n.flags.editable && n.text.as_deref().map(str::trim) == Some(title)) { return unknown(NOT_YET); }
+    verified("code_validated_saved_event", fresh, "the requested event's editor, filled by create_event with exactly the requested values, was saved and the calendar shows its title")
+}
+
+// ---- run state (pause / start) --------------------------------------------------------------------
+
+const STOPPED_CONTROLS: &[&str] = &["start", "resume", "play"];
+const RUNNING_CONTROLS: &[&str] = &["pause", "stop"];
+
+fn run_state_shown(fresh: &ScreenState, noun: &str, running: bool) -> Assessment {
+    const NOT_YET: &str = "core checks the state on the app's own page for it: a selected tab or page with that name, and only the opposite control (Start without Pause when paused, Pause without Start when running)";
+    let own = |n: &&Node| shown(n) && n.package.as_deref() == Some(fresh.package.as_str());
+    let named = |n: &Node| [n.label.as_deref(), n.text.as_deref()].into_iter().flatten().any(|t| t.trim().eq_ignore_ascii_case(noun));
+    if fresh.package == "com.android.systemui" || !fresh.nodes.iter().filter(own).any(|n| n.flags.selected && named(n)) {
+        return unknown(NOT_YET);
+    }
+    let controls: Vec<String> = fresh.nodes.iter().filter(own).filter(|n| n.role == Role::Button && n.flags.clickable && n.flags.enabled)
+        .filter_map(|n| n.label.as_deref().or(n.text.as_deref())).map(|t| t.trim().to_ascii_lowercase()).collect();
+    let has = |set: &[&str]| controls.iter().any(|c| set.contains(&c.as_str()));
+    let (want, not) = if running { (RUNNING_CONTROLS, STOPPED_CONTROLS) } else { (STOPPED_CONTROLS, RUNNING_CONTROLS) };
+    if has(want) && !has(not) {
+        verified("code_validated_run_state", fresh, if running { "the page shows a Pause control and no Start control: it is running" }
+            else { "the page shows a Start control and no Pause control: it is not running" })
+    } else {
+        unknown(NOT_YET)
+    }
+}
+
 const CAMERA: &str = "com.android.camera2";
 
 fn photo_taken(effects: &[Effect], fresh: &ScreenState) -> Assessment {
@@ -538,6 +838,17 @@ mod tests {
             "take one photo\nthen delete it", "reply to Ana with message: hi"] {
             assert_eq!(recognize(other, &sms_app()), None, "{other}");
         }
+    }
+
+    #[test]
+    fn reply_to_a_number_with_the_app_named_after_the_body() {
+        assert_eq!(recognize("Reply to +16604876475 with message: The squeaky wheel gets the grease. in Simple SMS Messenger", &sms_app()),
+            Some(Goal::MessageSent { to: Recipient::Number("+16604876475".into()), body: "The squeaky wheel gets the grease.".into() }));
+        assert_eq!(recognize("Reply to +16604876475 using Simple SMS Messenger with message: Hi", &sms_app()),
+            Some(Goal::MessageSent { to: Recipient::Number("+16604876475".into()), body: "Hi".into() }));
+        // Another app's name stays part of the body.
+        assert_eq!(recognize("Reply to +16604876475 with message: see you in Messages", &sms_app()),
+            Some(Goal::MessageSent { to: Recipient::Number("+16604876475".into()), body: "see you in Messages".into() }));
     }
 
     #[test]

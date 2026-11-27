@@ -28,6 +28,7 @@ pub mod tools;
 pub mod verification;
 pub mod launch_completion;
 pub mod postcondition;
+pub mod fields;
 pub mod operations;
 pub mod calls;
 
