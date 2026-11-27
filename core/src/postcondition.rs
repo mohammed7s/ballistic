@@ -49,6 +49,14 @@ pub enum Goal {
     /// <noun>, and its own controls offer only the opposite action (Start shown and no Pause
     /// means it is not running). A state that already held counts: it is shown on the screen.
     RunState { noun: String, running: bool },
+    /// "edit <name> in Markor. add to the bottom of the note <text>": a `type` into that file's
+    /// editor, then the editor shows its earlier text unchanged followed by exactly <text>
+    /// (whitespace between them only), with Save disabled.
+    NoteAppended { name: String, text: String },
+    /// "create a calendar event on 2023-10-27 at 13h with the title 'T' [and the description 'D'].
+    /// [The event should last for N mins.]": a create_event operation with exactly these values
+    /// opened an editor showing them, the next input was its Save, and the app's list then shows T.
+    EventSaved { begin: String, minutes: Option<i64>, title: String, description: Option<String> },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -84,7 +92,7 @@ impl Goal {
     pub fn verifier_fallback(&self) -> bool {
         // A saved file is not visible in an editor: a verifier citing typed text was the
         // MarkorCreateNote rejection path, and accepting it would be a guess.
-        !matches!(self, Goal::Launch { .. } | Goal::Brightness { .. } | Goal::NoteSaved { .. })
+        !matches!(self, Goal::Launch { .. } | Goal::Brightness { .. } | Goal::NoteSaved { .. } | Goal::NoteAppended { .. })
     }
 }
 
@@ -113,7 +121,8 @@ pub fn recognize(request: &str, apps: &[AppEntry]) -> Option<Goal> {
     let w = words(request);
     let w = w.strip_prefix("please ").unwrap_or(&w);
     brightness(w).or_else(|| photo(w)).or_else(|| run_state(w)).or_else(|| message(request, apps)).or_else(|| rows_deleted(request))
-        .or_else(|| note_saved(request, apps)).or_else(|| entry_saved(w, request))
+        .or_else(|| note_saved(request, apps)).or_else(|| note_appended(request, apps)).or_else(|| event_saved(request))
+        .or_else(|| entry_saved(w, request))
 }
 
 /// "add|create the following …:" whose remaining lines are one record of field values.
@@ -312,6 +321,8 @@ pub fn assess(goal: &Goal, effects: &[Effect], before: &ScreenState, fresh: &Scr
         Goal::RunState { noun, running } => run_state_shown(fresh, noun, *running),
         Goal::RowsDeleted { names } => rows_gone(effects, fresh, names),
         Goal::NoteSaved { name, text } => note_in_list(effects, fresh, name, text),
+        Goal::NoteAppended { name, text } => note_appended_saved(effects, fresh, name, text),
+        Goal::EventSaved { begin, minutes, title, description } => event_in_list(effects, fresh, begin, *minutes, title, description.as_deref()),
         Goal::EntrySaved { fields } => entry_in_app(effects, fresh, fields),
     }
 }
@@ -412,6 +423,50 @@ fn saved_editor(s: &ScreenState, name: &str, text: &str) -> bool {
     let stem = name.rsplit_once('.').map_or(name, |(s, _)| s);
     editor.flags.editable && editor.text.as_deref().map(str::trim) == Some(text.trim()) && !save.flags.enabled
         && title.text.as_deref().is_some_and(|t| t == name || t == stem)
+}
+
+/// "edit <name> in <Markor label>[ app]. add to the bottom|end of the note|file[:] <text>".
+fn note_appended(request: &str, apps: &[AppEntry]) -> Option<Goal> {
+    let t = request.trim();
+    let lower = t.to_ascii_lowercase();
+    let rest = lower.strip_prefix("please ").unwrap_or(&lower).strip_prefix("edit ")?;
+    let (name, rest) = rest.split_once(' ')?;
+    let rest = rest.strip_prefix("in ")?;
+    let rest = apps.iter().filter(|a| a.package == MARKOR && !a.label.is_empty()).find_map(|a| {
+        let label = a.label.to_ascii_lowercase();
+        rest.strip_prefix(&format!("{label} app. ")).or_else(|| rest.strip_prefix(&format!("{label}. ")))
+    })?;
+    let text = strip_any(rest, &["add to the bottom of the note ", "add to the end of the note ", "add to the bottom of the file ",
+        "add to the end of the file ", "add to the bottom of the note: ", "add to the end of the note: "])?;
+    let name = &t[lower.len() - lower.strip_prefix("please ").unwrap_or(&lower).len() + 5..][..name.len()];
+    let text = t[t.len() - text.len()..].trim();
+    let name_ok = !name.is_empty() && name.chars().count() <= 100 && !name.contains('/');
+    if !name_ok || text.is_empty() || text.chars().count() > 2000 { return None; }
+    Some(Goal::NoteAppended { name: name.to_string(), text: text.to_string() })
+}
+
+/// The one shown node of a Markor id on an editor screen of `name` (title is the name or its stem).
+fn markor_editor_of<'a>(s: &'a ScreenState, name: &str) -> Option<(&'a Node, &'a Node)> {
+    if s.package != MARKOR || s.activity != MARKOR_EDITOR { return None; }
+    let one = |id: &str| { let v: Vec<&Node> = s.nodes.iter().filter(|n| rid(n) == Some(&markor_id(id)) && shown(n)).collect(); if v.len() == 1 { Some(v[0]) } else { None } };
+    let (editor, save, title) = (one("document__fragment__edit__highlighting_editor")?, one("action_save")?, one("note__activity__text_note_title")?);
+    let stem = name.rsplit_once('.').map_or(name, |(s, _)| s);
+    (editor.flags.editable && title.text.as_deref().is_some_and(|t| t == name || t == stem)).then_some((editor, save))
+}
+
+fn note_appended_saved(effects: &[Effect], fresh: &ScreenState, name: &str, text: &str) -> Assessment {
+    const NOT_YET: &str = "core checks an appended note: the note's editor shows its earlier text followed by exactly the requested text, with Save disabled (tap Save)";
+    // The first type into this file's editor in this run: the text before it is the original.
+    let Some(original) = effects.iter().find_map(|e| {
+        let (editor, _) = markor_editor_of(&e.before, name)?;
+        (matches!(e.action, Action::Type { .. }) && e.target == Some(editor.id)).then(|| editor.text.clone().unwrap_or_default())
+    }) else { return unknown(NOT_YET); };
+    let Some((editor, save)) = markor_editor_of(fresh, name) else { return unknown(NOT_YET); };
+    let now = editor.text.as_deref().unwrap_or("");
+    let ok = now.strip_prefix(original.as_str()).and_then(|r| r.trim_end().strip_suffix(text))
+        .is_some_and(|between| between.trim().is_empty()) && !save.flags.enabled && original.trim() != now.trim();
+    if !ok { return unknown(NOT_YET); }
+    verified("code_validated_appended_note", fresh, "the note's editor shows its earlier text followed by the requested text, with nothing unsaved")
 }
 
 fn note_in_list(effects: &[Effect], fresh: &ScreenState, name: &str, text: &str) -> Assessment {
@@ -628,6 +683,94 @@ fn entered_from_top_conversation(effects: &[Effect], title: &str) -> bool {
     if kids.len() != 3 || ids != expected.iter().map(String::as_str).collect::<Vec<_>>() { return false; }
     kids.iter().find(|k| rid(k) == Some(&sms_id("conversation_address")))
         .and_then(|k| k.text.as_deref()).is_some_and(|address| address.trim() == title.trim())
+}
+
+// ---- event saved from a create_event editor -------------------------------------------------------
+
+/// "[in <app words>, ]create a [new ]calendar event|an event on YYYY-MM-DD at <H>h[<M>m]|<H>:<MM>
+/// with the title '<T>'[ and the description '<D>'][.][ The event should last for <N> min(s|utes).]"
+fn event_saved(request: &str) -> Option<Goal> {
+    let t = request.trim();
+    let l = t.to_ascii_lowercase();
+    let mut rest = l.strip_prefix("please ").unwrap_or(&l);
+    if let Some(r) = rest.strip_prefix("in ") {
+        let (app, after) = r.split_once(", ")?;
+        if app.split(' ').count() > 4 || !app.chars().all(|c| c.is_ascii_alphanumeric() || c == ' ') { return None; }
+        rest = after;
+    }
+    rest = strip_any(rest, &["create a calendar event on ", "create a new calendar event on ", "create an event on ", "create a new event on "])?;
+    let (date, after) = rest.split_once(" at ")?;
+    let (time, after) = after.split_once(' ')?;
+    let date_ok = date.len() == 10 && date.bytes().enumerate().all(|(i, b)| if i == 4 || i == 7 { b == b'-' } else { b.is_ascii_digit() });
+    let (h, m) = if let Some((h, m)) = time.split_once(':') { (h, m) }
+        else { let x = time.strip_suffix('m').unwrap_or(time); x.split_once('h').map_or((x, ""), |(h, m)| (h, m)) };
+    let h: i64 = h.strip_suffix('h').unwrap_or(h).parse().ok()?;
+    let m: i64 = if m.is_empty() { 0 } else { m.parse().ok()? };
+    if !date_ok || !(0..24).contains(&h) || !(0..60).contains(&m) { return None; }
+    let begin = format!("{date}T{h:02}:{m:02}");
+    crate::operations::local_minutes("begin", &begin).ok()?;
+    let after = after.strip_prefix("with the title '")?;
+    // Duration sentence at the end, if any.
+    let (body, minutes) = match after.rfind(" the event should last for ") {
+        Some(i) => {
+            let n = after[i + " the event should last for ".len()..].trim_end_matches('.');
+            let (num, unit) = n.split_once(' ')?;
+            if !matches!(unit, "min" | "mins" | "minute" | "minutes") { return None; }
+            let num: i64 = num.parse().ok().filter(|n| (1..=1440).contains(n))?;
+            (&after[..i], Some(num))
+        },
+        None => (after, None),
+    };
+    let body = body.trim_end().strip_suffix('.').unwrap_or(body.trim_end());
+    let body = body.strip_suffix('\'')?;
+    let (title, description) = match body.find("' and the description '") {
+        Some(i) => (&body[..i], Some(&body[i + "' and the description '".len()..])),
+        None => (body, None),
+    };
+    if title.is_empty() || title.chars().count() > 400 || title.contains('\'')
+        || description.is_some_and(|d| d.is_empty() || d.chars().count() > 2000) { return None; }
+    // Back to the owner's own case: same byte offsets (the prefixes are ASCII).
+    let start = t.len() - after.len();
+    let title = t[start..start + title.len()].to_string();
+    let description = description.map(|d| { let s = start + (d.as_ptr() as usize - after.as_ptr() as usize); t[s..s + d.len()].to_string() });
+    Some(Goal::EventSaved { begin, minutes, title, description })
+}
+
+/// Clock time `HH:MM` of a local date-time string.
+fn clock(at: &str) -> &str { at.get(11..16).unwrap_or("") }
+
+const MONTHS: [&str; 12] = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
+
+fn event_in_list(effects: &[Effect], fresh: &ScreenState, begin: &str, minutes: Option<i64>, title: &str, description: Option<&str>) -> Assessment {
+    use crate::operations::{self, IntentOp};
+    const NOT_YET: &str = "core checks a new event: a create_event with exactly the requested values, its editor showing them saved with Save as the next input, then the calendar showing the title";
+    // The latest create_event whose values are exactly the request's.
+    let Some(i) = effects.iter().rposition(|e| {
+        let Action::Intent { operation, args, .. } = &e.action else { return false };
+        let Ok(IntentOp::CreateEvent { title: t, begin: b, end, description: d, location, .. }) = operations::parse(operation, args) else { return false };
+        let length = operations::local_minutes("end", &end).ok().zip(operations::local_minutes("begin", &b).ok()).map(|(e, s)| e - s);
+        t == title && b == begin && d.as_deref() == description && location.is_none() && minutes.is_none_or(|m| length == Some(m))
+    }) else { return unknown(NOT_YET); };
+    let Ok(IntentOp::CreateEvent { end, .. }) = (match &effects[i].action { Action::Intent { operation, args, .. } => operations::parse(operation, args), _ => unreachable!() }) else { return unknown(NOT_YET); };
+    // The very next input: a tap on Save, planned on the editor the operation opened.
+    let Some(save) = effects.get(i + 1) else { return unknown(NOT_YET); };
+    let editor = &save.before;
+    let is_save = matches!(save.action, Action::Tap { .. }) && save.target.and_then(|t| node(editor, t))
+        .is_some_and(|n| n.label.as_deref().or(n.text.as_deref()).is_some_and(|l| l.trim().eq_ignore_ascii_case("save")));
+    let field = |v: &str| editor.nodes.iter().any(|n| n.flags.editable && shown(n) && n.text.as_deref().map(str::trim) == Some(v));
+    let text = |v: &str| editor.nodes.iter().any(|n| shown(n) && !n.flags.editable && n.text.as_deref().map(str::trim) == Some(v));
+    let month = begin.get(5..7).and_then(|m| m.parse::<usize>().ok()).and_then(|m| MONTHS.get(m - 1)).copied().unwrap_or("");
+    let day = begin.get(8..10).and_then(|d| d.parse::<u32>().ok()).unwrap_or(0).to_string();
+    let date_shown = editor.nodes.iter().any(|n| shown(n) && n.text.as_deref().is_some_and(|t| {
+        let t = t.to_ascii_lowercase();
+        t.split(|c: char| !c.is_ascii_alphanumeric()).any(|w| w == month) && t.split(|c: char| !c.is_ascii_alphanumeric()).any(|w| w == day)
+    }));
+    if !is_save || editor.package != fresh.package || !field(title) || description.is_some_and(|d| !field(d))
+        || !text(clock(begin)) || !text(clock(&end)) || !date_shown { return unknown(NOT_YET); }
+    // The editor closed and the app shows the title as an item.
+    if fresh.activity == editor.activity || !about(fresh, &editor.package)
+        || !fresh.nodes.iter().any(|n| shown(n) && !n.flags.editable && n.text.as_deref().map(str::trim) == Some(title)) { return unknown(NOT_YET); }
+    verified("code_validated_saved_event", fresh, "the requested event's editor, filled by create_event with exactly the requested values, was saved and the calendar shows its title")
 }
 
 // ---- run state (pause / start) --------------------------------------------------------------------

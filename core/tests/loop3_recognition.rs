@@ -133,6 +133,106 @@ fn run_state_needs_the_named_selected_page_and_only_the_opposite_control() {
     assert_eq!(check(&goal("Pause the timer."), &paused.after), VerificationStatus::Unknown);
 }
 
+// ---- MarkorEditNote: "Edit <file> in Markor. Add to the bottom of the note <text>." --------------
+
+fn markor_apps() -> Vec<AppEntry> { vec![AppEntry { label: "markor".into(), package: "net.gsantner.markor".into(), activity: None }] }
+
+#[test]
+fn recorded_note_edit_completes_when_the_saved_editor_shows_the_appended_text() {
+    // Recorded: open the file, type "\nActions speak louder than words." at the end, Save (state
+    // passed); the planner then read facts, claimed done (rejected) and ended on a summary read.
+    let r = load(include_str!("screens/loop3/markor_edit.json"));
+    let (report, calls) = run(&r.request, inputs(&r.steps, &r.after), 6);
+    assert_eq!(report["done"], true, "{report}");
+    assert_eq!(report["verification"]["evidence_basis"], "code_validated_appended_note");
+    assert_eq!(report["steps"], 3);
+    assert_eq!(count(&calls, |c| c["role"] == "verifier"), 0);
+}
+
+#[test]
+fn appended_note_needs_the_original_text_kept_the_exact_text_and_save() {
+    use ballistic_core::postcondition::{self, Effect, Goal};
+    let r = load(include_str!("screens/loop3/markor_edit.json"));
+    let goal = postcondition::recognize(&r.request, &markor_apps()).unwrap();
+    assert_eq!(goal, Goal::NoteAppended { name: "note_0UAqF.txt".into(), text: "Actions speak louder than words.".into() });
+    assert_eq!(postcondition::recognize(&r.request, &[]), None, "Markor must be the installed app named");
+    let editor = r.steps[1].1.nodes.iter().find(|n| n.resource_id.as_deref() == Some("net.gsantner.markor:id/document__fragment__edit__highlighting_editor") && n.flags.visible).unwrap().id;
+    let typed = Effect { action: r.steps[1].0.clone(), before: r.steps[1].1.clone(), target: Some(editor), confirmed: false, readback: None };
+    let check = |fx: &[Effect], s: &ScreenState| postcondition::assess(&goal, fx, s, s, 0, &[]).verification.status;
+    assert_eq!(check(std::slice::from_ref(&typed), &r.after), VerificationStatus::Verified);
+    // Unsaved (Save enabled), and no type in this run.
+    assert_eq!(check(std::slice::from_ref(&typed), &r.steps[2].1), VerificationStatus::Unknown);
+    assert_eq!(check(&[], &r.after), VerificationStatus::Unknown);
+    // Derived: the earlier text was changed, or the appended text differs.
+    for (from, to) in [("The early bird catches the worm.\n\nActions speak louder than words.", "The early bird\n\nActions speak louder than words."),
+        ("The early bird catches the worm.\n\nActions speak louder than words.", "The early bird catches the worm.\n\nActions speak louder.")] {
+        let mut after = r.after.clone();
+        after.nodes.iter_mut().find(|n| n.text.as_deref() == Some(from)).unwrap().text = Some(to.into());
+        assert_eq!(check(std::slice::from_ref(&typed), &after), VerificationStatus::Unknown, "{to}");
+    }
+}
+
+// ---- SimpleCalendarAddOneEvent with create_event (intents run, 15 Nov 2026) ----------------------
+
+fn calendar() -> Recorded { load(include_str!("screens/loop3/calendar_create_event.json")) }
+
+fn calendar_replies(r: &Recorded) -> Vec<Value> {
+    let (intent, save) = (&r.steps[0], &r.steps[1]);
+    // The operation's begin was computed by the planner ("13h"), so the owner confirms it.
+    vec![json!(intent.1), completion(&intent.0), json!("approved"), json!({"result":"ok"}), json!(save.1),
+        completion(&save.0), json!({"result":"ok"}), json!(r.after)]
+}
+
+#[test]
+fn recorded_create_event_completes_when_its_editor_is_saved_and_listed() {
+    // Recorded: create_event filled the editor (title, description, 13:00-13:15 on October 27),
+    // Save, and the list showed the event (state passed); every done claim was rejected because
+    // the list shows no year, and the planner gave up at step 19.
+    let r = calendar();
+    let (report, calls) = run(&r.request, calendar_replies(&r), 6);
+    assert_eq!(report["done"], true, "{report}");
+    assert_eq!(report["verification"]["evidence_basis"], "code_validated_saved_event");
+    assert_eq!(report["steps"], 2);
+    assert_eq!(count(&calls, |c| c["ask"] == "confirm"), 1, "the computed begin stays confirmed");
+    assert_eq!(count(&calls, |c| c["role"] == "verifier"), 0);
+}
+
+#[test]
+fn saved_event_needs_the_exact_values_their_editor_and_save_next() {
+    use ballistic_core::postcondition::{self, Effect, Goal};
+    let r = calendar();
+    let goal = postcondition::recognize(&r.request, &[]).unwrap();
+    assert_eq!(goal, Goal::EventSaved { begin: "2023-10-27T13:00".into(), minutes: Some(15), title: "Workshop on Campaign".into(),
+        description: Some("We will explore team roles. Let's be punctual.".into()) });
+    let editor = &r.steps[1].1;
+    let save_node = |s: &ScreenState| s.nodes.iter().find(|n| n.resource_id.as_deref() == Some("com.simplemobiletools.calendar.pro:id/save")).map(|n| n.id);
+    let fx = |action: Action, editor: &ScreenState| vec![
+        Effect { action, before: r.steps[0].1.clone(), target: None, confirmed: true, readback: None },
+        Effect { action: Action::Tap { target: 1 }, before: editor.clone(), target: save_node(editor), confirmed: false, readback: None }];
+    let check = |fx: &[Effect], s: &ScreenState| postcondition::assess(&goal, fx, s, s, 0, &[]).verification.status;
+    assert_eq!(check(&fx(r.steps[0].0.clone(), editor), &r.after), VerificationStatus::Verified);
+    // The editor itself, before saving, is not a saved event.
+    assert_eq!(check(&fx(r.steps[0].0.clone(), editor), editor), VerificationStatus::Unknown);
+    // Derived: another begin or duration in the operation.
+    for (k, v) in [("begin", json!("2024-10-27T13:00")), ("duration_minutes", json!(30)), ("title", json!("Workshop"))] {
+        let Action::Intent { operation, app, mut args } = r.steps[0].0.clone() else { panic!() };
+        args.insert(k.into(), v);
+        assert_eq!(check(&fx(Action::Intent { operation, app, args }, editor), &r.after), VerificationStatus::Unknown, "{k}");
+    }
+    // Derived: the editor showed another end time (the app did not take the values).
+    let mut other = editor.clone();
+    other.nodes.iter_mut().find(|n| n.text.as_deref() == Some("13:15")).unwrap().text = Some("14:00".into());
+    assert_eq!(check(&fx(r.steps[0].0.clone(), &other), &r.after), VerificationStatus::Unknown);
+    // An input between the operation and Save (a picker opened) is not "saved as filled".
+    let mut between = fx(r.steps[0].0.clone(), editor);
+    between.insert(1, Effect { action: Action::Tap { target: 2 }, before: editor.clone(), target: None, confirmed: false, readback: None });
+    assert_eq!(check(&between, &r.after), VerificationStatus::Unknown);
+    for other in ["In Simple Calendar Pro, create a calendar event on 2023-10-27 at 13h with the title 'A' and invite Bob.",
+        "create a calendar event on 2023-13-40 at 13h with the title 'A'"] {
+        assert!(!matches!(postcondition::recognize(other, &[]), Some(Goal::EventSaved { .. })), "{other}");
+    }
+}
+
 // ---- SystemBrightnessMax: the dialog's slider shows no value ------------------------------------
 
 #[test]
