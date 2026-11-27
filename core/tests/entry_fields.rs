@@ -1,5 +1,5 @@
 //! Owner field values (fields.rs) and the saved-entry check (postcondition.rs, EntrySaved), on
-//! screens recorded on the emulator (`tests/screens/fields/`, extracted by step):
+//! screens recorded on the emulator (`tests/screens/loop3/`, extracted by step):
 //!
 //!   recipe_add_intents.json  intents run, 15 Nov 2026, RecipeAddSingleRecipe: the request said
 //!                            "servings: 1 serving", the planner typed "1", saved, and the verifier
@@ -23,8 +23,8 @@ fn load(text: &str) -> Recorded {
         after: screen(&v["after"]),
     }
 }
-fn recipe() -> Recorded { load(include_str!("screens/fields/recipe_add_intents.json")) }
-fn expense() -> Recorded { load(include_str!("screens/fields/expense_add.json")) }
+fn recipe() -> Recorded { load(include_str!("screens/loop3/recipe_add_intents.json")) }
+fn expense() -> Recorded { load(include_str!("screens/loop3/expense_add.json")) }
 
 fn completion(action: &Action) -> Value {
     let mut a = actions::to_json(action);

@@ -215,30 +215,47 @@ fn message(request: &str, apps: &[AppEntry]) -> Option<Goal> {
     } else if let Some(r) = strip_any(rest, &["reply to the most recent text message ", "reply to the most recent message ",
         "reply to the latest text message ", "reply to the newest text message ", "reply to the most recent sms "]) {
         rest = r; true
+    } else if let Some(r) = rest.strip_prefix("reply to ").filter(|r| r.starts_with(|c: char| c == '+' || c.is_ascii_digit())) {
+        // "reply to <number> with message: …": the thread with that number (loop 3).
+        rest = r; false
     } else { return None; };
+    let replying_to_number = !matches!(l.strip_prefix("please ").unwrap_or(&l).split_whitespace().next(), Some("send"));
     // Optional app clause naming an installed app with the known thread layout.
-    for prep in ["using ", "with ", "in ", "via ", "on "] {
-        let Some(after) = rest.strip_prefix(prep) else { continue };
-        let named = apps.iter().filter(|a| a.package == SMS && !a.label.is_empty()).find_map(|a| {
+    let app_clause = |rest: &'_ str| -> Option<usize> {
+        let prep = ["using ", "with ", "in ", "via ", "on "].into_iter().find(|p| rest.starts_with(p))?;
+        let after = &rest[prep.len()..];
+        apps.iter().filter(|a| a.package == SMS && !a.label.is_empty()).find_map(|a| {
             let label = a.label.to_ascii_lowercase();
             after.strip_prefix(&format!("{label} app ")).or_else(|| after.strip_prefix(&format!("the {label} app ")))
                 .or_else(|| after.strip_prefix(&format!("{label} ")))
-        });
-        if let Some(after) = named { rest = after; }
-        break;
-    }
+        }).map(|r| rest.len() - r.len())
+    };
+    if let Some(n) = app_clause(rest) { rest = &rest[n..]; }
     let to = if reply { Recipient::MostRecent } else {
-        let after = rest.strip_prefix("to ")?;
+        let after = if replying_to_number { rest } else { rest.strip_prefix("to ")? };
         let (number, after) = after.split_once(' ')?;
         let digits: String = number.chars().filter(|c| !"()-".contains(*c)).collect();
         let plain = digits.strip_prefix('+').unwrap_or(&digits);
         if !(6..=15).contains(&plain.len()) || !plain.bytes().all(|b| b.is_ascii_digit()) { return None; }
         rest = after;
+        if replying_to_number { if let Some(n) = app_clause(rest) { rest = &rest[n..]; } }
         Recipient::Number(digits)
     };
     let rest_body = strip_any(rest, &["with message: ", "with the message: ", "with message ", "with the message ", "saying: ", "saying "])?;
     // Same byte offset in the original text: the prefix consumed only ASCII.
-    let body = t[t.len() - rest_body.len()..].trim();
+    let mut body = t[t.len() - rest_body.len()..].trim();
+    // An app clause after the body ("… with message: Hi. in Simple SMS Messenger") names the
+    // installed SMS app exactly; it is not part of the message.
+    for a in apps.iter().filter(|a| a.package == SMS && !a.label.is_empty()) {
+        for prep in [" in ", " using ", " with ", " via ", " on "] {
+            for suffix in ["", " app"] {
+                let clause = format!("{prep}{}{suffix}", a.label.to_ascii_lowercase());
+                let lower = body.to_ascii_lowercase();
+                let lower = lower.strip_suffix('.').unwrap_or(&lower);
+                if lower.ends_with(&clause) { body = body[..lower.len() - clause.len()].trim(); }
+            }
+        }
+    }
     if body.is_empty() || body.chars().count() > 400 { return None; }
     Some(Goal::MessageSent { to, body: body.to_string() })
 }
@@ -632,6 +649,17 @@ mod tests {
             "take one photo\nthen delete it", "reply to Ana with message: hi"] {
             assert_eq!(recognize(other, &sms_app()), None, "{other}");
         }
+    }
+
+    #[test]
+    fn reply_to_a_number_with_the_app_named_after_the_body() {
+        assert_eq!(recognize("Reply to +16604876475 with message: The squeaky wheel gets the grease. in Simple SMS Messenger", &sms_app()),
+            Some(Goal::MessageSent { to: Recipient::Number("+16604876475".into()), body: "The squeaky wheel gets the grease.".into() }));
+        assert_eq!(recognize("Reply to +16604876475 using Simple SMS Messenger with message: Hi", &sms_app()),
+            Some(Goal::MessageSent { to: Recipient::Number("+16604876475".into()), body: "Hi".into() }));
+        // Another app's name stays part of the body.
+        assert_eq!(recognize("Reply to +16604876475 with message: see you in Messages", &sms_app()),
+            Some(Goal::MessageSent { to: Recipient::Number("+16604876475".into()), body: "see you in Messages".into() }));
     }
 
     #[test]

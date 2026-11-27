@@ -323,6 +323,12 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, optio
             match actions::check_length(&completion.text,actions::PLANNER_TOKENS).and_then(|_|actions::parse_reply(&completion.text)).and_then(|r|{
                 actions::resolve(&r.action,&view,&screen,&apps)?;
                 if let Action::Answer{text}=&r.action { actions::answer_values(text,&view,request,task.tainted,&facts_values)?; }
+                // The owner-only summary channel ends the run; a request that did not opt in gets a
+                // correction, not a terminal stop (loop 3: two runs ended verifying their own work).
+                if matches!(&r.action, Action::Read{shape:ReadShape::Summary,..}) && !summary::requested(request) {
+                    return Err(actions::ActionError::BadArguments{action:"read".into(),
+                        detail:"shape summary is only for a request that asks to summarize content or asks a question, and it ends the run; to check content, read with shape facts or element".into()});
+                }
                 crate::operations::check_request(&r.action,request,&screen,&apps)?;
                 Ok(r)
             }) {
