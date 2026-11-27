@@ -1,6 +1,18 @@
 # Computer Control emulator evaluation
 
-Status: 23 November 2026. Pilot test driver and compatible image built; image delivered with a
+Status: 27 November 2026. The repaired image (`2026112300`) is booted and its OS regression test
+passed. Setup was repeated through Android UI.
+
+- Implemented: no app or fixture code changed.
+- Tested: the model-free adapter fixture passed all six checks cold, three of three runs. Two
+  warm runs obtained trees but stopped at the fixture's tab precondition. No proxy NPE appeared.
+- Tested: the Flash Lite stopwatch pilot passed 2 of 3 runs on agent done, independent state and
+  combined. The failed run's scroll was rejected before dispatch.
+- Planned: everything else below, including the 30-task suite. No suite score exists.
+
+See the [27 Nov record](log/2026-11-27-repaired-emulator-validation.md).
+
+Earlier status, 23 November 2026. Pilot test driver and compatible image built; image delivered with a
 matching checksum. The visible AVD booted, APKs installed and assistant-role permission grant
 verified. Clock policy/consent and six live adapter checks passed. The first model-driven APK run
 stopped before any action with Gemini Pro HTTP 429; its quota is zero. The owner then authorized
@@ -164,3 +176,7 @@ malformed/unknown state is a checker error. This is an adapted state check, not 
 AndroidWorld UI checker or a side-effect audit. Twelve host tests pass across the APK driver and
 this checker. Live execution of this new combined driver is pending the repaired emulator image
 and restored ThinkPad SSH connectivity; earlier preference checks were manual.
+
+Live execution, 27 November 2026, repaired image: three runs. Two passed on agent done,
+independent state and combined; one failed when core rejected a scroll before dispatch.
+Details are in the [27 Nov record](log/2026-11-27-repaired-emulator-validation.md).

@@ -1,8 +1,28 @@
 # Ballistic: current decisions and handoff
 
-## Computer Control emulator preparation — updated 23 November 2026
+## Computer Control emulator preparation — updated 27 November 2026
 
-**Latest: Flash Lite authorized and tested; repaired image built.** Pro's zero-quota response
+**Latest (27 Nov): repaired image validated on the emulator.** `BallisticControlApi37` runs
+build `2026112300` with the accessibility-proxy fix. Its OS regression test passed (50/50).
+The wiped setup was redone through Android UI: assistant role (`GRANTED_BY_ROLE`), persisted
+Screen automation switches, test PIN with simulated fingerprint, Connected server, notifications
+via the prompt, Flash Lite for all roles, the Clock rule and Always-allow consent. No shell grants
+or approval bypasses were used.
+
+- **Tested, adapter only:** the model-free fixture passed 6/6 checks in all three cold runs. Both
+  warm runs obtained the 77-node tree, then stopped at a fixture precondition because Clock was
+  already on the Stopwatch tab, so four checks did not run warm. No `registerDisplayProxy` NPE
+  appeared in any logcat. This is not an agent score.
+- **Tested, one task:** the Flash Lite “Run the stopwatch.” pilot was run 3 times. Runs 1 and 2
+  passed (agent done, independent state running). Run 3 failed: core rejected a `scroll` before
+  dispatch (`permission` category; not an owner denial). Possible but unconfirmed contributor:
+  an empty first observation after launch.
+- **Planned:** diagnose that rejection, a warm-safe fixture, Stop/revocation/approval tests and
+  the API-37 AndroidWorld suite.
+
+See the [27 Nov record](log/2026-11-27-repaired-emulator-validation.md).
+
+**23 Nov: Flash Lite authorized and tested; repaired image built.** Pro's zero-quota response
 led the owner to authorize `gemini-flash-lite-latest`. The APK completed a warm Stopwatch-tab
 request in 15.879 seconds, but that tab was already selected. A fresh “Run the stopwatch” request
 failed in 22.263 seconds with no running stopwatch. A subsequent zero-model adapter reproduction
