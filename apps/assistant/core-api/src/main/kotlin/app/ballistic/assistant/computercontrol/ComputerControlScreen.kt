@@ -24,6 +24,7 @@ package app.ballistic.assistant.computercontrol
 
 import app.ballistic.assistant.core.AppEntry
 import app.ballistic.assistant.core.HostCapabilities
+import app.ballistic.assistant.core.Node
 import app.ballistic.assistant.core.PortException
 import app.ballistic.assistant.core.Screen
 import app.ballistic.assistant.core.ScreenState
@@ -35,7 +36,12 @@ class ComputerControlScreen(
     private val installedApps: () -> List<AppEntry>,
     private val capabilities: () -> HostCapabilities,
     private val sleep: (Long) -> Unit = { Thread.sleep(it) },
+    /** Set by ComputerControlHands when input may have reached the session since the last observation. */
+    private val inputs: CcInputMarker = CcInputMarker(),
 ) : Screen {
+    /** The last tree returned (all windows, with text): host-internal, never sent anywhere. */
+    private var lastTree: List<Node>? = null
+
     override fun observe(): ScreenState {
         val s = session() ?: throw PortException.Host(CcReason.NotStarted.message)
         // onSessionCreated comes before LifecycleCallback.onActive; give it a moment.
@@ -56,6 +62,20 @@ class ComputerControlScreen(
             windows = s.windows()
             attempt++
         }
+        s.state.notActiveReason?.let { throw PortException.Host(it.message) }
+        if (AxTree.toNodes(windows).isNotEmpty()) windows = settled(s, windows)
+        // After an input, a tree identical to the previous observation was often read before the
+        // app redrew (harness/core_bridge.py observe). Read again a bounded number of times; a
+        // screen that really stayed the same is returned as it is.
+        val acted = inputs.consume()
+        var again = 0
+        while (acted && lastTree != null && AxTree.toNodes(windows) == lastTree && again < UNCHANGED_RETRIES) {
+            sleep(UNCHANGED_RETRY_MS)
+            s.state.notActiveReason?.let { throw PortException.Host(it.message) }
+            windows = settled(s, s.windows())
+            again++
+        }
+        lastTree = AxTree.toNodes(windows)
         s.state.notActiveReason?.let { throw PortException.Host(it.message) }
         val targets = (s.state as? CcState.Active)?.targets?.toSet()
             ?: throw PortException.Host(CcReason.Closed.message)
@@ -83,7 +103,38 @@ class ComputerControlScreen(
         )
     }
 
+    /**
+     * Two consecutive reads with the same skeleton (front package, classes, ids, bounds, flags;
+     * text ignored, since a running stopwatch changes its digits every frame) settle the screen,
+     * as the harness's two-sample check does. Bounded; an unsettled screen is returned as read.
+     */
+    private fun settled(s: CcSessionView, first: List<AxWindow>): List<AxWindow> {
+        var current = first
+        var delay = SETTLE_MS
+        repeat(SETTLE_SAMPLES) {
+            sleep(delay)
+            s.state.notActiveReason?.let { throw PortException.Host(it.message) }
+            val next = s.windows()
+            if (skeleton(next) == skeleton(current)) return next
+            current = next
+            delay = minOf(delay * 2, SETTLE_MAX_MS)
+        }
+        return current
+    }
+
     companion object {
+        const val SETTLE_MS = 250L
+        const val SETTLE_MAX_MS = 1_000L
+        const val SETTLE_SAMPLES = 5
+        const val UNCHANGED_RETRIES = 3
+        const val UNCHANGED_RETRY_MS = 800L
+
+        /** What a settled screen must keep between two reads; no strings. */
+        fun skeleton(windows: List<AxWindow>): Pair<String?, List<Any?>> =
+            AxTree.frontPackage(windows) to AxTree.toNodes(windows).map {
+                listOf(it.parent, it.role, it.className, it.resourceId, it.`package`, it.bounds, it.flags)
+            }
+
         const val POLL_MS = 100L
         const val START_WAIT_MS = 2_000L
         const val EMPTY_RETRIES = 3

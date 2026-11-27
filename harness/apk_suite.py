@@ -272,7 +272,7 @@ def summarize(table: dict, records: list[dict]) -> dict:
 
 
 def run_suite(adb: Adb, env, table: dict, group: str, timeout: int, out_dir: Path,
-              only: list[str] | None = None, **kwargs) -> dict:
+              only: list[str] | None = None, pause: float = 0.0, sleep=time.sleep, **kwargs) -> dict:
     checked = preflight(adb)
     if not checked["ready_for_app_checks"]:
         raise RuntimeError("APK preflight failed; no task was set up")
@@ -289,7 +289,9 @@ def run_suite(adb: Adb, env, table: dict, group: str, timeout: int, out_dir: Pat
             raise RuntimeError(f"target app not installed: {package}")
     out_dir.mkdir(parents=True, exist_ok=True)
     records = []
-    for name in names:
+    for index, name in enumerate(names):
+        if index and pause:
+            sleep(pause)  # spacing between model-backed runs (provider rate limits); never a retry
         record = run_one(name, table["tasks"][name], adb, env, timeout, out_dir, **kwargs)
         records.append(record)
         (out_dir / f"suite_{name}.json").write_text(json.dumps(record, indent=2) + "\n")
@@ -312,6 +314,7 @@ def main() -> None:
     parser.add_argument("--task", action="append", help="run only these eligible tasks (repeatable)")
     parser.add_argument("--timeout", type=int, default=300)
     parser.add_argument("--out-dir", type=Path)
+    parser.add_argument("--pause", type=float, default=0.0, help="seconds between tasks (provider rate limits)")
     args = parser.parse_args()
     table = load_table()
     if args.list:
@@ -320,7 +323,8 @@ def main() -> None:
     if not args.serial or not args.out_dir:
         parser.error("--serial and --out-dir are required to run")
     adb = Adb(args.adb, args.serial)
-    summary = run_suite(adb, aw_env(args.adb, args.serial), table, args.group, args.timeout, args.out_dir, args.task)
+    summary = run_suite(adb, aw_env(args.adb, args.serial), table, args.group, args.timeout, args.out_dir, args.task,
+                        pause=args.pause)
     print(json.dumps(summary["summary"], indent=2))
     print(summary["record"])
 

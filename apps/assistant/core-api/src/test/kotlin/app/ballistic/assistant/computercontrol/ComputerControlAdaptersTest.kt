@@ -139,12 +139,78 @@ class ComputerControlAdaptersTest {
         val sleeps = mutableListOf<Long>()
         val state = screen(s, setOf("com.a"), sleeps).observe()
         assertEquals(1, state.nodes.size)
-        assertEquals(3, s.windowReads)
-        assertEquals(listOf(ComputerControlScreen.EMPTY_RETRY_MS, ComputerControlScreen.EMPTY_RETRY_MS), sleeps)
+        assertEquals(4, s.windowReads, "two empty reads, the tree, one settling read")
+        assertEquals(listOf(ComputerControlScreen.EMPTY_RETRY_MS, ComputerControlScreen.EMPTY_RETRY_MS, ComputerControlScreen.SETTLE_MS), sleeps)
         // Still empty after the retries: returned as it is, not invented.
         val empty = FakeSession(CcState.Active(targets), emptyList())
         assertTrue(screen(empty, setOf("com.a")).observe().nodes.isEmpty())
         assertEquals(1 + ComputerControlScreen.EMPTY_RETRIES, empty.windowReads)
+    }
+
+    private fun tab(selected: Boolean, text: String = "Stopwatch") = appWindow("com.a",
+        AxNode(className = "android.widget.LinearLayout", contentDescription = "Stopwatch", text = text, packageName = "com.a",
+            bounds = Bounds(0, 0, 100, 100), clickable = !selected, selected = selected, visibleToUser = true))
+
+    @Test fun aChangingSkeletonIsReadUntilTwoReadsAgree() {
+        val s = FakeSession(CcState.Active(targets), listOf(tab(selected = true)))
+        s.firstReads.addLast(listOf(tab(selected = false)))
+        val sleeps = mutableListOf<Long>()
+        val state = screen(s, setOf("com.a"), sleeps).observe()
+        assertTrue(state.nodes[1].flags.selected, "the settled tab state, not the transitional read")
+        assertEquals(listOf(ComputerControlScreen.SETTLE_MS, 2 * ComputerControlScreen.SETTLE_MS), sleeps)
+    }
+
+    @Test fun changingTextAloneSettlesAndAnUnsettledScreenIsBounded() {
+        var n = 0
+        val ticking = object : CcSessionView by FakeSession(CcState.Active(targets)) {
+            override fun windows() = listOf(tab(selected = true, text = "00:0${n++}"))
+        }
+        val sleeps = mutableListOf<Long>()
+        ComputerControlScreen({ ticking }, { true }, { emptyList() }, { caps }, sleep = { sleeps += it }).observe()
+        assertEquals(listOf(ComputerControlScreen.SETTLE_MS), sleeps, "a running stopwatch's digits do not unsettle it")
+        var flip = false
+        val flapping = object : CcSessionView by FakeSession(CcState.Active(targets)) {
+            override fun windows() = listOf(tab(selected = flip).also { flip = !flip })
+        }
+        val waits = mutableListOf<Long>()
+        ComputerControlScreen({ flapping }, { true }, { emptyList() }, { caps }, sleep = { waits += it }).observe()
+        assertEquals(ComputerControlScreen.SETTLE_SAMPLES, waits.size)
+        assertTrue(waits.all { it <= ComputerControlScreen.SETTLE_MAX_MS })
+    }
+
+    @Test fun anUnchangedTreeAfterInputIsReadAgainBounded() {
+        val s = FakeSession(CcState.Active(targets), listOf(tab(selected = false)))
+        val inputs = CcInputMarker()
+        val sleeps = mutableListOf<Long>()
+        val port = ComputerControlScreen({ s }, { true }, { emptyList() }, { caps }, sleep = { sleeps += it }, inputs = inputs)
+        port.observe()
+        // An input, then the app redraws only after the first read: the redrawn tree is returned.
+        inputs.mark()
+        s.firstReads.addLast(listOf(tab(selected = false))); s.firstReads.addLast(listOf(tab(selected = false)))
+        s.windowList = listOf(tab(selected = true))
+        sleeps.clear()
+        assertTrue(port.observe().nodes[1].flags.selected)
+        assertTrue(ComputerControlScreen.UNCHANGED_RETRY_MS in sleeps)
+        // An input after which the screen really stays the same: returned after the bounded re-reads.
+        inputs.mark()
+        sleeps.clear()
+        assertTrue(port.observe().nodes[1].flags.selected)
+        assertEquals(ComputerControlScreen.UNCHANGED_RETRIES, sleeps.count { it == ComputerControlScreen.UNCHANGED_RETRY_MS })
+        // No input: no re-read for an unchanged screen.
+        sleeps.clear()
+        port.observe()
+        assertEquals(0, sleeps.count { it == ComputerControlScreen.UNCHANGED_RETRY_MS })
+    }
+
+    @Test fun handsMarkInputOnlyWhenSomethingMayHaveBeenSent() {
+        val s = FakeSession(CcState.Active(targets), listOf(appWindow("com.a")))
+        val inputs = CcInputMarker()
+        val hands = ComputerControlHands({ s }, sleep = {}, inputs = inputs)
+        hands.act(HandsOp.OpenApp("com.other"))
+        assertFalse(inputs.consume(), "refused before dispatch")
+        hands.act(HandsOp.Tap(1, 1))
+        assertTrue(inputs.consume())
+        assertFalse(inputs.consume(), "consumed once")
     }
 
     @Test fun screenFailsWithTheSessionReasonWhenNotActive() {

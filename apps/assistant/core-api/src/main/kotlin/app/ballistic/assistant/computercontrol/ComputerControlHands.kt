@@ -38,9 +38,17 @@ interface CcSessionView {
     fun frontPackage(): String? = AxTree.frontPackage(windows())
 }
 
+/** Input may have reached the session since the Screen port last observed it. Timing only. */
+class CcInputMarker {
+    private val pending = java.util.concurrent.atomic.AtomicBoolean(false)
+    fun mark() = pending.set(true)
+    fun consume(): Boolean = pending.getAndSet(false)
+}
+
 class ComputerControlHands(
     private val session: () -> CcSessionView?,
     private val sleep: (Long) -> Unit = { Thread.sleep(it) },
+    private val inputs: CcInputMarker = CcInputMarker(),
 ) : Hands {
     override fun act(op: HandsOp): HandsResult {
         val s = session() ?: return CcOps.notExecuted(CcReason.NotStarted)
@@ -65,6 +73,7 @@ class ComputerControlHands(
             override fun launch(`package`: String, activity: String?) { checkActive(); s.input.launch(`package`, activity) }
         }
         val result = CcOps.execute(op, guarded, s.width, s.height, sleep)
+        if (result !is HandsResult.NotExecuted) inputs.mark()
         if (op !is HandsOp.OpenApp || result != HandsResult.Ok) return result
         return awaitLaunched(s, op.`package`)
     }
