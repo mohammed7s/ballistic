@@ -16,6 +16,10 @@
 //!                owner-confirmed input followed, and the same page lists its other rows without them
 //!   NoteSaved    "create a new note in Markor named n.txt with the following text: …": the
 //!                editor held the text with Save disabled, then the file list shows n.txt
+//!   Loop 3 (16 Nov 2026): EntrySaved (one record of owner field values entered and saved),
+//!   RunState (pause/start the <noun> on its own page), NoteAppended (Markor note edited at the
+//!   end and saved), EventSaved (a create_event editor saved as filled), and "reply to <number>"
+//!   for MessageSent
 //!
 //! Recognition is a full-string grammar over the owner's words; anything else (other wording,
 //! compound requests) is not recognized and keeps the ordinary verifier. Checks read the raw

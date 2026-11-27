@@ -613,7 +613,11 @@ hosts, earlier/later unseen changes or text omitted by the host. Provenance come
 actual filter `ContentRef.source` and node, currently `app:<package>`; the model cannot invent
 a sender, filename, source type or source name.
 
-Every summary attempt is terminal, including refusal/error. Before/after the reader, before
+A `read` with shape `summary` on a request that does not opt in (neither form above) is invalid
+output with a correction since loop 3 (16 Nov 2026): no reader call, no owner output, and the run
+continues; it used to end the run as `unsupported` (loop 2: MarkorEditNote and RecipeAddSingleRecipe
+ended this way while the planner checked its own work). Every summary attempt that reaches the
+summary path is terminal, including refusal/error. Before/after the reader, before
 fresh observation, after observation, before logging and immediately before final publication,
 core checks Stop. No planner, correction, verifier, judge, confirmation, Hands or Tools call
 follows the summary reader. No excerpt or evidence is added to step events/history or element
@@ -801,6 +805,11 @@ observation, with no model:
 | Photo | `take one/a photo/picture [with the camera]` | exactly one shutter press in this run, and a last-photo thumbnail that was not on the screen the press was planned on |
 | RowsDeleted (9 Nov 2026, loop 2) | `delete/remove the following <plain words>: A, B and C` and `delete/remove the <noun> in/from <app words> named/called/titled <name>` (plain words only: no second verb or clause) | for every name, an input in this run was planned on a screen whose own view showed a clickable row with a resource id and that name as a match-only title, and an owner-confirmed input in that app followed; the fresh screen is the same package and activity with the same set of labeled controls (labels only), shows none of the names, and lists the other rows of that resource id it showed then (identity: the row's raw strings, compared in code) in the same order at the top, optionally followed by rows that moved up; with no other row seen, none may show |
 | NoteSaved (9 Nov 2026, loop 2) | `create a [new] note/file in/using <Markor's label> [app] named/called <name> with the following text: <text>` | an acknowledged `type` of exactly `<text>` into Markor's editor; a later input planned on the editor showing exactly `<text>` with Save disabled and the title `<name>` or its stem; the fresh screen is Markor's file list with a file row captioned exactly `<name>`, and no list before the `type` showed it. The verifier is not asked when this fails: a typed editor is not a saved file |
+| MessageSent, reply to a number (16 Nov 2026, loop 3) | `reply to <number> [using <SMS app>] with message: <body> [in/using <SMS app>]` | as MessageSent for a number; an app clause after the body is dropped only when it names the installed SMS app exactly |
+| EntrySaved (loop 3) | `add/create the following …:` then one record of owner field values (below): two or more `key: value` lines, or a `\|` header row and one value row | every value entered in this run (typed, or a tap on a control whose strings are exactly the value; not via the fresh screen), no typed value in a field whose label names another key; after the last entry a tap on a Save-like control (`save`, `done`, `add`, `create`, `submit`, `confirm`, `ok`, `save <one or two words>`); the fresh screen is the same app, the form closed (that control gone or another activity; no editable field still holds a value) and shows the first value as a display, which no screen up to the first entry showed |
+| RunState (loop 3) | `pause/stop the <noun>` and `start/run/resume the <noun>`, one or two plain words | the app's own selected tab or page named `<noun>`, and among its enabled buttons only the opposite action: Start/Resume/Play without Pause/Stop for paused, the reverse for running. A state that already held counts: it is shown |
+| NoteAppended (loop 3) | `edit <name> in <Markor's label>[ app]. add to the bottom/end of the note/file[:] <text>` | the first `type` into that file's editor (title `<name>` or its stem) recorded its earlier text; the fresh editor shows that text unchanged, then only whitespace, then exactly `<text>`, with Save disabled. No verifier fallback |
+| EventSaved (loop 3) | `[in <app words>, ]create a [new ]calendar event / an event on YYYY-MM-DD at <H>h[<M>m] / <H>:<MM> with the title '<T>'[ and the description '<D>'][.][ The event should last for <N> min/mins/minutes.]` | a `create_event` in this run with exactly `<T>`, `<D>`, that begin and length and no location; the very next input a tap on `Save` planned on the editor it opened, whose fields show `<T>` and `<D>` and whose texts show the begin and end clock times and the month name and day; the fresh screen is the same app in another activity showing `<T>` as a display. The year is evidenced only by the operation's value (owner-sourced or confirmed) and the editor saved unchanged |
 
 Structural identities are the recorded ones (Simple SMS Messenger thread layout, AOSP camera, AOSP
 Settings); anything else is not recognized and keeps the ordinary verifier. Core runs the check
@@ -809,7 +818,12 @@ then; the next step plans on it either way), so a run ends as done without a pla
 or extra model call; the step event carries `typed_postcondition: "verified"` and
 `verification.evidence_basis` names the evidence (`code_validated_host_foreground`,
 `code_validated_settings_value`, `code_validated_sent_row`, `code_validated_new_photo_thumbnail`,
-`code_validated_rows_removed`, `code_validated_saved_file`). Deletion and saved-note tests:
+`code_validated_rows_removed`, `code_validated_saved_file`, and from loop 3 `code_validated_saved_entry`,
+`code_validated_run_state`, `code_validated_appended_note`, `code_validated_saved_event`). Loop 3 tests:
+`tests/entry_fields.rs` and `tests/loop3_recognition.rs` on screens recorded in the loop 2 and intents
+Haiku runs of 15 Nov 2026 (`tests/screens/loop3/`), with derived variants. On a slider screen
+outside Settings the brightness check's note now says the slider shows no value and to press back to
+Settings > Display (loop 2 SystemBrightnessMax gave up on the dialog). Deletion and saved-note tests:
 `tests/rows_and_notes.rs` on screens recorded in the Opus 5.5 suite (b22da1f), with derived
 variants (cancelled delete, other pages of the same activity, another row shown, an unseen name,
 another extension, unsaved editor, a pre-existing file).
@@ -823,6 +837,24 @@ and "most recent" relies on the app listing conversations newest first. Tests:
 numbers, bodies, incoming rows, unconfirmed or unchanged sends, a second row, a scrolled list, a
 pin marker, two shutter presses, a permission prompt, an unproven Settings page and a contradicting
 foreground readback).
+
+**Owner field values (16 Nov 2026, loop 3, `fields.rs`; offline tests only).** A request that lists
+field values (two or more lines `key: value`, the key one to three words, or a `|` header row of
+keys followed by rows of values) gives values the owner wants entered exactly. In a run that
+entered text (`type` or a typed operation's filled-in strings), no done is accepted, whether a
+verifier or a typed check said verified, until each value was entered in this run: typed equal
+to it with whitespace collapsed (a value that is exactly one amount or number also matches the
+same decimal value, so `179.68` enters `$179.68`), selected by a tap on a control whose strings are
+exactly it, shown exactly in an editable field on a screen an input was planned on, or shown
+exactly by an element of the fresh screen. Otherwise the outcome names the missing keys and values
+(the owner's own words, never screen text) and the run continues. Recorded case: in the intents run
+RecipeAddSingleRecipe the request said `servings: 1 serving`, the planner typed `1`, and the
+verifier accepted the saved recipe while the benchmark state failed; the recorded run replayed with
+this code rejects that done (`tests/entry_fields.rs`). The planner rules also say to type owner
+values exactly, words and units included. Limits: a value entered through a picker (a date) and
+never shown exactly blocks done; values are compared, not their fields (EntrySaved adds a label
+check), and a value shown elsewhere on the fresh screen satisfies the gate, which only adds a
+condition to the existing checks.
 
 After an ambiguous send or other side effect (timeout, lost acknowledgment), inspect state before
 retrying. Retry only when reliable readback proves no effect or the route offers a valid
