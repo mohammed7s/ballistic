@@ -75,3 +75,73 @@ fn reply_to_a_number_is_not_done_in_another_thread() {
     let (report, _) = run(&r.request, replies, 10);
     assert_eq!(report["done"], false, "{report}");
 }
+
+// ---- ClockStopWatchPausedVerify / ClockStopWatchRunning: the run state on the app's own page ----
+
+/// Replies for recorded inputs, each followed by core's typed-check observation (the next
+/// recorded screen, then `after`).
+fn inputs(steps: &[(Action, ScreenState)], after: &ScreenState) -> Vec<Value> {
+    let mut replies = vec![json!(steps[0].1)];
+    for (i, (action, _)) in steps.iter().enumerate() {
+        replies.push(completion(action));
+        replies.push(json!({"result":"ok"}));
+        replies.push(json!(steps.get(i + 1).map_or(after, |s| &s.1)));
+    }
+    replies
+}
+
+#[test]
+fn recorded_paused_stopwatch_is_done_when_its_page_shows_start_without_pause() {
+    // Recorded: Clock, then the Stopwatch tab showing Start and no Pause (state passed); the
+    // verifier would not accept "not running" and the planner gave up.
+    let r = load(include_str!("screens/loop3/stopwatch_paused.json"));
+    let (report, calls) = run(&r.request, inputs(&r.steps, &r.after), 6);
+    assert_eq!(report["done"], true, "{report}");
+    assert_eq!(report["verification"]["evidence_basis"], "code_validated_run_state");
+    assert_eq!(report["steps"], 2);
+    assert_eq!(count(&calls, |c| c["role"] == "verifier"), 0);
+}
+
+#[test]
+fn recorded_running_stopwatch_is_done_after_start() {
+    let r = load(include_str!("screens/loop3/stopwatch_running.json"));
+    let (report, _) = run(&r.request, inputs(&r.steps[..3], &r.after), 6);
+    assert_eq!(report["done"], true, "{report}");
+    assert_eq!(report["verification"]["evidence_basis"], "code_validated_run_state");
+    assert_eq!(report["steps"], 3);
+}
+
+#[test]
+fn run_state_needs_the_named_selected_page_and_only_the_opposite_control() {
+    use ballistic_core::postcondition::{self, Goal};
+    let paused = load(include_str!("screens/loop3/stopwatch_paused.json"));
+    let running = load(include_str!("screens/loop3/stopwatch_running.json"));
+    let goal = |r: &str| postcondition::recognize(r, &[]).unwrap();
+    assert_eq!(goal("Pause the stopwatch."), Goal::RunState { noun: "stopwatch".into(), running: false });
+    assert_eq!(goal("Run the stopwatch."), Goal::RunState { noun: "stopwatch".into(), running: true });
+    for other in ["pause the stopwatch and reset it", "stop the alarm at 7", "pause"] {
+        assert!(!matches!(postcondition::recognize(other, &[]), Some(Goal::RunState { .. })), "{other}");
+    }
+    let check = |g: &Goal, s: &ScreenState| postcondition::assess(g, &[], s, s, 0, &[]).verification.status;
+    // Paused is not running, and the other way round.
+    assert_eq!(check(&goal("Pause the stopwatch."), &paused.after), VerificationStatus::Verified);
+    assert_eq!(check(&goal("Pause the stopwatch."), &running.after), VerificationStatus::Unknown);
+    assert_eq!(check(&goal("Run the stopwatch."), &running.after), VerificationStatus::Verified);
+    assert_eq!(check(&goal("Run the stopwatch."), &paused.after), VerificationStatus::Unknown);
+    // The Clock tab (not the named page) is not evidence about the stopwatch.
+    assert_eq!(check(&goal("Pause the stopwatch."), &paused.steps[1].1), VerificationStatus::Unknown);
+    assert_eq!(check(&goal("Pause the timer."), &paused.after), VerificationStatus::Unknown);
+}
+
+// ---- SystemBrightnessMax: the dialog's slider shows no value ------------------------------------
+
+#[test]
+fn brightness_dialog_feedback_says_to_go_back_to_the_display_page() {
+    use ballistic_core::postcondition;
+    let text = include_str!("screens/postconditions/brightness_dialog.json");
+    let dialog: ScreenState = serde_json::from_value(serde_json::from_str::<Value>(text).unwrap()["screen"].clone()).unwrap();
+    let goal = postcondition::recognize("Turn brightness to the max value.", &[]).unwrap();
+    let a = postcondition::assess(&goal, &[], &dialog, &dialog, 0, &[]);
+    assert_eq!(a.verification.status, VerificationStatus::Unknown);
+    assert!(a.feedback.contains("press back"), "{}", a.feedback);
+}

@@ -45,6 +45,10 @@ pub enum Goal {
     /// every value entered in this run, then a Save-like tap that closed the form, and a screen
     /// of the same app showing the record's first value that no screen before the entry showed.
     EntrySaved { fields: Vec<crate::fields::Field> },
+    /// "pause the stopwatch" / "run the stopwatch": the app's selected tab or page is named
+    /// <noun>, and its own controls offer only the opposite action (Start shown and no Pause
+    /// means it is not running). A state that already held counts: it is shown on the screen.
+    RunState { noun: String, running: bool },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -108,7 +112,7 @@ pub fn recognize(request: &str, apps: &[AppEntry]) -> Option<Goal> {
     }
     let w = words(request);
     let w = w.strip_prefix("please ").unwrap_or(&w);
-    brightness(w).or_else(|| photo(w)).or_else(|| message(request, apps)).or_else(|| rows_deleted(request))
+    brightness(w).or_else(|| photo(w)).or_else(|| run_state(w)).or_else(|| message(request, apps)).or_else(|| rows_deleted(request))
         .or_else(|| note_saved(request, apps)).or_else(|| entry_saved(w, request))
 }
 
@@ -191,6 +195,14 @@ fn brightness(w: &str) -> Option<Goal> {
     let (percent, tail) = if let Some(t) = strip_any(rest, &["maximum", "max", "highest", "full"]) { (100, t) }
         else { (0, strip_any(rest, &["minimum", "min", "lowest"])?) };
     matches!(tail, "" | " value" | " level" | " setting").then_some(Goal::Brightness { percent })
+}
+
+/// "pause|stop the <noun>" and "start|run|resume the <noun>", the noun one or two plain words.
+fn run_state(w: &str) -> Option<Goal> {
+    let (rest, running) = if let Some(r) = strip_any(w, &["pause the ", "stop the "]) { (r, false) }
+        else { (strip_any(w, &["start the ", "run the ", "resume the "])?, true) };
+    let ok = !rest.is_empty() && rest.split(' ').count() <= 2 && rest.chars().all(|c| c.is_ascii_alphabetic() || c == ' ');
+    ok.then(|| Goal::RunState { noun: rest.to_string(), running })
 }
 
 fn photo(w: &str) -> Option<Goal> {
@@ -297,6 +309,7 @@ pub fn assess(goal: &Goal, effects: &[Effect], before: &ScreenState, fresh: &Scr
         Goal::Brightness { percent } => brightness_level(fresh, *percent),
         Goal::MessageSent { to, body } => message_sent(effects, fresh, to, body),
         Goal::Photo => photo_taken(effects, fresh),
+        Goal::RunState { noun, running } => run_state_shown(fresh, noun, *running),
         Goal::RowsDeleted { names } => rows_gone(effects, fresh, names),
         Goal::NoteSaved { name, text } => note_in_list(effects, fresh, name, text),
         Goal::EntrySaved { fields } => entry_in_app(effects, fresh, fields),
@@ -493,6 +506,11 @@ fn entry_in_app(effects: &[Effect], fresh: &ScreenState, fields: &[crate::fields
 const SETTINGS: &str = "com.android.settings";
 
 fn brightness_level(fresh: &ScreenState, percent: u8) -> Assessment {
+    // Loop 2 Haiku (SystemBrightnessMax, state passed): three swipes on the dialog's slider read
+    // back "screen unchanged" and the planner gave up there, never returning to the Display page.
+    if !about(fresh, SETTINGS) && fresh.nodes.iter().any(|n| n.role == Role::Slider && shown(n)) {
+        return unknown("this slider does not show its value, so an unchanged screen does not mean a swipe failed; after swiping, press back: Settings > Display shows the level in its Brightness level row");
+    }
     if !about(fresh, SETTINGS) {
         return unknown("the brightness level is read on Settings > Display (Brightness level row); the slider does not show its value");
     }
@@ -610,6 +628,30 @@ fn entered_from_top_conversation(effects: &[Effect], title: &str) -> bool {
     if kids.len() != 3 || ids != expected.iter().map(String::as_str).collect::<Vec<_>>() { return false; }
     kids.iter().find(|k| rid(k) == Some(&sms_id("conversation_address")))
         .and_then(|k| k.text.as_deref()).is_some_and(|address| address.trim() == title.trim())
+}
+
+// ---- run state (pause / start) --------------------------------------------------------------------
+
+const STOPPED_CONTROLS: &[&str] = &["start", "resume", "play"];
+const RUNNING_CONTROLS: &[&str] = &["pause", "stop"];
+
+fn run_state_shown(fresh: &ScreenState, noun: &str, running: bool) -> Assessment {
+    const NOT_YET: &str = "core checks the state on the app's own page for it: a selected tab or page with that name, and only the opposite control (Start without Pause when paused, Pause without Start when running)";
+    let own = |n: &&Node| shown(n) && n.package.as_deref() == Some(fresh.package.as_str());
+    let named = |n: &Node| [n.label.as_deref(), n.text.as_deref()].into_iter().flatten().any(|t| t.trim().eq_ignore_ascii_case(noun));
+    if fresh.package == "com.android.systemui" || !fresh.nodes.iter().filter(own).any(|n| n.flags.selected && named(n)) {
+        return unknown(NOT_YET);
+    }
+    let controls: Vec<String> = fresh.nodes.iter().filter(own).filter(|n| n.role == Role::Button && n.flags.clickable && n.flags.enabled)
+        .filter_map(|n| n.label.as_deref().or(n.text.as_deref())).map(|t| t.trim().to_ascii_lowercase()).collect();
+    let has = |set: &[&str]| controls.iter().any(|c| set.contains(&c.as_str()));
+    let (want, not) = if running { (RUNNING_CONTROLS, STOPPED_CONTROLS) } else { (STOPPED_CONTROLS, RUNNING_CONTROLS) };
+    if has(want) && !has(not) {
+        verified("code_validated_run_state", fresh, if running { "the page shows a Pause control and no Start control: it is running" }
+            else { "the page shows a Start control and no Pause control: it is not running" })
+    } else {
+        unknown(NOT_YET)
+    }
 }
 
 const CAMERA: &str = "com.android.camera2";
