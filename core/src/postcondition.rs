@@ -41,6 +41,10 @@ pub enum Goal {
     /// held exactly the owner's text with Save disabled (saved), then Markor's file list shows a
     /// file row titled exactly <name> that no list showed before the text was typed.
     NoteSaved { name: String, text: String },
+    /// "add the following <things> into <app>:" with one record of owner field values (fields.rs):
+    /// every value entered in this run, then a Save-like tap that closed the form, and a screen
+    /// of the same app showing the record's first value that no screen before the entry showed.
+    EntrySaved { fields: Vec<crate::fields::Field> },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -93,14 +97,27 @@ fn strip_any<'a>(s: &'a str, prefixes: &[&str]) -> Option<&'a str> {
 }
 
 pub fn recognize(request: &str, apps: &[AppEntry]) -> Option<Goal> {
-    if request.chars().any(char::is_control) { return None; }
+    // Line breaks belong only to a list of field values; every other form is one line.
+    if request.chars().any(|c| c.is_control() && c != '\n') { return None; }
+    if request.trim().contains('\n') {
+        let w = words(request);
+        return entry_saved(w.strip_prefix("please ").unwrap_or(&w), request);
+    }
     if let Some((goal, popups, launch_request)) = launch_completion::recognize_with_popups(request, apps) {
         return Some(Goal::Launch { goal, popups, launch_request });
     }
     let w = words(request);
     let w = w.strip_prefix("please ").unwrap_or(&w);
     brightness(w).or_else(|| photo(w)).or_else(|| message(request, apps)).or_else(|| rows_deleted(request))
-        .or_else(|| note_saved(request, apps))
+        .or_else(|| note_saved(request, apps)).or_else(|| entry_saved(w, request))
+}
+
+/// "add|create the following …:" whose remaining lines are one record of field values.
+fn entry_saved(w: &str, request: &str) -> Option<Goal> {
+    let first = request.trim().lines().next()?.trim();
+    if strip_any(w, &["add ", "create "]).is_none() || !first.ends_with(':') { return None; }
+    let fields = crate::fields::owner_fields(request);
+    crate::fields::single_record(&fields).then_some(Goal::EntrySaved { fields })
 }
 
 /// A name the owner gave for a row: short, one line, not a sentence break or a list.
@@ -265,6 +282,7 @@ pub fn assess(goal: &Goal, effects: &[Effect], before: &ScreenState, fresh: &Scr
         Goal::Photo => photo_taken(effects, fresh),
         Goal::RowsDeleted { names } => rows_gone(effects, fresh, names),
         Goal::NoteSaved { name, text } => note_in_list(effects, fresh, name, text),
+        Goal::EntrySaved { fields } => entry_in_app(effects, fresh, fields),
     }
 }
 
@@ -377,6 +395,82 @@ fn note_in_list(effects: &[Effect], fresh: &ScreenState, name: &str, text: &str)
     if !effects[typed + 1..].iter().any(|e| saved_editor(&e.before, name, text)) { return unknown(NOT_YET); }
     if !about(fresh, MARKOR) || !file_row_titled(fresh, name) { return unknown(NOT_YET); }
     verified("code_validated_saved_file", fresh, "the editor held the requested text with nothing unsaved, and Markor's file list shows the new file")
+}
+
+// ---- entry saved (owner field values) ----------------------------------------------------------
+
+/// Words of a field key or label, lower case: `preparationTime` → preparation, time.
+fn key_words(s: &str) -> Vec<String> {
+    let mut out = Vec::new();
+    let mut cur = String::new();
+    for c in s.chars() {
+        if c.is_ascii_uppercase() && !cur.is_empty() && cur.chars().last().is_some_and(|p| p.is_ascii_lowercase()) {
+            out.push(std::mem::take(&mut cur));
+        }
+        if c.is_alphabetic() { cur.push(c.to_ascii_lowercase()); } else if !cur.is_empty() { out.push(std::mem::take(&mut cur)); }
+    }
+    if !cur.is_empty() { out.push(cur); }
+    out.retain(|w| w.chars().count() >= 3);
+    out
+}
+
+fn words_meet(a: &[String], b: &[String]) -> bool {
+    a.iter().any(|x| b.iter().any(|y| x == y || (x.len().min(y.len()) >= 4 && (x.starts_with(y.as_str()) || y.starts_with(x.as_str())))))
+}
+
+/// The label of the field an effect typed into, from the planner's own view of that screen.
+fn field_label(e: &Effect) -> Option<String> {
+    let view = screen_filter::filter(&e.before, &screen_filter::FilterContext { request: "", typed: &[] });
+    let t = e.target?;
+    view.elements.iter().find(|x| x.node == t)?.label.clone()
+}
+
+const SAVE_WORDS: &[&str] = &["save", "done", "add", "create", "submit", "confirm", "ok"];
+
+fn save_control(n: &Node) -> bool {
+    !n.flags.editable && [n.label.as_deref(), n.text.as_deref()].into_iter().flatten().any(|t| {
+        let t = t.trim().to_ascii_lowercase();
+        SAVE_WORDS.contains(&t.as_str()) || t.strip_prefix("save ").is_some_and(|r| r.split_whitespace().count() <= 2)
+    })
+}
+
+fn shows_display(s: &ScreenState, value: &str) -> bool {
+    s.nodes.iter().any(|n| shown(n) && !n.flags.editable && [n.label.as_deref(), n.text.as_deref()].into_iter().flatten()
+        .any(|t| crate::fields::norm(t) == value))
+}
+
+fn entry_in_app(effects: &[Effect], fresh: &ScreenState, fields: &[crate::fields::Field]) -> Assessment {
+    use crate::fields::{entered, Entered};
+    const NOT_YET: &str = "core checks a new entry: every value in the request entered exactly, a Save control tapped, and the app then showing the new entry's name";
+    let mut first = usize::MAX;
+    let mut last = 0;
+    for f in fields {
+        let Some(how) = entered(&f.value, &[], effects) else { return unknown(NOT_YET); };
+        let Some(at) = how.at() else { return unknown(NOT_YET); };
+        // A value typed into a field whose label names another key went to the wrong field.
+        if let Entered::Typed(Some(i)) = how {
+            if let Some(label) = field_label(&effects[i]) {
+                let lw = key_words(&label);
+                let own = words_meet(&key_words(&f.key), &lw);
+                let other = fields.iter().any(|g| g.key != f.key && words_meet(&key_words(&g.key), &lw));
+                if !own && other { return unknown(NOT_YET); }
+            }
+        }
+        first = first.min(at);
+        last = last.max(at);
+    }
+    let Some(save) = effects[last + 1..].iter().rev().find(|e| matches!(e.action, Action::Tap { .. })
+        && e.target.and_then(|t| node(&e.before, t)).is_some_and(save_control)) else { return unknown(NOT_YET); };
+    if !about(fresh, &save.before.package) { return unknown(NOT_YET); }
+    // The form closed: its Save control is gone and no field still holds an entered value.
+    let save_node = save.target.and_then(|t| node(&save.before, t)).expect("save target");
+    let same_control = |n: &Node| n.resource_id == save_node.resource_id && n.label == save_node.label && n.text == save_node.text && shown(n);
+    if fresh.activity == save.before.activity && fresh.nodes.iter().any(same_control) { return unknown(NOT_YET); }
+    if fresh.nodes.iter().any(|n| n.flags.editable && shown(n) && n.text.as_deref()
+        .is_some_and(|t| fields.iter().any(|f| crate::fields::norm(t) == f.value))) { return unknown(NOT_YET); }
+    let name = &fields[0].value;
+    if !shows_display(fresh, name) || effects[..=first].iter().any(|e| shows_display(&e.before, name)) { return unknown(NOT_YET); }
+    verified("code_validated_saved_entry", fresh, "every value in the request was entered exactly, a Save control was tapped, the form closed and the app shows the new entry's name")
 }
 
 const SETTINGS: &str = "com.android.settings";
