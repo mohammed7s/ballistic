@@ -46,11 +46,47 @@ class ComputerControlAdaptersTest {
     }
 
     @Test fun openAppStaysInsideTheSessionTargets() {
-        val s = FakeSession(CcState.Active(targets))
+        val s = FakeSession(CcState.Active(targets), listOf(appWindow("com.b")))
         val hands = ComputerControlHands({ s }, sleep = {})
         assertEquals(HandsResult.NotExecuted(CcReason.NotTarget.message), hands.act(HandsOp.OpenApp("com.other")))
         assertEquals(HandsResult.Ok, hands.act(HandsOp.OpenApp("com.b")))
         assertEquals(listOf("launch com.b -"), s.input.calls)
+    }
+
+    @Test fun openAppWaitsForTheLaunchedAppsTree() {
+        // 27 Nov pilot run 3: the first observation after launch was blank. The launch now
+        // returns once the launched app is in front with nodes, here after two empty reads.
+        val s = FakeSession(CcState.Active(targets), listOf(appWindow("com.a")))
+        s.firstReads.addLast(emptyList()); s.firstReads.addLast(listOf(appWindow("com.b")))
+        val sleeps = mutableListOf<Long>()
+        assertEquals(HandsResult.Ok, ComputerControlHands({ s }, sleep = { sleeps += it }).act(HandsOp.OpenApp("com.a")))
+        assertEquals(listOf(ComputerControlHands.LAUNCH_POLL_MS, ComputerControlHands.LAUNCH_POLL_MS), sleeps)
+        assertEquals(listOf("launch com.a -"), s.input.calls, "never launched again")
+    }
+
+    @Test fun aLaunchThatNeverShowsIsUnknownNotBlank() {
+        val s = FakeSession(CcState.Active(targets), listOf(appWindow("com.b")))
+        var waited = 0L
+        val result = ComputerControlHands({ s }, sleep = { waited += it }).act(HandsOp.OpenApp("com.a"))
+        assertEquals(HandsResult.Error(CcReason.LaunchNotShown.message), result)
+        assertEquals(ComputerControlHands.LAUNCH_WAIT_MS, waited, "bounded")
+        assertEquals(listOf("launch com.a -"), s.input.calls)
+    }
+
+    @Test fun aSessionEndingDuringTheLaunchWaitStopsWaiting() {
+        val s = FakeSession(CcState.Active(targets))
+        var sleeps = 0
+        val result = ComputerControlHands({ s }, sleep = { sleeps++; s.state = CcState.Idle(CcReason.Closed) }).act(HandsOp.OpenApp("com.a"))
+        assertEquals(HandsResult.Ok, result, "the launch call returned; the next observation reports the closed session")
+        assertEquals(1, sleeps)
+    }
+
+    @Test fun launchedTreeNeedsTheLaunchedPackageInFront() {
+        assertFalse(ComputerControlHands.launchedTreeShown(emptyList(), "com.a"))
+        assertFalse(ComputerControlHands.launchedTreeShown(listOf(appWindow("com.b")), "com.a"))
+        assertFalse(ComputerControlHands.launchedTreeShown(listOf(appWindow("com.b"), appWindow("com.a", active = false)), "com.a"))
+        assertFalse(ComputerControlHands.launchedTreeShown(listOf(AxWindow(AxWindowKind.Application, active = true, root = null)), "com.a"))
+        assertTrue(ComputerControlHands.launchedTreeShown(listOf(appWindow("com.a")), "com.a"))
     }
 
     private fun screen(s: FakeSession?, readable: Set<String>, sleeps: MutableList<Long> = mutableListOf()) =

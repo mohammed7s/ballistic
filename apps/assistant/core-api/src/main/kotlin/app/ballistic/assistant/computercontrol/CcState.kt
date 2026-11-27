@@ -41,6 +41,7 @@ enum class CcReason(val message: String) {
     Failed("Computer Control session could not start"),
     NotTarget("app is not in this Computer Control session"),
     NoFrontApp("no app is open in the Computer Control session"),
+    LaunchNotShown("app launch was sent, but the app showed no screen on the Computer Control display in time; effect unknown"),
     AppBlocked("Screen control for this app is off or blocked in Ballistic settings"),
     OutsideDisplay("coordinates are outside the Computer Control display"),
     EmptyArea("scroll or swipe area has no size"),

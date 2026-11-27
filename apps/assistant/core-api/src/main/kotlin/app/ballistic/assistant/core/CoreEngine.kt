@@ -48,6 +48,9 @@ data class StepEvent(
     @SerialName("prompt_tokens") val promptTokens: Int? = null,
     @SerialName("completion_tokens") val completionTokens: Int? = null,
     @SerialName("context_guard") val contextGuard: JsonElement? = null,
+    /** Host facts about the screen this step planned on: package, activity, node count and
+     * whether that package held an app grant (core agent.rs `observed_summary`). No node text. */
+    val observed: JsonElement? = null,
 )
 
 /**

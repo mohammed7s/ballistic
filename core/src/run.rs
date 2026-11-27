@@ -254,9 +254,27 @@ mod tests {
         assert_eq!(h.0, 1);
         assert_eq!(m.1, 1);
         assert_eq!(events.len(), 1);
-        for key in ["step", "action", "why", "outcome", "task_status", "execution_status", "verification", "failure_category", "step_execution_status", "capability_mode", "seconds"] {
+        for key in ["step", "action", "why", "outcome", "task_status", "execution_status", "verification", "failure_category", "step_execution_status", "capability_mode", "seconds", "observed"] {
             assert!(events[0].get(key).is_some(), "{key}");
         }
+        assert_eq!(events[0]["observed"], json!({"package":"example.notes","activity":"Main","nodes":1,"package_granted":true}));
+    }
+
+    #[test]
+    fn step_record_shows_a_blank_observation_behind_a_grant_denial() {
+        // 27 Nov pilot run 3: the screen after open_app had no front package and no nodes, so a
+        // scroll was checked against the empty package and denied. The record must show that.
+        let mut blank = screen();
+        blank.package = String::new();
+        blank.activity = String::new();
+        blank.nodes.clear();
+        blank.capabilities.as_mut().unwrap().operations.push("scroll".into());
+        let (mut s, mut h, mut m, mut c) = (Fixed(blank), CountingHands(0), Scripted(vec![r#"{"action":"scroll","direction":"right","why":"find it"}"#], 0), Answer(ConfirmResult::Approved, 0));
+        let mut events = Vec::new();
+        let report = run("show the stopwatch in notes", 1, &mut s, &mut h, &mut m, &mut c, &mut |e| events.push(e.clone()), &|| false).unwrap();
+        assert_eq!(report["failure_category"], "permission");
+        assert_eq!(h.0, 0);
+        assert_eq!(events[0]["observed"], json!({"package":"","activity":"","nodes":0,"package_granted":false}));
     }
 
     #[test]

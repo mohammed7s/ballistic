@@ -59,6 +59,13 @@ fn target_node(action: &Action, view: &FilteredScreen) -> Option<NodeId> {
     }
 }
 
+/// Host facts about one observation for the step record: package and activity as the host
+/// reported them, whether that package holds an app grant, and the node count. No node text.
+/// It records what grant checks ran against; it is not foreground evidence (launch_completion.rs).
+pub(crate) fn observed_summary(screen: &ScreenState) -> Value {
+    let granted = screen.capabilities.as_ref().is_some_and(|c| c.app_grants.iter().any(|g| g == &screen.package));
+    json!({"package":screen.package,"activity":screen.activity,"nodes":screen.nodes.len(),"package_granted":granted})
+}
 
 /// Upper bound on `Options::planner_corrections`, whatever a host asks for.
 pub const MAX_PLANNER_CORRECTIONS: u32 = 4;
@@ -735,6 +742,9 @@ pub(crate) fn drive_task<H: Host>(host: &mut H, task:&Task, max_steps:u32, optio
         if usage.completion_tokens>0 { event["completion_tokens"]=json!(usage.completion_tokens); }
         if !checks.is_empty() { event["context_guard"]=json!(checks); }
         if self_checked { event["typed_postcondition"]=json!("verified"); }
+        // Host facts about the screen this step planned on (no text): which package the host
+        // reported in front, whether that package holds an app grant, and how many nodes came.
+        event["observed"]=observed_summary(&screen);
         if !parse_notes.is_empty() { event["parse_notes"]=json!(parse_notes); }
         host.log(&event)?;
         if let Some(output)=owner_output {
