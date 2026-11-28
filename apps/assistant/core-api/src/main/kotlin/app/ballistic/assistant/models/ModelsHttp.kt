@@ -40,6 +40,12 @@ data class Endpoint(
     val model: String,
     /** Opt in only for endpoints accepting tool_choice=none without a tools declaration. */
     @SerialName("disable_native_tools") val disableNativeTools: Boolean = false,
+    /**
+     * Opt in only for endpoints accepting `"thinking":{"type":"disabled"}` (Anthropic's
+     * OpenAI-compatible endpoint). Models that think by default otherwise spend the core's small
+     * reader and judge token budgets on hidden reasoning and return empty or cut-off text.
+     */
+    @SerialName("disable_thinking") val disableThinking: Boolean = false,
 )
 
 /**
@@ -90,7 +96,11 @@ private data class ChatRequest(
     @SerialName("max_tokens") val maxTokens: Int,
     @EncodeDefault(EncodeDefault.Mode.NEVER)
     @SerialName("tool_choice") val toolChoice: String? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER)
+    val thinking: JsonObject? = null,
 )
+
+private val THINKING_DISABLED = JsonObject(mapOf("type" to JsonPrimitive("disabled")))
 
 @Serializable
 private data class ChatResponse(val choices: List<Choice> = emptyList(), val usage: Usage? = null) {
@@ -128,7 +138,8 @@ class ModelsHttp(
             throw PortException.Host("invalid base_url for ${role.name.lowercase()}")
         }
         val body = CoreJson.encodeToString(ChatRequest.serializer(), ChatRequest(
-            endpoint.model, messages, maxTokens, if (endpoint.disableNativeTools) "none" else null))
+            endpoint.model, messages, maxTokens, if (endpoint.disableNativeTools) "none" else null,
+            if (endpoint.disableThinking) THINKING_DISABLED else null))
         val connection = try {
             url.openConnection() as HttpURLConnection
         } catch (e: IOException) {

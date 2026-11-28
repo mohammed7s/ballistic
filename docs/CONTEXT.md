@@ -2,7 +2,15 @@
 
 ## Computer Control emulator preparation — updated 28 November 2026
 
-**Latest (28 Nov): run-3 cause fixed; first API-37 subset score.** Root cause of the 27 November
+**Latest (28 Nov, later): Claude Haiku 5.5 on the subset: 3 of 11 combined, 0 false done.**
+With thinking on (the default), Haiku's hidden reasoning used up core's 100-token judge budget.
+Unreadable verdicts failed closed, and 8 of 11 runs ended that way. The new opt-in endpoint option
+`"disable_thinking": true` (`ModelsHttp`, unit-tested) fixed it. Seven failures remain agent-side
+(calendar date navigation, Markor loops, step budget), and two are platform session ends
+(Pro Expense, Broccoli). See [the Haiku record](log/2026-11-28-haiku-api37-subset.md). The AVD now
+runs visible with software GPU and virtual AC power.
+
+**28 Nov: run-3 cause fixed; first API-37 subset score.** Root cause of the 27 November
 grant denial: the observation right after `open_app` was blank (no front package, no nodes), so
 core checked the planner's scroll against an empty package. The grant check was correct.
 
