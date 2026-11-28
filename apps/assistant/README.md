@@ -169,6 +169,13 @@ the observed Gemini tool-call response have not been measured. In particular, th
 Gemini `v1beta/openai` docs do not establish `none` without `tools`. See
 [the transport report](../../docs/log/2026-11-07-model-text-transport.md) for primary sources and tests.
 
+An endpoint may also opt in with `"disable_thinking": true`, which adds only
+`"thinking":{"type":"disabled"}`. It is for Anthropic's OpenAI-compatible endpoint
+(`https://api.anthropic.com/v1/`). Models that think by default, such as Claude Haiku 5.5, otherwise
+spend core's small judge and reader token budgets on hidden reasoning. Their verdicts then come back
+empty or cut off, and core blocks them as unreadable. The default is false, and the option follows
+the same role fallback rules. See [the Haiku record](../../docs/log/2026-11-28-haiku-api37-subset.md).
+
 ### Setting up an emulator for a real run (debug build)
 
 The key never goes on a command line or into the repository. On the host that holds it:

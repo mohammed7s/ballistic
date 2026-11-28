@@ -104,6 +104,28 @@ class ModelsHttpTest {
     }
 
     @Test
+    fun disableThinkingAddsOnlyTheThinkingFieldAndFollowsFallback() {
+        serve(200, """{"choices":[{"message":{"content":"e7"}}]}""")
+        val cfg = checkNotNull(ModelsConfig.decodeOrNull(
+            """{"planner":{"base_url":"$base","model":"p","disable_thinking":true},"reader":{"base_url":"$base","model":"r"}}"""))
+        assertEquals(cfg, ModelsConfig.decodeOrNull(cfg.encode()))
+        val models = ModelsHttp({ cfg }, { null })
+        models.complete(ModelRole.Planner, listOf(ChatMessage("user", "fixture")), 100)
+        assertEquals(Json.parseToJsonElement(
+            """{"model":"p","messages":[{"role":"user","content":"fixture"}],"max_tokens":100,"thinking":{"type":"disabled"}}"""),
+            Json.parseToJsonElement(lastBody))
+        for (role in ModelRole.entries) {
+            models.complete(role, emptyList(), 100)
+            assertEquals(role in listOf(ModelRole.Planner, ModelRole.Verifier, ModelRole.Chat),
+                "thinking" in Json.parseToJsonElement(lastBody).jsonObject)
+        }
+        for (value in listOf("1", "null", "\"disabled\"")) {
+            assertEquals(null, ModelsConfig.decodeOrNull(
+                """{"planner":{"base_url":"$base","model":"p","disable_thinking":$value}}"""))
+        }
+    }
+
+    @Test
     fun optionIsBooleanAndFollowsEndpointFallback() {
         val cfg = checkNotNull(ModelsConfig.decodeOrNull(
             """{"planner":{"base_url":"$base","model":"p","disable_native_tools":true},"reader":{"base_url":"$base","model":"r"}}"""))
