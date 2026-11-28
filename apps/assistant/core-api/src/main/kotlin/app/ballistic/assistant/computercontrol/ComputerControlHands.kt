@@ -9,7 +9,8 @@
 //   ComputerControlSession.insertText(String text, boolean replaceExisting, boolean commit)
 //     InputConnection.commitText on the focused field; commit runs the editor action or Enter
 //   ComputerControlSession.performAction(ACTION_GO_BACK)  the only action; there is no home
-//   ComputerControlSession.launchApplication(String) / (ComponentName)  target packages only
+//   ComputerControlSession.launchApplication(String) / (ComponentName)  target packages only;
+//     it returns before the app draws, so open_app then waits a bounded time for its tree
 // The session runs targets on its own trusted virtual display with its own virtual touchscreen
 // and dpad; nothing reaches the owner's display, so Ballistic's confirmation window (which stays
 // on the default display) cannot receive this input (ConfirmActivity, InjectedInputFilter).
@@ -37,9 +38,17 @@ interface CcSessionView {
     fun frontPackage(): String? = AxTree.frontPackage(windows())
 }
 
+/** Input may have reached the session since the Screen port last observed it. Timing only. */
+class CcInputMarker {
+    private val pending = java.util.concurrent.atomic.AtomicBoolean(false)
+    fun mark() = pending.set(true)
+    fun consume(): Boolean = pending.getAndSet(false)
+}
+
 class ComputerControlHands(
     private val session: () -> CcSessionView?,
     private val sleep: (Long) -> Unit = { Thread.sleep(it) },
+    private val inputs: CcInputMarker = CcInputMarker(),
 ) : Hands {
     override fun act(op: HandsOp): HandsResult {
         val s = session() ?: return CcOps.notExecuted(CcReason.NotStarted)
@@ -63,6 +72,43 @@ class ComputerControlHands(
             override fun back() { checkActive(); s.input.back() }
             override fun launch(`package`: String, activity: String?) { checkActive(); s.input.launch(`package`, activity) }
         }
-        return CcOps.execute(op, guarded, s.width, s.height, sleep)
+        val result = CcOps.execute(op, guarded, s.width, s.height, sleep)
+        if (result !is HandsResult.NotExecuted) inputs.mark()
+        if (op !is HandsOp.OpenApp || result != HandsResult.Ok) return result
+        return awaitLaunched(s, op.`package`)
+    }
+
+    /**
+     * launchApplication returns before the app has drawn. Until the launched app is the front
+     * application window and has a tree, an observation is blank (no front package, no nodes),
+     * and core checks the next action's app grant against that blank package (27 Nov pilot
+     * run 3). Wait a bounded time for it; if it never shows, the launch was sent but its effect
+     * is unknown, so report Error, never a blank screen or a success. A session that ends or
+     * pauses meanwhile returns Ok: the next observation reports that state.
+     */
+    private fun awaitLaunched(s: CcSessionView, pkg: String): HandsResult {
+        var waited = 0L
+        while (true) {
+            if (session() !== s || s.state !is CcState.Active) return HandsResult.Ok
+            if (launchedTreeShown(s.windows(), pkg)) return HandsResult.Ok
+            if (waited >= LAUNCH_WAIT_MS) return HandsResult.Error(CcReason.LaunchNotShown.message)
+            try {
+                sleep(LAUNCH_POLL_MS)
+            } catch (e: InterruptedException) {
+                Thread.currentThread().interrupt()
+                return HandsResult.Error("interrupted after input was sent")
+            }
+            waited += LAUNCH_POLL_MS
+        }
+    }
+
+    companion object {
+        const val LAUNCH_WAIT_MS = 10_000L
+        const val LAUNCH_POLL_MS = 200L
+
+        /** [pkg] is the front application window and at least one of its windows has nodes. */
+        fun launchedTreeShown(windows: List<AxWindow>, pkg: String): Boolean =
+            AxTree.frontPackage(windows) == pkg &&
+                AxTree.toNodes(windows.filter { it.kind == AxWindowKind.Application && it.root?.packageName == pkg }).isNotEmpty()
     }
 }

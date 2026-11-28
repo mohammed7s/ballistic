@@ -1016,7 +1016,10 @@ chat trimming, chat refusal. Not tested: any real model or tokenizer, or an on-d
 
 Implemented today: each step event carries `prompt_tokens` and `completion_tokens`, the sums of
 what the host reported for the step's model calls (absent when every call reported zero, which
-means unknown), and `context_guard` when a context limit was advertised (§12). The rest is design:
+means unknown), and `context_guard` when a context limit was advertised (§12). Since 28 Nov 2026
+each step event also carries `observed: {package, activity, nodes, package_granted}` for the
+screen the step planned on: host facts only, no node text, recording what the grant check ran
+against (not foreground evidence). The rest is design:
 
 Every step appends one JSON line: screen signature, prompt tokens per role, action, source tags
 of its values, judge verdict, policy decision, confirmation result, outcome, time. The harness

@@ -11,6 +11,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 
 class FixtureTest {
@@ -33,10 +34,16 @@ class FixtureTest {
         val files = fixtures()
         assertTrue(files.size >= 11, "expected the recorded screens under $screens, found ${files.size}")
         for (file in files) {
-            val original = Json.parseToJsonElement(file.readText()).jsonObject["screen"]!!
-            val screen = CoreJson.decodeFromJsonElement(ScreenState.serializer(), original)
-            val encoded = CoreJson.encodeToJsonElement(ScreenState.serializer(), screen)
-            assertEquals(original, restrictTo(original, encoded), file.path)
+            val fixture = Json.parseToJsonElement(file.readText()).jsonObject
+            // A single recorded screen, or (core/tests/screens/loop3) a step trace whose steps
+            // each carry a screen and which ends with an `after` screen.
+            val originals = fixture["screen"]?.let { listOf(it) }
+                ?: (fixture["steps"]!!.jsonArray.map { it.jsonObject["screen"]!! } + fixture["after"]!!)
+            for (original in originals) {
+                val screen = CoreJson.decodeFromJsonElement(ScreenState.serializer(), original)
+                val encoded = CoreJson.encodeToJsonElement(ScreenState.serializer(), screen)
+                assertEquals(original, restrictTo(original, encoded), file.path)
+            }
         }
     }
 

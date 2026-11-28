@@ -15,7 +15,8 @@ import java.util.concurrent.atomic.AtomicBoolean
  * Fixed, emulator-only adapter fixture. No model/core decisions, host input or permission grants.
  * Uses production platform/Screen/Hands adapters and the saved Clock policy. This deliberately
  * does not claim to test the agent, UiPolicyHands, operation approvals or the app's full Stop flow.
- * Only launch Clock and tap its Stopwatch tab; never start/reset a timer or stopwatch.
+ * Only launch Clock and tap its Stopwatch tab (from the Clock tab when Stopwatch is already
+ * selected); never start/reset a timer or stopwatch.
  */
 internal class ComputerControlAdapterSmoke(
     private val instrument: Instrumentation,
@@ -77,8 +78,31 @@ internal class ComputerControlAdapterSmoke(
             output.put("before", JSONObject(RecordJson.encodeToString(ScreenState.serializer(), before)))
             check(before.`package` == CLOCK && before.nodes.isNotEmpty()) { "session_clock_tree_missing" }
             checks.put("clock_tree", true)
-            val tabs = before.nodes.filter { n -> n.flags.clickable && n.flags.visible &&
-                (n.label?.equals("Stopwatch", true) == true || n.text?.equals("Stopwatch", true) == true) }
+            fun named(n: Node, name: String) = n.label?.equals(name, true) == true || n.text?.equals(name, true) == true
+            fun clickableTabs(state: ScreenState) = state.nodes.filter { n -> n.flags.clickable && n.flags.visible && named(n, "Stopwatch") }
+            var tabs = clickableTabs(before)
+            // Warm start: Clock reopens on the tab it last showed. A selected Stopwatch tab is a
+            // non-clickable container, so move to the sibling Clock tab first (it only shows the
+            // time; no alarm, timer or stopwatch control is touched) and tap Stopwatch from there.
+            val selectedTabs = before.nodes.filter { n -> n.flags.selected && n.flags.visible && n.label?.equals("Stopwatch", true) == true }
+            if (tabs.isEmpty() && selectedTabs.size == 1) {
+                val parent = selectedTabs.single().parent
+                val clockTabs = before.nodes.filter { n -> n.parent == parent && n.flags.clickable && n.flags.visible &&
+                    n.label?.equals("Clock", true) == true }
+                check(parent != null && clockTabs.size == 1) { "session_clock_tab_ambiguous" }
+                val c = clockTabs.single().bounds
+                val away = hands.act(HandsOp.Tap((c.x1 + c.x2) / 2, (c.y1 + c.y2) / 2))
+                output.put("warm_start", JSONObject().put("stopwatch_already_selected", true)
+                    .put("moved_to", "Clock tab").put("tap", JSONObject(RecordJson.encodeToString(HandsResult.serializer(), away))))
+                check(away == HandsResult.Ok) { "session_clock_tab_tap_failed" }
+                SystemClock.sleep(500)
+                before = screen.observe()
+                output.put("before_stopwatch_tap", JSONObject(RecordJson.encodeToString(ScreenState.serializer(), before)))
+                tabs = clickableTabs(before)
+                checks.put("moved_off_selected_tab", tabs.size == 1)
+            } else {
+                output.put("warm_start", JSONObject().put("stopwatch_already_selected", false))
+            }
             check(tabs.size == 1) { "session_stopwatch_target_ambiguous" }
             val b = tabs.single().bounds
             val tap = hands.act(HandsOp.Tap((b.x1 + b.x2) / 2, (b.y1 + b.y2) / 2))
@@ -87,8 +111,7 @@ internal class ComputerControlAdapterSmoke(
             SystemClock.sleep(500)
             val after = screen.observe()
             output.put("after", JSONObject(RecordJson.encodeToString(ScreenState.serializer(), after)))
-            val selected = after.nodes.any { n -> n.flags.selected &&
-                (n.label?.equals("Stopwatch", true) == true || n.text?.equals("Stopwatch", true) == true) }
+            val selected = after.nodes.any { n -> n.flags.selected && named(n, "Stopwatch") }
             check(selected) { "session_stopwatch_selection_unverified" }
             checks.put("stopwatch_selected", true)
             val denied = hands.act(HandsOp.OpenApp("com.android.settings"))

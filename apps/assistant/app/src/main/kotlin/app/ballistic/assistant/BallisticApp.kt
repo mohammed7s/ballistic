@@ -5,6 +5,7 @@ package app.ballistic.assistant
 
 import android.app.Activity
 import android.app.Application
+import app.ballistic.assistant.computercontrol.CcInputMarker
 import app.ballistic.assistant.computercontrol.CcRunRoute
 import android.content.Intent
 import androidx.core.content.ContextCompat
@@ -149,7 +150,9 @@ class AppGraph(val app: Application) {
         val run = session.state.value
         ccRunRoute.ownsScreen(run.runs.lastOrNull()?.id?.takeIf { run.canStop }, computerControl.state.value.ownsScreen)
     }
-    private val ccHands = ComputerControlHands({ computerControl.view })
+    /** Shared by session Hands and Screen: an input since the last observation (settling only). */
+    private val ccInputs = CcInputMarker()
+    private val ccHands = ComputerControlHands({ computerControl.view }, inputs = ccInputs)
     private fun canDispatch() =
         session.state.value.canStop && session.state.value.runs.lastOrNull()?.stopRequested != true
 
@@ -181,6 +184,7 @@ class AppGraph(val app: Application) {
             InstalledApps.list(app).filter { it.`package` in openable }
         },
         capabilities = ::capabilities,
+        inputs = ccInputs,
     )
 
     val ports = HostPorts(

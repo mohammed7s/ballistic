@@ -1,16 +1,28 @@
 # Computer Control emulator evaluation
 
-Status: 27 November 2026. The repaired image (`2026112300`) is booted and its OS regression test
-passed. Setup was repeated through Android UI.
+Status: 28 November 2026. Same repaired image (`2026112300`), now running headless after a host
+out-of-memory event; userdata and owner setup survived.
 
-- Implemented: no app or fixture code changed.
-- Tested: the model-free adapter fixture passed all six checks cold, three of three runs. Two
-  warm runs obtained trees but stopped at the fixture's tab precondition. No proxy NPE appeared.
-- Tested: the Flash Lite stopwatch pilot passed 2 of 3 runs on agent done, independent state and
-  combined. The failed run's scroll was rejected before dispatch.
-- Planned: everything else below, including the 30-task suite. No suite score exists.
+- Implemented and unit-tested: `open_app` waits a bounded time for the launched app's tree
+  (unknown, not blank, if it never shows); the session Screen port settles its tree and re-reads
+  an unchanged tree after input; step records carry the observed package, node count and grant;
+  the fixture handles an already selected Stopwatch tab; the API-37 suite driver.
+- Tested, adapter only: the fixture passed 9 of 10 runs, including all three warm runs from a
+  selected Stopwatch tab (the other run was a `NotVisible` start right after install).
+- Tested, one task, launch-wait build: Flash Lite "Run the stopwatch." passed 1 of 5 (three
+  `target_resolution` stops after a screensaver detour, one HTTP 429). No grant denial recurred.
+- Tested, eligible subset, settling build: **3 of 11 combined, 4 of 11 state, 0 false done.**
+  Four runs ended on the model rate limit. 19 of the 30 are not eligible (table below).
+- Planned: an approval protocol, display-aware checkers, a second target group, model-call
+  pacing, and the post-transition blank observation.
 
-See the [27 Nov record](log/2026-11-27-repaired-emulator-validation.md).
+See the [28 Nov record](log/2026-11-28-launch-wait-and-api37-suite.md).
+
+Status, 27 November 2026. The repaired image (`2026112300`) is booted and its OS regression test
+passed. Setup was repeated through Android UI. The fixture passed 3/3 cold; the Flash Lite pilot
+passed 2 of 3, and the failed run's scroll was rejected before dispatch (root cause found on
+28 November: the observation after `open_app` was blank). See the
+[27 Nov record](log/2026-11-27-repaired-emulator-validation.md).
 
 Earlier status, 23 November 2026. Pilot test driver and compatible image built; image delivered with a
 matching checksum. The visible AVD booted, APKs installed and assistant-role permission grant
@@ -27,6 +39,65 @@ The Pixel has the compatible APK installed, but owner setup and live session val
 pending. Its adapter reads accessibility/UI trees; screenshot-based model observation is not
 implemented. The existing downloaded OS artifacts are Pixel `blazer` images, not emulator
 images. A separate compatible emulator image completed on Contabo using the existing source.
+
+## API-37 port of the frozen 30, 28 November 2026
+
+Plan, in order: classify every task on this image without changing its identity or seed;
+set up the eligible apps through owner-style UI; check that AndroidWorld's own setup and checker
+run over adb; run the eligible subset once per task with Flash Lite; then widen eligibility (an
+approval protocol, display-aware UI checkers, a second six-target group). Protected Settings
+tasks stay classified. Nothing here touches the held-out 25 in
+[ANDROIDWORLD_TASKS.md](ANDROIDWORLD_TASKS.md) §5; the 30 are the practice 20 and rotation 10.
+
+The frozen table is `harness/suites/computer_control_30_api37.json`. Seed-0 goals come from
+AndroidWorld's own `generate_random_params` after `random.seed(0)` and `numpy.random.seed(0)`.
+
+| Status | Count | Tasks | Why |
+|---|---:|---|---|
+| eligible | 11 | ContactsAddContact, ClockStopWatchRunning, ClockStopWatchPausedVerify, SimpleCalendarAddOneEvent, SimpleCalendarEventsOnDate, MarkorCreateNote, MarkorCreateFolder, MarkorEditNote, MarkorMoveNote, ExpenseAddSingle, RecipeAddSingleRecipe | App installed or present; AndroidWorld setup and checker run over adb, except both stopwatch tasks (adapted Clock-preference checkers). The calendar tasks run with the real 2026 device date (see below). |
+| policy_blocked | 5 | OpenAppTaskEval, SystemWifiTurnOff, SystemBluetoothTurnOn, SystemBrightnessMax, TurnOnWifiAndOpenApp | Settings/SystemUI are protected Computer Control targets. Seed 0 makes OpenAppTaskEval "Open the settings app". |
+| approval_gated | 8 | SimpleSmsSend, SimpleSmsReplyMostRecent, SimpleSmsReply, MarkorDeleteNote, ExpenseDeleteSingle, ExpenseDeleteMultiple2, FilesDeleteFile, SimpleCalendarDeleteOneEvent | Send or delete needs the owner's fingerprint on the real prompt; no approval protocol exists yet. SMS also needs the protected SMS role and a default-display foreground check; FilesDeleteFile's goal names AndroidWorld's storage label. |
+| checker_needs_adaptation | 1 | ClockTimerEntry | AndroidWorld reads the entered digits from the default display's UI tree; the task runs on the session display and the entry is not persisted. |
+| setup_unavailable | 1 | MarkorCreateNoteFromClipboard | `clipper.apk` targets SDK < 4; API 37 refuses it (`INSTALL_FAILED_DEPRECATED_SDK_VERSION`). |
+| app_unavailable | 1 | CameraTakePhoto | AndroidWorld's `com.android.camera2` is absent; no substitute camera is used. |
+| time_dependent | 1 | SimpleCalendarNextMeetingWithPerson | "Next meeting" is relative to AndroidWorld's fixed 15 Oct 2023 date. |
+| deferred_session_limit | 2 | NotesIsTodo, RetroPlayingQueue | Joplin and Retro Music install (target SDK 33) but would be a seventh and eighth target. |
+
+**Device date.** AndroidWorld sets the device to 15 October 2023. Here the model calls leave the
+device over TLS, so the driver keeps the real date and sets only UTC and 24-hour format, as
+AndroidWorld's `setup_datetime` also does. Calendar tasks whose dates are absolute stay eligible,
+with the deviation recorded per task.
+
+**Suite driver (implemented, unit-tested).** `harness/apk_suite.py` loads the frozen table and
+refuses tasks that are not eligible. For each task it builds AndroidWorld's task class (seed 0),
+roots adbd, runs AndroidWorld's `initialize_task` through an adb-only environment, force-stops the
+task's apps and unroots adbd. Then it sends only the goal string to the APK (`apk_control.run_goal`;
+15-step APK budget). Afterwards it roots adbd again and runs the checker: AndroidWorld's
+`is_successful`, or the adapted Clock check. For the answer task, the raw sourced answer text goes
+into the checker environment only. The record keeps agent done, agent-complete (done or delivered
+answer), independent state, combined pass and false done (agent-complete while the check failed).
+UI-tree reads by a checker raise an error rather than read the wrong display. Setup errors never
+start the agent; there are no retries. Before the agent starts, the driver refuses a device clock
+moved by setup (AndroidWorld's inner tasks reset it) and runs any listed operator step
+(ContactsAddContact: Settings > Apps > Contacts storage > Device only, through the UI, because
+clearing the contacts provider resets it and the editor otherwise opens that protected picker).
+AndroidWorld's Google Clock and Contacts names map to the AOSP apps on this image; no other app
+is substituted. Fifteen host tests cover ordering (root only around setup and checking), false
+done, answer delivery, the adapted checks, the date guard and refusal of ineligible tasks.
+
+```bash
+~/android_world/.venv/bin/python -m harness.apk_suite --serial emulator-5554 --out-dir DIR
+python3 -m harness.apk_suite --list
+```
+
+**Result (tested, one counted run per task).** Combined pass: ContactsAddContact,
+ClockStopWatchRunning, ClockStopWatchPausedVerify. State also passed for MarkorEditNote without an
+accepted done. Rate limit (HTTP 429): MarkorCreateNote, MarkorCreateFolder, MarkorEditNote,
+MarkorMoveNote. Platform closed the session: ExpenseAddSingle. Agent-side: both calendar tasks
+(a blank observation after a tap; a judge false block) and RecipeAddSingleRecipe (repeat-loop
+stop). A first pass was invalidated by three driver/environment faults, fixed before the nine
+affected tasks were run again; details and per-task numbers are in the
+[28 Nov record](log/2026-11-28-launch-wait-and-api37-suite.md).
 
 ## Platform deliverable
 
