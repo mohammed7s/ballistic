@@ -18,6 +18,7 @@ from __future__ import annotations
 import argparse
 import json
 import random
+import re
 import time
 from pathlib import Path
 import uuid
@@ -31,6 +32,11 @@ SUITE_DIR = Path(__file__).resolve().parent / "suites"
 ELIGIBILITY = SUITE_DIR / "computer_control_30_api37.json"
 FROZEN = SUITE_DIR / "computer_control_30.json"
 SEED = 0
+# AndroidWorld app name -> the AOSP component on this image (AndroidWorld expects Google's builds).
+AOSP_ACTIVITIES = {
+    "clock": "com.android.deskclock/com.android.deskclock.DeskClock",
+    "contacts": "com.android.contacts/com.android.contacts.activities.PeopleActivity",
+}
 # DeskClock UiDataModel.Tab ordinals at the pinned AOSP source: ALARMS, CLOCKS, TIMERS, STOPWATCH.
 STOPWATCH_TAB = 3
 
@@ -46,6 +52,9 @@ def load_table(path: Path = ELIGIBILITY) -> dict:
             raise ValueError(f"{name}: unknown status")
         if entry["status"] == "eligible" and not entry.get("checker"):
             raise ValueError(f"{name}: eligible without a checker")
+        unknown = [s for s in entry.get("operator_setup", []) if s not in OPERATOR_STEPS]
+        if unknown:
+            raise ValueError(f"{name}: unknown operator setup {unknown}")
     return table
 
 
@@ -102,7 +111,16 @@ def aw_env(adb_path: str, serial: str):
     file pull/push and the interaction cache. UI-tree reads are refused: those checkers read the
     default display, and these tasks run on the session's virtual display."""
     from android_env.components import adb_call_parser, adb_controller, config_classes
-    from android_world.env import android_world_controller
+    from android_world.env import adb_utils, android_world_controller
+
+    # AndroidWorld's image ships Google's Clock and Contacts; this image ships the AOSP apps with
+    # the same activities. Map only those two names; every other app keeps AndroidWorld's package.
+    activities = dict(adb_utils._PATTERN_TO_ACTIVITY)  # pylint: disable=protected-access
+    for pattern, component in AOSP_ACTIVITIES.items():
+        if pattern not in activities:
+            raise RuntimeError(f"AndroidWorld has no app pattern {pattern!r}")
+        activities[pattern] = component
+    adb_utils._PATTERN_TO_ACTIVITY = activities  # pylint: disable=protected-access
 
     controller = adb_controller.AdbController(config_classes.AdbControllerConfig(
         adb_path=adb_path, device_name=serial))
@@ -150,12 +168,23 @@ def initialize(task, env) -> None:
     24-hour format are still set, as AndroidWorld's setup_datetime does."""
     from android_world.utils import datetime_utils
 
-    def time_without_date(_env):
+    from android_world.task_evals import task_eval
+
+    def time_without_date(_self, _env):
         datetime_utils._enable_24_hour_format(env.controller)  # pylint: disable=protected-access
         datetime_utils._set_timezone_to_utc(env.controller)  # pylint: disable=protected-access
 
-    task.initialize_device_time = time_without_date
+    # Class-wide: some tasks initialize inner TaskEval objects (Markor's file validators), which
+    # an instance attribute on the outer task does not reach (27 Nov run: the date moved to 2023).
+    task_eval.TaskEval.initialize_device_time = time_without_date
     task.initialize_task(env)
+
+
+def check_device_date(adb: Adb, now=time.time, tolerance: float = 3600.0) -> None:
+    """Refuse to start the agent when setup moved the device clock: on-device TLS would fail."""
+    raw = adb.shell("date", "+%s")
+    if not raw.strip().isdigit() or abs(int(raw.strip()) - now()) > tolerance:
+        raise RuntimeError("device date differs from the host after setup")
 
 
 # ---- adapted Clock checkers --------------------------------------------------------------------
@@ -190,10 +219,43 @@ def clock_check(name: str, xml: str | None) -> dict:
     return {"stopwatch_state": state, "selected_tab": tab, "passed": passed}
 
 
+# ---- owner-style setup steps on the default display (test operator, never the agent) -----------
+
+def _ui_nodes(adb: Adb) -> list[ET.Element]:
+    adb.shell("rm", "-f", "/sdcard/operator-ui.xml")
+    adb.shell("uiautomator", "dump", "/sdcard/operator-ui.xml")
+    return list(ET.fromstring(adb.shell("cat", "/sdcard/operator-ui.xml")).iter("node"))
+
+
+def contacts_storage_device_only(adb: Adb, sleep=time.sleep) -> None:
+    """AndroidWorld's contacts setup clears the contacts provider, which also clears Android's
+    default-account choice; the editor then opens Settings' account picker, a protected target that
+    blocks the session. Choose "Device only" in Settings, as an owner would, before the run."""
+    adb.shell("am", "start", "-W", "-n", "com.android.settings/.Settings$ContactsStorageSettingsActivity")
+    for _ in range(10):
+        sleep(1.0)
+        rows = [n for n in _ui_nodes(adb) if n.get("text") == "Device only"]
+        if len(rows) == 1:
+            break
+    else:
+        raise RuntimeError("Contacts storage page not shown")
+    x1, y1, x2, y2 = map(int, re.findall(r"\d+", rows[0].get("bounds")))
+    adb.shell("input", "tap", str((x1 + x2) // 2), str((y1 + y2) // 2))
+    sleep(1.5)
+    boxes = [n for n in _ui_nodes(adb) if n.get("resource-id") == "android:id/checkbox"]
+    if len(boxes) != 1 or boxes[0].get("checked") != "true":
+        raise RuntimeError("Contacts storage not set to Device only")
+    adb.shell("am", "force-stop", "com.android.settings")
+
+
+OPERATOR_STEPS = {"contacts_storage_device_only": contacts_storage_device_only}
+
+
 # ---- one task ----------------------------------------------------------------------------------
 
 def run_one(name: str, entry: dict, adb: Adb, env, timeout: int, out_dir: Path,
-            agent=run_goal, root=OperatorRoot, task_factory=make_task, init=initialize) -> dict:
+            agent=run_goal, root=OperatorRoot, task_factory=make_task, init=initialize,
+            date_check=check_device_date) -> dict:
     record = {"schema": 1, "task": name, "seed": SEED, "checker": entry["checker"],
               "original_androidworld_checker": entry["checker"].startswith("androidworld"),
               "deviation": entry.get("deviation"), "packages": entry["packages"],
@@ -203,10 +265,14 @@ def run_one(name: str, entry: dict, adb: Adb, env, timeout: int, out_dir: Path,
     try:
         with root(adb):
             init(task, env)
+            for step in entry.get("operator_setup", []):
+                OPERATOR_STEPS[step](adb)
             for package in entry["packages"]:
                 adb.shell("am", "force-stop", package)
+            date_check(adb)
     except Exception as exc:  # noqa: BLE001  never start the agent on an unknown setup
-        record.update(status="setup_error", setup_error_type=type(exc).__name__,
+        # Operator-side text only (setup ran on the host); bounded, never shown to the agent.
+        record.update(status="setup_error", setup_error_type=type(exc).__name__, setup_error=str(exc)[:300],
                       agent_done=False, state="not_checked", combined_pass=False, false_done=False)
         return record
     report = None
@@ -241,7 +307,8 @@ def run_one(name: str, entry: dict, adb: Adb, env, timeout: int, out_dir: Path,
                               combined_pass=bool(outcome["combined_success"]),
                               answer_delivered=delivery["delivered"])
     except Exception as exc:  # noqa: BLE001
-        record.update(state="error", checker_error_type=type(exc).__name__, combined_pass=False)
+        record.update(state="error", checker_error_type=type(exc).__name__, checker_error=str(exc)[:300],
+                      combined_pass=False)
     # Agent-complete: an accepted done, or for an answer task a sourced answer delivered to the
     # checker. False done: agent-complete while the independent check failed.
     record["agent_complete"] = agent_done or record.get("answer_delivered") is True

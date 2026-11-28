@@ -122,7 +122,8 @@ class RunOneTest(unittest.TestCase):
             return run_one(name, entry or self.entry, FakeAdb(log, prefs), FakeEnv(), 30, Path(directory),
                            agent=agent_writing(log, directory, report), root=FakeRoot(log),
                            task_factory=lambda n: FakeTask(log, success),
-                           init=init or (lambda task, env: log.events.append(("setup", log.rooted))))
+                           init=init or (lambda task, env: log.events.append(("setup", log.rooted))),
+                           date_check=lambda adb: None)
 
     def test_setup_and_check_rooted_agent_unrooted_checker_after_agent(self):
         log = Log()
@@ -181,6 +182,33 @@ class RunOneTest(unittest.TestCase):
         self.assertTrue(record["combined_pass"])
         self.assertFalse(record["original_androidworld_checker"])
         self.assertIn(("shell", "sh", True), log.events, "preferences are read only while rooted")
+
+
+class DeviceDateTest(unittest.TestCase):
+    class DateAdb:
+        def __init__(self, epoch):
+            self.epoch = epoch
+
+        def shell(self, *args):
+            assert args == ("date", "+%s")
+            return self.epoch
+
+    def test_a_moved_device_date_stops_before_the_agent(self):
+        apk_suite.check_device_date(self.DateAdb("1000000"), now=lambda: 1000100.0)
+        for epoch in ("1697384596", "", "Sun Oct 15"):
+            with self.subTest(epoch=epoch), self.assertRaises(RuntimeError):
+                apk_suite.check_device_date(self.DateAdb(epoch), now=lambda: 1795000000.0)
+
+    def test_setup_that_moves_the_date_is_a_setup_error(self):
+        log = Log()
+        def moved(adb):
+            raise RuntimeError("device date differs from the host after setup")
+        with tempfile.TemporaryDirectory() as directory:
+            record = run_one("Task", RunOneTest.entry, FakeAdb(log), FakeEnv(), 30, Path(directory),
+                             agent=agent_writing(log, directory, {"done": True}), root=FakeRoot(log),
+                             task_factory=lambda n: FakeTask(log), init=lambda t, e: None, date_check=moved)
+        self.assertEqual(record["status"], "setup_error")
+        self.assertFalse(any(isinstance(e, tuple) and e[0] == "agent" for e in log.events))
 
 
 class RunSuiteTest(unittest.TestCase):
