@@ -1,8 +1,34 @@
 # Ballistic: current decisions and handoff
 
-## Computer Control emulator preparation — updated 27 November 2026
+## Computer Control emulator preparation — updated 28 November 2026
 
-**Latest (27 Nov): repaired image validated on the emulator.** `BallisticControlApi37` runs
+**Latest (28 Nov): run-3 cause fixed; first API-37 subset score.** Root cause of the 27 November
+grant denial: the observation right after `open_app` was blank (no front package, no nodes), so
+core checked the planner's scroll against an empty package. The grant check was correct.
+
+- **Implemented, unit-tested:** after a launch, the session Hands adapter waits (bounded) for the
+  launched app's tree and reports an unknown outcome, not a blank screen, if it never shows. The
+  session Screen port settles its tree and re-reads an unchanged tree after input, as the harness
+  does. Core step records carry `observed` (package, activity, node count, grant). The fixture
+  handles an already selected Stopwatch tab. `harness/apk_suite.py` runs AndroidWorld's own seed-0
+  setup and checkers over adb (root only for setup/checking) and sends only the goal to the APK.
+- **Tested, adapter only:** fixture 9 of 10 passed, all three warm runs included.
+- **Tested, one task:** Flash Lite stopwatch pilot 1 of 5 on the launch-wait build; no grant
+  denial or blank post-launch observation recurred; three runs ended in a screensaver detour, one
+  on HTTP 429. Settling was added afterwards and was not piloted.
+- **Tested, eligible subset (11 of the 30):** 3 combined pass, 4 independent state, 0 false done,
+  one counted run per task. Four ended on the model rate limit. The other 19 are classified
+  (`harness/suites/computer_control_30_api37.json`): 5 protected Settings, 8 approval-gated,
+  and 6 app, setup, checker, date or session-limit cases. This is not a 30-task score.
+- **Planned:** approval protocol, post-transition blank observation, model-call pacing,
+  display-aware checkers, a second six-target group.
+
+The ThinkPad's GNOME session was OOM-killed during the build (emulator with it); the AVD was
+restarted headless with software rendering. See the
+[28 Nov record](log/2026-11-28-launch-wait-and-api37-suite.md) and the
+[evaluation guide](COMPUTER_CONTROL_EVALUATION.md#api-37-port-of-the-frozen-30-28-november-2026).
+
+**27 Nov: repaired image validated on the emulator.** `BallisticControlApi37` runs
 build `2026112300` with the accessibility-proxy fix. Its OS regression test passed (50/50).
 The wiped setup was redone through Android UI: assistant role (`GRANTED_BY_ROLE`), persisted
 Screen automation switches, test PIN with simulated fingerprint, Connected server, notifications
@@ -17,8 +43,8 @@ or approval bypasses were used.
   passed (agent done, independent state running). Run 3 failed: core rejected a `scroll` before
   dispatch (`permission` category; not an owner denial). Possible but unconfirmed contributor:
   an empty first observation after launch.
-- **Planned:** diagnose that rejection, a warm-safe fixture, Stop/revocation/approval tests and
-  the API-37 AndroidWorld suite.
+- **Planned then:** diagnose that rejection (done 28 Nov), a warm-safe fixture (done 28 Nov),
+  Stop/revocation/approval tests and the API-37 AndroidWorld suite (started 28 Nov).
 
 See the [27 Nov record](log/2026-11-27-repaired-emulator-validation.md).
 
